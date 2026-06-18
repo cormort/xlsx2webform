@@ -219,6 +219,7 @@ def check_session_auth(session_id: str, password_header: Optional[str] = None, p
 class SaveRequest(BaseModel):
     """Request to save edited data."""
     data: list
+    name: Optional[str] = None
 
 
 class TemplateData(BaseModel):
@@ -373,6 +374,7 @@ async def upload_xlsx(
     mode: str = Form("table"),  # 'table' or 'form'
     email: str = Form(""),
     password: str = Form(""),
+    name: str = Form(""),
 ):
     """Upload an XLSX file and convert to HTML table or form (Open for public creation)."""
     if not file.filename.endswith(('.xlsx', '.xls')):
@@ -403,7 +405,7 @@ async def upload_xlsx(
             # Form mode
             session = SessionData(
                 id=session_id,
-                name=file.filename,
+                name=name if name else file.filename,
                 created_at=datetime.now().isoformat(),
                 updated_at=datetime.now().isoformat(),
                 original_html="",
@@ -428,7 +430,7 @@ async def upload_xlsx(
             # Table mode (default)
             session = SessionData(
                 id=session_id,
-                name=file.filename,
+                name=name if name else file.filename,
                 created_at=datetime.now().isoformat(),
                 updated_at=datetime.now().isoformat(),
                 original_html=result['html'],
@@ -509,6 +511,8 @@ async def save_session(
     """Save edited data to session. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     session.current_data = request.data
+    if request.name:
+        session.name = request.name
     session.updated_at = datetime.now().isoformat()
     _save_session(session_id)
 

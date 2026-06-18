@@ -168,6 +168,10 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
                 <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">🔑 設定專案編輯密碼</label>
                 <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
             </div>
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📁 專案名稱 (選填，預設為 Excel 檔名)</label>
+                <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+            </div>
         </div>
         <div class="icon">📄</div>
         <h3>上傳 XLSX 檔案</h3>
@@ -192,6 +196,12 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     </div>
 
     <div id="editor-tab" class="editor-tab">
+
+        <!-- Project name edit section -->
+        <div class="project-info-edit" style="margin-bottom:12px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px">
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">📁 專案名稱：</label>
+            <textarea id="editor-project-name" rows="1" style="flex:1;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
+        </div>
 
     <div class="toolbar">
         <button class="btn btn-success" id="btn-save">💾 儲存</button>
@@ -678,6 +688,7 @@ async function projectUpload(file){
         toast('請先輸入 Email 與專案編輯密碼！',1);
         return;
     }
+    const customName = (document.getElementById('project-name-input')?.value || '').trim();
     const loading=document.getElementById('project-upload-loading');
     const area=document.getElementById('project-upload-area');
     loading.style.display='block';area.style.display='none';
@@ -685,6 +696,9 @@ async function projectUpload(file){
     fd.append('file',file);
     fd.append('email',email);
     fd.append('password',password);
+    if(customName) {
+        fd.append('name',customName);
+    }
     try{
         const headers={};
         const adminTk=getAdminToken();
@@ -733,6 +747,12 @@ async function loadEditorSession(){
         original=JSON.parse(JSON.stringify(data));
         fileName.textContent=res.name||'';
         document.getElementById('app-title').textContent='✏️ '+res.name?.replace(/\.xlsx?$/i,'')||'預算表單編輯器';
+        
+        const editorProjName = document.getElementById('editor-project-name');
+        if (editorProjName) {
+            editorProjName.value = res.name || '';
+        }
+        
         recalcAutoSum();render();
         editor.style.display='block';
         if(window.location.hash==='#responses'){
@@ -815,7 +835,25 @@ function updateFormulaCols(){
 
 // ===== Editor Event Binds (run once) =====
 (function bindEditorEvents(){
-    document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-save').addEventListener('click',async()=>{
+        if(!sessionId)return;
+        try{
+            const updatedName = (document.getElementById('editor-project-name')?.value || '').trim();
+            const r=await fetch(`/api/sessions/${sessionId}/save`,{
+                method:'POST',
+                headers:{'Content-Type':'application/json', ...getAuthHeaders()},
+                body:JSON.stringify({session_id:sessionId,data,name:updatedName})
+            });
+            if(r.ok){
+                isDirty=false;
+                if(updatedName) {
+                    document.getElementById('file-name').textContent = updatedName;
+                    document.getElementById('app-title').textContent = '✏️ ' + updatedName.replace(/\.xlsx?$/i, '');
+                }
+                toast('已儲存');
+            } else throw new Error('失敗');
+        }catch(e){toast(e.message,1)}
+    });
     document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
     document.getElementById('btn-export-xlsx').addEventListener('click',async()=>{
         if(!sessionId)return;
