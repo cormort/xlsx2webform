@@ -245,9 +245,17 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <div id="fill-table-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
         </div>
     </div>
-    <div id="fill-submit-area" class="submit-bar">
-        <input id="fill-respondent" placeholder="你的姓名（選填）">
-        <div style="display:flex;gap:8px;align-items:center">
+    <div id="fill-submit-area" class="submit-bar" style="flex-wrap:wrap;row-gap:12px">
+        <div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px;flex-basis:100%">
+            <span style="font-size:12px;color:#64748b;font-weight:600">填表人身分（若日後需修正，請務必填寫 Email 與密碼）</span>
+            <a href="javascript:void(0)" id="link-fill-load-old" style="font-size:12px;color:#2563eb;text-decoration:none">🔍 載入我之前填過的資料</a>
+        </div>
+        <div style="display:flex;gap:8px;flex:1;min-width:300px;flex-wrap:wrap">
+            <input id="fill-respondent" placeholder="你的姓名（選填）" style="max-width:130px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+            <input id="fill-email" type="email" placeholder="你的 Email（修正用）" style="flex:1;min-width:180px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+            <input id="fill-password" type="password" placeholder="設定填表密碼（修正用）" style="flex:1;min-width:150px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
             <button class="btn btn-outline" id="btn-fill-import-xlsx" style="font-size:12px;padding:4px 10px">📥 匯入 Excel</button>
             <span style="color:#cbd5e1">|</span>
             <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:12px;padding:4px 10px">＋列</button>
@@ -702,8 +710,14 @@ function updateFormulaCols(){
             }
             const headers=(data[0]||[]).map(c=>c.value||'');
             const fulls=[];
-            for(const resp of res.responses){
-                const rd=await fetch(`/api/sessions/${sessionId}/responses/${resp.id}`);const full=await rd.json();fulls.push(full);
+            for(let i=0;i<res.responses.length;i++){
+                const listResp=res.responses[i];
+                const rd=await fetch(`/api/sessions/${sessionId}/responses/${listResp.id}`,{headers:getAuthHeaders()});
+                const full=await rd.json();
+                full.email=listResp.email;
+                full.modified=listResp.modified;
+                full.modified_at=listResp.modified_at;
+                fulls.push(full);
             }
             const maxC=Math.max(...fulls.map(f=>{const d=f.data||[];return Math.max(...d.map(r=>r.length||0),1)}),1);
             let h='<table class="resp-compare-table"><thead><tr><th style="min-width:30px">#</th><th>填表人</th><th>時間</th>';
@@ -712,8 +726,14 @@ function updateFormulaCols(){
             fulls.forEach((full,idx)=>{
                 const resp=full;const rowData=resp.data||[];
                 const firstRow=rowData[0]||[];
+                const modifiedBadge=resp.modified
+                    ? `<span class="badge" style="background:#fef3c7;color:#d97706;margin-left:4px;font-size:10px;padding:1px 4px" title="修改時間：${resp.modified_at}">⚠️ 已修正</span>`
+                    : '';
+                const emailLabel=resp.email
+                    ? `<br><span style="font-size:11px;color:#94a3b8">${escape(resp.email)}</span>`
+                    : '';
                 h+=`<tr><td style="text-align:center;color:#94a3b8">${idx+1}</td>`;
-                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong></td>`;
+                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong>${modifiedBadge}${emailLabel}</td>`;
                 h+=`<td class="resp-row-label">${resp.submitted_at}</td>`;
                 for(let c=0;c<maxC;c++){
                     let val='';
@@ -784,6 +804,7 @@ async function initFillMode(){
         document.getElementById('file-name').textContent=res.name||'';
         renderFillTable();
         bindFillImportEvents();
+        bindFillHistoryLoad();
         document.getElementById('fill-mode').style.display='block';
     }catch(e){
         toast(e.message,1);
@@ -841,6 +862,43 @@ function bindFillImportEvents(){
     });
 }
 
+function bindFillHistoryLoad(){
+    const loadLink=document.getElementById('link-fill-load-old');
+    if(!loadLink)return;
+    loadLink.addEventListener('click',async()=>{
+        const email=prompt('請輸入您的填表 Email：');
+        if(email===null)return;
+        if(!email.trim()){
+            toast('必須輸入 Email 才能載入紀錄',1);
+            return;
+        }
+        const password=prompt('請輸入您當初設定的填表密碼：');
+        if(password===null)return;
+        if(!password.trim()){
+            toast('必須輸入密碼才能載入紀錄',1);
+            return;
+        }
+        toast('正在載入歷史填寫資料⋯');
+        try{
+            const r=await fetch(`/api/fill/${fillToken}/load-response`,{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({email:email.trim(),password:password.trim()})
+            });
+            const res=await r.json();
+            if(!r.ok)throw new Error(res.detail||'載入失敗');
+            data=res.data||[];
+            document.getElementById('fill-respondent').value=res.respondent||'';
+            document.getElementById('fill-email').value=email.trim();
+            document.getElementById('fill-password').value=password.trim();
+            renderFillTable();
+            toast('已成功還原您之前的填表數據，您可以進行修改，隨後點擊「送出」即可重新儲存！');
+        }catch(e){
+            toast(e.message,1);
+        }
+    });
+}
+
 function renderFillTable(){
     if(!data.length){document.getElementById('fill-table-container').innerHTML='';return}
     const maxC=Math.max(...data.map(r=>r.length||0),1);
@@ -893,10 +951,23 @@ function onFillPaste(e){
 
 document.getElementById('btn-fill-submit').addEventListener('click',async()=>{
     const respondent=document.getElementById('fill-respondent').value.trim();
+    const email=document.getElementById('fill-email').value.trim();
+    const password=document.getElementById('fill-password').value.trim();
+    if((email&&!password)||(!email&&password)){
+        toast('若要設定身分，Email 與填表密碼必須同時填寫！',1);
+        return;
+    }
     if(!confirm('確定送出填寫資料？'))return;
     try{
-        const r=await fetch(`/api/fill/${fillToken}/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,respondent})});
-        if(!r.ok)throw new Error('送出失敗');
+        const r=await fetch(`/api/fill/${fillToken}/submit`,{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({data,respondent,email,password})
+        });
+        if(!r.ok){
+            const res=await r.json();
+            throw new Error(res.detail||'送出失敗');
+        }
         document.getElementById('fill-submit-area').style.display='none';
         document.getElementById('fill-success').style.display='block';
         toast('已成功送出');
@@ -929,6 +1000,10 @@ document.getElementById('btn-fill-del-row').addEventListener('click',()=>{
 document.getElementById('btn-fill-another').addEventListener('click',()=>{
     const resp=document.getElementById('fill-respondent');
     if(resp)resp.value='';
+    const emailInput=document.getElementById('fill-email');
+    if(emailInput)emailInput.value='';
+    const pwdInput=document.getElementById('fill-password');
+    if(pwdInput)pwdInput.value='';
     data=JSON.parse(JSON.stringify(original));
     renderFillTable();
 });

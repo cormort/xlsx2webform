@@ -482,6 +482,13 @@ class PublishResponse(BaseModel):
 class SubmitRequest(BaseModel):
     data: list
     respondent: Optional[str] = ""
+    email: Optional[str] = ""
+    password: Optional[str] = ""
+
+
+class LoadResponseRequest(BaseModel):
+    email: str
+    password: str
 
 @app.post("/api/sessions/{session_id}/publish")
 async def publish_form(
@@ -576,19 +583,91 @@ async def submit_fill(token: str, request: SubmitRequest):
         raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
     session_id = publish_store[token]
 
+    import hashlib
+    respondent_email = request.email.strip() if request.email else ""
+    password_hash = ""
+    if request.password:
+        password_hash = hashlib.sha256(request.password.encode('utf-8')).hexdigest()
+
+    # 尋找是否已有同一個 Email 的填寫記錄 (自動覆蓋修正)
+    existing_resp = None
+    if session_id in response_store and respondent_email:
+        for r in response_store[session_id]:
+            if r.get("email") == respondent_email:
+                existing_resp = r
+                break
+
+    if existing_resp:
+        # 如果已經填過，必須校驗密碼
+        if not request.password or existing_resp.get("password_hash") != password_hash:
+            raise HTTPException(
+                status_code=403,
+                detail="此 Email 已有填表紀錄。如欲修改，請輸入您當初設定的填表密碼。"
+            )
+
+        # 密碼正確，直接覆蓋修正該項目
+        existing_resp["data"] = request.data
+        existing_resp["respondent"] = request.respondent or ""
+        existing_resp["modified"] = True
+        existing_resp["modified_at"] = datetime.now().isoformat()
+        _save_persist("response_store")
+
+        return {
+            "success": True,
+            "response_id": existing_resp["id"],
+            "message": "修正成功",
+            "modified": True,
+            "submitted_at": existing_resp["modified_at"]
+        }
+
+    # 全新提交
     resp = {
         "id": str(uuid.uuid4())[:8],
         "session_id": session_id,
         "data": request.data,
         "respondent": request.respondent or "",
-        "submitted_at": datetime.now().isoformat()
+        "email": respondent_email,
+        "password_hash": password_hash,
+        "submitted_at": datetime.now().isoformat(),
+        "modified": False,
+        "modified_at": None
     }
     if session_id not in response_store:
         response_store[session_id] = []
     response_store[session_id].append(resp)
     _save_persist("response_store")
 
-    return {"success": True, "response_id": resp["id"], "submitted_at": resp["submitted_at"]}
+    return {
+        "success": True,
+        "response_id": resp["id"],
+        "modified": False,
+        "submitted_at": resp["submitted_at"]
+    }
+
+
+@app.post("/api/fill/{token}/load-response")
+async def load_filler_response(token: str, request: LoadResponseRequest):
+    """Load a previous submission for a filler to modify."""
+    if token not in publish_store:
+        raise HTTPException(status_code=404, detail="Form not found")
+    session_id = publish_store[token]
+
+    import hashlib
+    h = hashlib.sha256(request.password.encode('utf-8')).hexdigest()
+
+    responses = response_store.get(session_id, [])
+    for r in responses:
+        if r.get("email") == request.email.strip():
+            if r.get("password_hash") == h:
+                return {
+                    "success": True,
+                    "respondent": r.get("respondent", ""),
+                    "data": r.get("data", [])
+                }
+            else:
+                raise HTTPException(status_code=403, detail="密碼錯誤，無法載入資料")
+
+    raise HTTPException(status_code=404, detail="找不到此 Email 的填表紀錄")
 
 @app.get("/api/sessions/{session_id}/responses")
 async def list_responses(
@@ -605,7 +684,10 @@ async def list_responses(
             {
                 "id": r["id"],
                 "submitted_at": r["submitted_at"],
-                "respondent": r["respondent"]
+                "respondent": r["respondent"],
+                "email": r.get("email", ""),
+                "modified": r.get("modified", False),
+                "modified_at": r.get("modified_at")
             }
             for r in responses
         ]
