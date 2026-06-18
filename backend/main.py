@@ -706,6 +706,11 @@ class SubmitRequest(BaseModel):
     password: Optional[str] = ""
 
 
+class ExportXlsxRequest(BaseModel):
+    name: str
+    data: list
+
+
 class LoadResponseRequest(BaseModel):
     email: str
     password: str
@@ -1018,6 +1023,106 @@ async def parse_xlsx_only(
     finally:
         if temp_path.exists():
             temp_path.unlink()
+
+
+@app.post("/api/export-xlsx")
+@limiter.limit("15/minute")
+async def export_xlsx_api(
+    request: Request,
+    payload: ExportXlsxRequest
+):
+    """Generate and return an XLSX file from the budget table JSON data."""
+    try:
+        import openpyxl
+        from openpyxl.styles import PatternFill, Font, Alignment
+        
+        wb = openpyxl.Workbook()
+        default_sheet = wb.active
+        wb.remove(default_sheet)
+        
+        # Limit sheet title length to 30 characters (Excel limit is 31)
+        sheet_title = payload.name.replace(".xlsx", "").replace(".xls", "")[:30]
+        # Excel sheet name cannot contain chars like: \ / ? * : [ ]
+        for char in ['\\', '/', '?', '*', ':', '[', ']']:
+            sheet_title = sheet_title.replace(char, "_")
+        if not sheet_title.strip():
+            sheet_title = "Sheet1"
+            
+        ws = wb.create_sheet(title=sheet_title)
+        
+        # First write values and styles
+        for row in payload.data:
+            if not isinstance(row, list):
+                continue
+            for c in row:
+                if not isinstance(c, dict):
+                    continue
+                r_idx = c.get('row')
+                c_idx = c.get('col')
+                val = c.get('value', '')
+                
+                if r_idx is None or c_idx is None:
+                    continue
+                    
+                cell = ws.cell(row=r_idx, column=c_idx, value=val)
+                
+                # Styles
+                font_kwargs = {}
+                if c.get('bold'):
+                    font_kwargs['bold'] = True
+                if c.get('italic'):
+                    font_kwargs['italic'] = True
+                color = c.get('color')
+                if color:
+                    hex_color = color.replace('#', '')
+                    if len(hex_color) == 6:
+                        hex_color = "FF" + hex_color
+                    font_kwargs['color'] = hex_color
+                if font_kwargs:
+                    cell.font = Font(**font_kwargs)
+                    
+                bg = c.get('bg')
+                if bg:
+                    hex_bg = bg.replace('#', '')
+                    if len(hex_bg) == 6:
+                        hex_bg = "FF" + hex_bg
+                    cell.fill = PatternFill(start_color=hex_bg, end_color=hex_bg, fill_type="solid")
+                
+                cell.alignment = Alignment(vertical="center", wrap_text=True)
+
+                # Merge cells
+                rowspan = c.get('rowspan', 1)
+                colspan = c.get('colspan', 1)
+                if rowspan > 1 or colspan > 1:
+                    ws.merge_cells(
+                        start_row=r_idx,
+                        start_column=c_idx,
+                        end_row=r_idx + rowspan - 1,
+                        end_column=c_idx + colspan - 1
+                    )
+        
+        # Autofit column widths
+        for col in ws.columns:
+            max_len = 0
+            for cell in col:
+                val_str = str(cell.value or '')
+                if val_str:
+                    line_lens = [sum(2 if ord(char) > 256 else 1 for char in line) for line in val_str.split('\n')]
+                    max_len = max(max_len, max(line_lens))
+            col_letter = openpyxl.utils.get_column_letter(col[0].column)
+            ws.column_dimensions[col_letter].width = max(max_len + 3, 10)
+
+        file_stream = io.BytesIO()
+        wb.save(file_stream)
+        file_stream.seek(0)
+        
+        return Response(
+            content=file_stream.getvalue(),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        logger.error(f"Error generating XLSX: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Error generating Excel file: {str(e)}")
 
 
 # Mount static files for frontend assets

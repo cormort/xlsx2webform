@@ -197,6 +197,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
         <button class="btn btn-success" id="btn-save">💾 儲存</button>
         <button class="btn btn-primary" id="btn-export">📤 匯出 JSON</button>
         <button class="btn btn-outline" id="btn-import">📥 匯入</button>
+        <button class="btn btn-primary" id="btn-export-xlsx" style="background:#107c41;border-color:#107c41">🟩 匯出 XLSX</button>
         <div class="sep"></div>
         <button class="btn btn-outline" id="btn-add-row">＋列</button>
         <button class="btn btn-outline-red" id="btn-del-row">−列</button>
@@ -369,6 +370,28 @@ function toast(msg,err){const el=document.getElementById('toast-msg');el.textCon
 function alpha(c){let s='';let n=c;while(n>=0){s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)-1}return s||'A'}
 function cellRef(r,c){return alpha(c)+r}
 function parseRef(s){const m=s.match(/^([A-Z]+)(\d+)$/i);if(!m)return null;const col=m[1].toUpperCase().split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;const row=parseInt(m[2]);return{r:row,c:col}}
+
+async function downloadXlsxFile(name, payloadData, filename) {
+    try {
+        const r = await fetch('/api/export-xlsx', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, data: payloadData })
+        });
+        if (!r.ok) throw new Error('匯出 XLSX 失敗');
+        const blob = await r.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch(e) {
+        toast(e.message, 1);
+    }
+}
 
 function detectLevel(name){
     if(!name)return 1;const n=String(name).trim();if(!n)return 1;
@@ -794,6 +817,21 @@ function updateFormulaCols(){
 (function bindEditorEvents(){
     document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
     document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
+    document.getElementById('btn-export-xlsx').addEventListener('click',async()=>{
+        if(!sessionId)return;
+        const name = (document.getElementById('file-name').textContent || 'project').trim();
+        const now = new Date();
+        const timeStr = now.getFullYear() +
+            String(now.getMonth() + 1).padStart(2, '0') +
+            String(now.getDate()).padStart(2, '0') + '_' +
+            String(now.getHours()).padStart(2, '0') +
+            String(now.getMinutes()).padStart(2, '0') +
+            String(now.getSeconds()).padStart(2, '0');
+        const filename = `${name.replace(/\.xlsx?$/i, '')}_${timeStr}.xlsx`;
+        toast('正在匯出 XLSX 檔案⋯');
+        await downloadXlsxFile(name, data, filename);
+        toast('匯出 XLSX 成功');
+    });
     document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
     document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',headers:getAuthHeaders(),body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`,{headers:getAuthHeaders()}).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
     document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
@@ -1145,6 +1183,21 @@ document.getElementById('btn-fill-submit').addEventListener('click',async()=>{
         document.getElementById('fill-submit-area').style.display='none';
         document.getElementById('fill-success').style.display='block';
         toast('已成功送出');
+
+        setTimeout(async () => {
+            if (confirm("表單已成功送出！\n是否要產生並下載您的填表資料（XLSX 備份）？")) {
+                const name = (document.getElementById('file-name').textContent || 'project').trim();
+                const now = new Date();
+                const timeStr = now.getFullYear() +
+                    String(now.getMonth() + 1).padStart(2, '0') +
+                    String(now.getDate()).padStart(2, '0') + '_' +
+                    String(now.getHours()).padStart(2, '0') +
+                    String(now.getMinutes()).padStart(2, '0') +
+                    String(now.getSeconds()).padStart(2, '0');
+                const filename = `${name.replace(/\.xlsx?$/i, '')}_${timeStr}_${respondent || '匿名'}.xlsx`;
+                await downloadXlsxFile(name, data, filename);
+            }
+        }, 100);
     }catch(e){toast(e.message,1)}
 });
 
