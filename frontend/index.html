@@ -112,31 +112,66 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 .resp-compare-table .resp-row-label{color:#64748b;font-size:11px}
 .resp-compare-table .resp-delete{color:#dc2626;cursor:pointer;font-size:12px;padding:2px 6px;border:none;background:none;border-radius:4px}
 .resp-compare-table .resp-delete:hover{background:#fef2f2}
+
+/* Projects page */
+.projects-section{padding:24px 0;max-width:960px;margin:0 auto}
+.projects-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.projects-header h2{font-size:20px;color:#1e293b;font-weight:700}
+.project-grid{display:flex;flex-direction:column;gap:8px}
+.project-card{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;transition:.15s}
+.project-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}
+.project-card .info{flex:1;min-width:0}
+.project-card .info .name{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-card .info .meta{font-size:12px;color:#94a3b8}
+.project-card .info .meta span{margin-right:12px}
+.project-card .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.project-card .badge.published{background:#dcfce7;color:#166534}
+.project-card .badge.unpublished{background:#f1f5f9;color:#94a3b8}
+.project-card .actions{display:flex;gap:6px;flex-shrink:0;margin-left:12px}
+.project-card .actions .btn{padding:5px 12px;font-size:12px}
+.empty-projects{text-align:center;padding:48px 24px;color:#94a3b8}
+.empty-projects .icon{font-size:48px;margin-bottom:12px}
+.empty-projects p{font-size:14px;margin-bottom:16px}
+.upload-area{border:2px dashed #cbd5e1;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:24px}
+.upload-area:hover,.upload-area.drag-over{border-color:#3b82f6;background:#eff6ff}
+.upload-area .icon{font-size:32px;margin-bottom:4px}
+.upload-area h3{font-size:15px;color:#475569;margin-bottom:2px}
+.upload-area p{font-size:12px;color:#94a3b8}
 </style>
 </head>
 <body>
 
 <header><div class="inner">
-    <h1 id="app-title">預算表單編輯器</h1>
+    <h1 id="app-title" style="cursor:pointer">預算表單編輯器</h1>
     <span class="file" id="file-name"></span>
+    <a id="back-link" href="/" style="display:none;font-size:13px;color:#2563eb;text-decoration:none;margin-left:auto">← 專案列表</a>
 </div></header>
 
 <div id="fill-banner" class="fill-banner" style="display:none">📋 填寫模式 — 請在下方填入資料後提交</div>
 
 <main>
 
-<!-- Upload -->
-<div id="upload-section">
-    <div id="drop-zone" class="drop-zone">
-        <div class="icon">📄</div>
-        <h2>上傳 XLSX 檔案</h2>
-        <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
-        <input type="file" id="file-input" hidden accept=".xlsx,.xls">
+<!-- Projects page -->
+<div id="projects-section" class="projects-section">
+    <div class="projects-header">
+        <h2>📁 我的專案</h2>
+        <button class="btn btn-primary" id="btn-new-project" style="padding:8px 18px;font-size:14px">📤 新增專案</button>
     </div>
-    <div class="loading" id="loading">
+    <!-- Upload area (shown when clicking 新增專案) -->
+    <div id="project-upload-area" class="upload-area" style="display:none">
+        <div class="icon">📄</div>
+        <h3>上傳 XLSX 檔案</h3>
+        <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
+        <input type="file" id="project-file-input" hidden accept=".xlsx,.xls">
+    </div>
+    <div id="project-upload-loading" class="loading" style="display:none">
         <div class="spinner"></div>
         <p>處理中⋯</p>
     </div>
+    <div id="project-list"><div class="empty-projects" id="empty-projects">
+        <div class="icon">📋</div>
+        <p>尚無專案，請上傳 Excel 檔案開始使用</p>
+    </div></div>
 </div>
 
 <!-- Editor -->
@@ -249,7 +284,10 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <script>
 // ===== Detect mode =====
 const isFillMode = !!(window.FILL_TOKEN);
+const isEditorMode = !!(window.EDIT_SESSION_ID);
+const isLanding = window.LANDING_MODE === 'projects';
 const fillToken = window.FILL_TOKEN || '';
+const editSessionId = window.EDIT_SESSION_ID || '';
 
 // ===== State =====
 let sessionId = null;
@@ -311,14 +349,310 @@ function applyFormula(colIdx,formula){
 
 // ===== Init =====
 if(isFillMode){
-    document.getElementById('upload-section').style.display='none';
+    document.getElementById('projects-section').style.display='none';
     document.getElementById('editor').style.display='none';
     document.getElementById('fill-banner').style.display='block';
     document.getElementById('app-title').textContent='📋 填寫表單';
     initFillMode();
+} else if(isEditorMode){
+    document.getElementById('projects-section').style.display='none';
+    document.getElementById('editor').style.display='block';
+    document.getElementById('back-link').style.display='inline';
+    initEditorWithSession(editSessionId);
 } else {
-    initEditorMode();
+    initProjectsPage();
 }
+
+// ===== Projects Page =====
+function initProjectsPage(){
+    loadProjects();
+
+    const uploadArea=document.getElementById('project-upload-area');
+    const fileInput=document.getElementById('project-file-input');
+
+    document.getElementById('btn-new-project').addEventListener('click',()=>{
+        const d=uploadArea.style.display;
+        uploadArea.style.display=d==='none'?'block':'none';
+    });
+
+    uploadArea.addEventListener('click',()=>fileInput.click());
+    uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('drag-over')});
+    uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)projectUpload(f)});
+    fileInput.addEventListener('change',e=>{if(e.target.files[0])projectUpload(e.target.files[0])});
+
+    document.getElementById('app-title').addEventListener('click',()=>{location.href='/'});
+}
+
+async function loadProjects(){
+    try{
+        const r=await fetch('/api/sessions');const res=await r.json();
+        const list=document.getElementById('project-list');
+        if(!res.sessions||!res.sessions.length){
+            list.innerHTML='<div class="empty-projects"><div class="icon">📋</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
+            return;
+        }
+        let h='<div class="project-grid">';
+        for(const p of res.sessions){
+            const badge=p.published
+                ? `<span class="badge published">✅ 已發布 (${p.response_count})</span>`
+                : '<span class="badge unpublished">📋 未發布</span>';
+            h+=`<div class="project-card">
+                <div class="info">
+                    <div class="name">${escape(p.name)}</div>
+                    <div class="meta">
+                        <span>${p.row_count||0} 列</span>
+                        <span>${p.created_at?.split('T')[0]||''}</span>
+                        ${badge}
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
+                    <button class="btn btn-outline-red" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
+                </div>
+            </div>`;
+        }
+        h+='</div>';
+        list.innerHTML=h;
+    }catch(e){toast(e.message,1)}
+}
+
+async function deleteProject(id){
+    if(!confirm('確定刪除此專案？所有回應將一併移除。'))return;
+    try{const r=await fetch(`/api/sessions/${id}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadProjects()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+}
+
+async function projectUpload(file){
+    if(!file.name.match(/\.xlsx?$/i)){toast('請選擇 .xlsx 檔案',1);return}
+    const loading=document.getElementById('project-upload-loading');
+    const area=document.getElementById('project-upload-area');
+    loading.style.display='block';area.style.display='none';
+    const fd=new FormData();fd.append('file',file);
+    try{
+        const r=await fetch('/api/upload-xlsx',{method:'POST',body:fd});const res=await r.json();
+        if(!r.ok)throw new Error(res.detail||'失敗');
+        // Redirect to editor
+        location.href=`/editor/${res.session_id}`;
+    }catch(e){toast(e.message,1);loading.style.display='none';area.style.display='block'}
+}
+
+// ===== Editor Mode =====
+function initEditorWithSession(sid){
+    sessionId=sid;
+    document.getElementById('back-link').style.display='inline';
+    loadEditorSession();
+}
+
+async function loadEditorSession(){
+    const editor=document.getElementById('editor');
+    const tableContainer=document.getElementById('table-container');
+    const fileName=document.getElementById('file-name');
+    try{
+        const r=await fetch(`/api/sessions/${sessionId}`);const res=await r.json();
+        if(!r.ok)throw new Error(res.detail||'載入失敗');
+        data=res.current_data||res.json||[];
+        original=JSON.parse(JSON.stringify(data));
+        fileName.textContent=res.name||'';
+        document.getElementById('app-title').textContent='✏️ '+res.name?.replace(/\.xlsx?$/i,'')||'預算表單編輯器';
+        recalcAutoSum();render();
+        editor.style.display='block';
+    }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escape(e.message)}</p>`;editor.style.display='block'}
+}
+
+function render(){
+    const tableContainer=document.getElementById('table-container');
+    if(!data.length){tableContainer.innerHTML='';return}
+    const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
+    let h='<table id="main-table"><thead><tr>';
+    for(let c=0;c<maxC;c++){h+=`<th><input type="text" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
+    h+='</tr></thead><tbody>';
+    for(let r=1;r<data.length;r++){
+        const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
+        h+=`<tr class="lv-${lv}">`;
+        for(let c=0;c<Math.max(maxC,row.length);c++){
+            const cell=row[c]||{value:'',_autoSum:false,_formula:''};const val=cell.value||'';
+            const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
+            const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
+            h+=`<td${hasF?' class="formula"':''}>`;
+            h+=`<input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
+            h+='</td>';
+        }
+        h+='</tr>';
+    }
+    h+='</tbody></table>';
+    tableContainer.innerHTML=h;
+    document.querySelectorAll('#main-table input').forEach(inp=>{
+        inp.addEventListener('change',onChange);inp.addEventListener('focus',onFocus);
+        inp.addEventListener('blur',onBlur);inp.addEventListener('paste',onPaste);inp.addEventListener('keydown',onKeyDown);
+    });
+    updateFormulaCols();
+}
+
+function onChange(e){
+    const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
+    if(data[r][c]?data[r][c].value:''!==val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
+}
+
+function onFocus(e){
+    const inp=e.target;selectedCell={r:parseInt(inp.dataset.r),c:parseInt(inp.dataset.c)};
+    document.querySelectorAll('td.focused').forEach(t=>t.classList.remove('focused'));const td=inp.closest('td');if(td)td.classList.add('focused');inp.select();
+    const cell=data[selectedCell.r]?.[selectedCell.c];const colSelect=document.getElementById('formula-col');colSelect.value=selectedCell.c;
+    document.getElementById('formula-input').value=cell?._formula||'';
+}
+
+function onBlur(e){
+    const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    if(c>0){const n=parseNum(inp.value);if(n!==null)inp.value=fmtNum(n)}
+}
+
+function onKeyDown(e){
+    const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    const tr=inp.closest('tr');const tbody=tr.parentElement;const rows=Array.from(tbody.querySelectorAll('tr'));const cells=Array.from(tr.querySelectorAll('td'));
+    const idx=rows.indexOf(tr);const ci=cells.indexOf(inp.closest('td'));
+    if(e.key==='Tab'){e.preventDefault();const dir=e.shiftKey?-1:1;const next=ci+dir;const td=next>=0&&next<cells.length?cells[next]:(dir>0?cells[0]:cells[cells.length-1]);const input=td?.querySelector('input');if(input)input.focus()}
+    if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const nextTr=rows[idx+1];if(nextTr){const nextCells=nextTr.querySelectorAll('td');const td=nextCells[ci]||nextCells[0];const input=td?.querySelector('input');if(input)input.focus()}}
+    if(e.key==='Escape'){inp.blur()}
+}
+
+function onPaste(e){
+    e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
+    const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
+    cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={row:targetR+1,col:targetC+1,value:'',type:'str'};data[targetR][targetC].value=val.trim()})});
+    isDirty=true;recalcAutoSum();render();
+    const newInput=document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);if(newInput)newInput.focus();
+    toast(`已貼上 ${cells.length} 列`);
+}
+
+function updateFormulaCols(){
+    const sel=document.getElementById('formula-col');sel.innerHTML='<option value="">— 選擇欄位 —</option>';const hdrs=getHeaders();
+    for(let c=1;c<Math.max(...data.map(r=>r.length),2);c++){const opt=document.createElement('option');opt.value=c;opt.textContent=`${alpha(c)}：${hdrs[c]||'欄'+alpha(c)}`;sel.appendChild(opt)}
+}
+
+// ===== Editor Event Binds (run once) =====
+(function bindEditorEvents(){
+    document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
+    document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
+    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
+    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
+    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
+    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAutoSum();render();isDirty=true;toast('已清除')});
+    document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href='/'});
+    document.getElementById('btn-apply-formula').addEventListener('click',()=>{const col=parseInt(document.getElementById('formula-col').value);const formula=document.getElementById('formula-input').value.trim();if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}applyFormula(col,formula);render();toast('公式已套用')});
+    document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
+    document.getElementById('app-title').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href='/'});
+
+    // Publish
+    document.getElementById('btn-publish').addEventListener('click',async()=>{
+        if(!sessionId){toast('請先上傳檔案',1);return}
+        document.getElementById('publish-step1').style.display='block';
+        document.getElementById('publish-step2').style.display='none';
+        document.getElementById('publish-title').textContent='🔗 發布表單';
+        document.getElementById('publish-dialog').classList.add('show');
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/publish`);
+            const res=await r.json();
+            if(res.published!==false){
+                document.getElementById('publish-step1').style.display='none';
+                document.getElementById('publish-step2').style.display='block';
+                document.getElementById('share-url-input').value=`${window.location.origin}/fill/${res.share_token}`;
+                document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
+            }
+        }catch(e){}
+    });
+
+    document.getElementById('btn-publish-generate').addEventListener('click',async()=>{
+        if(!sessionId)return;
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST'});const res=await r.json();
+            if(!r.ok)throw new Error(res.detail||'發布失敗');
+            document.getElementById('publish-step1').style.display='none';
+            document.getElementById('publish-step2').style.display='block';
+            document.getElementById('share-url-input').value=`${window.location.origin}${res.fill_url}`;
+            document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
+            toast('已發布');
+        }catch(e){toast(e.message,1)}
+    });
+
+    document.getElementById('close-publish').addEventListener('click',()=>document.getElementById('publish-dialog').classList.remove('show'));
+    document.getElementById('publish-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('publish-dialog').classList.remove('show')});
+    document.getElementById('btn-copy-url').addEventListener('click',()=>{
+        const inp=document.getElementById('share-url-input');inp.select();navigator.clipboard?.writeText(inp.value);
+        toast('已複製連結');
+    });
+    document.getElementById('btn-unpublish').addEventListener('click',async()=>{
+        if(!sessionId)return;if(!confirm('取消發布後，現有分享連結將失效。確定？'))return;
+        try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE'});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');loadProjects();toast('已取消發布')}}catch(e){toast(e.message,1)}
+    });
+
+    // Tab switching
+    document.querySelectorAll('.tab-bar .tab').forEach(tab=>{
+        tab.addEventListener('click',()=>{
+            document.querySelectorAll('.tab-bar .tab').forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active');
+            const show=tab.dataset.tab;
+            document.getElementById('editor-tab').style.display=show==='edit'?'block':'none';
+            document.getElementById('responses-tab').style.display=show==='responses'?'block':'none';
+            if(show==='responses')loadResponses();
+        });
+    });
+
+    // Load responses
+    async function loadResponses(){
+        if(!sessionId){document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">請先上傳檔案</p>';return}
+        document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
+            const container=document.getElementById('responses-container');
+            document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
+            if(!res.responses||!res.responses.length){
+                container.innerHTML='<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無回應<br><span style="font-size:12px">發布表單後，填表人提交的資料會顯示在這裡</span></p>';
+                return;
+            }
+            const headers=(data[0]||[]).map(c=>c.value||'');
+            const fulls=[];
+            for(const resp of res.responses){
+                const rd=await fetch(`/api/sessions/${sessionId}/responses/${resp.id}`);const full=await rd.json();fulls.push(full);
+            }
+            const maxC=Math.max(...fulls.map(f=>{const d=f.data||[];return Math.max(...d.map(r=>r.length||0),1)}),1);
+            let h='<table class="resp-compare-table"><thead><tr><th style="min-width:30px">#</th><th>填表人</th><th>時間</th>';
+            for(let c=0;c<maxC;c++){h+=`<th>${escape(headers[c]||'')}</th>`}
+            h+='<th></th></tr></thead><tbody>';
+            fulls.forEach((full,idx)=>{
+                const resp=full;const rowData=resp.data||[];
+                const firstRow=rowData[0]||[];
+                h+=`<tr><td style="text-align:center;color:#94a3b8">${idx+1}</td>`;
+                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong></td>`;
+                h+=`<td class="resp-row-label">${resp.submitted_at}</td>`;
+                for(let c=0;c<maxC;c++){
+                    let val='';
+                    for(let ri=0;ri<rowData.length;ri++){
+                        const v=rowData[ri]?.[c]?.value;
+                        if(v){val=v;break}
+                    }
+                    h+=`<td>${escape(val||'')}</td>`;
+                }
+                h+=`<td><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
+                h+='</tr>';
+            });
+            h+='</tbody></table>';
+            container.innerHTML=h;
+        }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escape(e.message)}</p>`;toast(e.message,1)}
+    }
+
+    document.getElementById('btn-export-csv').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/responses/export/csv`,'_blank')});
+    document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
+
+    window.deleteResponse=async function(responseId){
+        if(!confirm('確定刪除此回應？'))return;
+        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+    };
+
+    window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
+})();
 
 // ===== Fill Mode =====
 async function initFillMode(){
@@ -328,7 +662,6 @@ async function initFillMode(){
         const res=await r.json();
         sessionId=res.session_id;
         data=res.data||[];
-        // Ensure at least one editable row
         if(data.length<2){
             const maxC=data[0]?data[0].length:1;
             const nr=[];
@@ -437,236 +770,6 @@ document.getElementById('btn-fill-another').addEventListener('click',()=>{
     data=JSON.parse(JSON.stringify(original));
     renderFillTable();
 });
-
-// ===== Editor Mode =====
-function initEditorMode(){
-    const dropZone=document.getElementById('drop-zone'),fileInput=document.getElementById('file-input'),loading=document.getElementById('loading');
-    const uploadSection=document.getElementById('upload-section'),editor=document.getElementById('editor');
-    const tableContainer=document.getElementById('table-container'),fileName=document.getElementById('file-name');
-
-    dropZone.addEventListener('click',()=>fileInput.click());
-    dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
-    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)upload(f)});
-    fileInput.addEventListener('change',e=>{if(e.target.files[0])upload(e.target.files[0])});
-
-    async function upload(file){
-        if(!file.name.match(/\.xlsx?$/i)){toast('請選擇 .xlsx 檔案',1);return}
-        loading.style.display='block';dropZone.style.display='none';
-        const fd=new FormData();fd.append('file',file);
-        try{
-            const r=await fetch('/api/upload-xlsx',{method:'POST',body:fd});const res=await r.json();
-            if(!r.ok)throw new Error(res.detail||'失敗');
-            sessionId=res.session_id;data=JSON.parse(JSON.stringify(res.json));original=JSON.parse(JSON.stringify(data));
-            fileName.textContent=file.name;
-            recalcAutoSum();render();
-            uploadSection.style.display='none';editor.style.display='block';
-            toast('上傳成功');
-        }catch(e){toast(e.message,1);loading.style.display='none';dropZone.style.display='block'}
-    }
-
-    function render(){
-        if(!data.length){tableContainer.innerHTML='';return}
-        const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
-        let h='<table id="main-table"><thead><tr>';
-        for(let c=0;c<maxC;c++){h+=`<th><input type="text" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
-        h+='</tr></thead><tbody>';
-        for(let r=1;r<data.length;r++){
-            const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
-            h+=`<tr class="lv-${lv}">`;
-            for(let c=0;c<Math.max(maxC,row.length);c++){
-                const cell=row[c]||{value:'',_autoSum:false,_formula:''};const val=cell.value||'';
-                const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
-                const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
-                h+=`<td${hasF?' class="formula"':''}>`;
-                h+=`<input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
-                h+='</td>';
-            }
-            h+='</tr>';
-        }
-        h+='</tbody></table>';
-        tableContainer.innerHTML=h;
-        document.querySelectorAll('#main-table input').forEach(inp=>{
-            inp.addEventListener('change',onChange);inp.addEventListener('focus',onFocus);
-            inp.addEventListener('blur',onBlur);inp.addEventListener('paste',onPaste);inp.addEventListener('keydown',onKeyDown);
-        });
-        updateFormulaCols();
-    }
-
-    function onChange(e){
-        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
-        const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
-        if(data[r][c]?data[r][c].value:''!==val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
-    }
-
-    function onFocus(e){
-        const inp=e.target;selectedCell={r:parseInt(inp.dataset.r),c:parseInt(inp.dataset.c)};
-        document.querySelectorAll('td.focused').forEach(t=>t.classList.remove('focused'));const td=inp.closest('td');if(td)td.classList.add('focused');inp.select();
-        const cell=data[selectedCell.r]?.[selectedCell.c];const colSelect=document.getElementById('formula-col');colSelect.value=selectedCell.c;
-        document.getElementById('formula-input').value=cell?._formula||'';
-    }
-
-    function onBlur(e){
-        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
-        if(c>0){const n=parseNum(inp.value);if(n!==null)inp.value=fmtNum(n)}
-    }
-
-    function onKeyDown(e){
-        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
-        const tr=inp.closest('tr');const tbody=tr.parentElement;const rows=Array.from(tbody.querySelectorAll('tr'));const cells=Array.from(tr.querySelectorAll('td'));
-        const idx=rows.indexOf(tr);const ci=cells.indexOf(inp.closest('td'));
-        if(e.key==='Tab'){e.preventDefault();const dir=e.shiftKey?-1:1;const next=ci+dir;const td=next>=0&&next<cells.length?cells[next]:(dir>0?cells[0]:cells[cells.length-1]);const input=td?.querySelector('input');if(input)input.focus()}
-        if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const nextTr=rows[idx+1];if(nextTr){const nextCells=nextTr.querySelectorAll('td');const td=nextCells[ci]||nextCells[0];const input=td?.querySelector('input');if(input)input.focus()}}
-        if(e.key==='Escape'){inp.blur()}
-    }
-
-    function onPaste(e){
-        e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
-        const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
-        const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
-        cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={row:targetR+1,col:targetC+1,value:'',type:'str'};data[targetR][targetC].value=val.trim()})});
-        isDirty=true;recalcAutoSum();render();
-        const newInput=document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);if(newInput)newInput.focus();
-        toast(`已貼上 ${cells.length} 列`);
-    }
-
-    function updateFormulaCols(){
-        const sel=document.getElementById('formula-col');sel.innerHTML='<option value="">— 選擇欄位 —</option>';const hdrs=getHeaders();
-        for(let c=1;c<Math.max(...data.map(r=>r.length),2);c++){const opt=document.createElement('option');opt.value=c;opt.textContent=`${alpha(c)}：${hdrs[c]||'欄'+alpha(c)}`;sel.appendChild(opt)}
-    }
-
-    // Toolbar
-    document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
-    document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
-    document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
-    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
-    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
-    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
-    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
-    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAutoSum();render();isDirty=true;toast('已清除')});
-    document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;editor.style.display='none';uploadSection.style.display='block';loading.style.display='none';dropZone.style.display='block';sessionId=null;data=[];original=[];isDirty=false;fileName.textContent=''});
-
-    document.getElementById('btn-apply-formula').addEventListener('click',()=>{const col=parseInt(document.getElementById('formula-col').value);const formula=document.getElementById('formula-input').value.trim();if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}applyFormula(col,formula);render();toast('公式已套用')});
-    document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
-
-    // Publish
-    document.getElementById('btn-publish').addEventListener('click',async()=>{
-        if(!sessionId){toast('請先上傳檔案',1);return}
-        // Check if already published
-        document.getElementById('publish-step1').style.display='block';
-        document.getElementById('publish-step2').style.display='none';
-        document.getElementById('publish-title').textContent='🔗 發布表單';
-        document.getElementById('publish-dialog').classList.add('show');
-        // Pre-check existing publish status
-        try{
-            const r=await fetch(`/api/sessions/${sessionId}/publish`);
-            const res=await r.json();
-            if(res.published!==false){
-                // Already published
-                document.getElementById('publish-step1').style.display='none';
-                document.getElementById('publish-step2').style.display='block';
-                document.getElementById('share-url-input').value=`${window.location.origin}/fill/${res.share_token}`;
-                document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
-            }
-        }catch(e){}
-    });
-
-    document.getElementById('btn-publish-generate').addEventListener('click',async()=>{
-        if(!sessionId)return;
-        try{
-            const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST'});const res=await r.json();
-            if(!r.ok)throw new Error(res.detail||'發布失敗');
-            document.getElementById('publish-step1').style.display='none';
-            document.getElementById('publish-step2').style.display='block';
-            document.getElementById('share-url-input').value=`${window.location.origin}${res.fill_url}`;
-            document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
-            toast('已發布');
-        }catch(e){toast(e.message,1)}
-    });
-
-    document.getElementById('close-publish').addEventListener('click',()=>document.getElementById('publish-dialog').classList.remove('show'));
-    document.getElementById('publish-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('publish-dialog').classList.remove('show')});
-
-    document.getElementById('btn-copy-url').addEventListener('click',()=>{
-        const inp=document.getElementById('share-url-input');inp.select();navigator.clipboard?.writeText(inp.value);
-        toast('已複製連結');
-    });
-
-    document.getElementById('btn-unpublish').addEventListener('click',async()=>{
-        if(!sessionId)return;if(!confirm('取消發布後，現有分享連結將失效。確定？'))return;
-        try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE'});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');toast('已取消發布')}}catch(e){toast(e.message,1)}
-    });
-
-    // Tab switching
-    document.querySelectorAll('.tab-bar .tab').forEach(tab=>{
-        tab.addEventListener('click',()=>{
-            document.querySelectorAll('.tab-bar .tab').forEach(t=>t.classList.remove('active'));
-            tab.classList.add('active');
-            const show=tab.dataset.tab;
-            document.getElementById('editor-tab').style.display=show==='edit'?'block':'none';
-            document.getElementById('responses-tab').style.display=show==='responses'?'block':'none';
-            if(show==='responses')loadResponses();
-        });
-    });
-
-    // Load responses
-    async function loadResponses(){
-        if(!sessionId){document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">請先上傳檔案</p>';return}
-        document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
-        try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
-            const container=document.getElementById('responses-container');
-            document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
-            if(!res.responses||!res.responses.length){
-                container.innerHTML='<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無回應<br><span style="font-size:12px">發布表單後，填表人提交的資料會顯示在這裡</span></p>';
-                return;
-            }
-            // Build comparison table: header fields from original data[0], each response is a row
-            const headers=(data[0]||[]).map(c=>c.value||'');
-            // Fetch full response data for each
-            const fulls=[];
-            for(const resp of res.responses){
-                const rd=await fetch(`/api/sessions/${sessionId}/responses/${resp.id}`);const full=await rd.json();fulls.push(full);
-            }
-            // Determine max columns
-            const maxC=Math.max(...fulls.map(f=>{const d=f.data||[];return Math.max(...d.map(r=>r.length||0),1)}),1);
-            let h='<table class="resp-compare-table"><thead><tr><th style="min-width:30px">#</th><th>填表人</th><th>時間</th>';
-            for(let c=0;c<maxC;c++){h+=`<th>${escape(headers[c]||'')}</th>`}
-            h+='<th></th></tr></thead><tbody>';
-            fulls.forEach((full,idx)=>{
-                const resp=full;const rowData=resp.data||[];
-                // Flatten all data cells into one row (first row only for simplicity)
-                const firstRow=rowData[0]||[];
-                h+=`<tr><td style="text-align:center;color:#94a3b8">${idx+1}</td>`;
-                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong></td>`;
-                h+=`<td class="resp-row-label">${resp.submitted_at}</td>`;
-                for(let c=0;c<maxC;c++){
-                    let val='';
-                    // Walk through data rows to find first non-empty value for this column
-                    for(let ri=0;ri<rowData.length;ri++){
-                        const v=rowData[ri]?.[c]?.value;
-                        if(v){val=v;break}
-                    }
-                    h+=`<td>${escape(val||'')}</td>`;
-                }
-                h+=`<td><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
-                h+='</tr>';
-            });
-            h+='</tbody></table>';
-            container.innerHTML=h;
-        }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escape(e.message)}</p>`;toast(e.message,1)}
-    }
-
-    document.getElementById('btn-export-csv').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/responses/export/csv`,'_blank')});
-    document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
-
-    window.deleteResponse=async function(responseId){
-        if(!confirm('確定刪除此回應？'))return;
-        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
-    };
-
-    window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
-}
 </script>
 </body>
 </html>

@@ -37,6 +37,9 @@ TEMPLATE_DIR = Path(__file__).parent.parent / "templates"
 UPLOAD_DIR.mkdir(exist_ok=True)
 TEMPLATE_DIR.mkdir(exist_ok=True)
 
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+
 # In-memory stores
 sessions = {}
 publish_store = {}      # share_token → session_id
@@ -70,13 +73,77 @@ class TemplateData(BaseModel):
     metadata: Optional[dict] = None
 
 
+# ── Persistence ──────────────────────────────────────────
+PERSIST_FILES = {
+    "publish_store": DATA_DIR / "publish_store.json",
+    "published_forms": DATA_DIR / "published_forms.json",
+    "response_store": DATA_DIR / "response_store.json",
+    "sessions_index": DATA_DIR / "sessions_index.json",
+}
+
+def _load_persist():
+    for key, path in PERSIST_FILES.items():
+        if path.exists():
+            try:
+                data = json.loads(path.read_text(encoding='utf-8'))
+                if key == "publish_store":
+                    publish_store.update(data)
+                elif key == "published_forms":
+                    published_forms.update(data)
+                elif key == "response_store":
+                    response_store.update(data)
+                elif key == "sessions_index":
+                    for sid in data:
+                        sp = DATA_DIR / f"session_{sid}.json"
+                        if sp.exists():
+                            try:
+                                sd = json.loads(sp.read_text(encoding='utf-8'))
+                                sessions[sid] = SessionData(**sd)
+                            except:
+                                pass
+            except:
+                pass
+
+def _save_persist(key):
+    d = {"publish_store": publish_store, "published_forms": published_forms,
+         "response_store": response_store}[key]
+    PERSIST_FILES[key].write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
+
+def _save_session(sid):
+    if sid in sessions:
+        (DATA_DIR / f"session_{sid}.json").write_text(
+            sessions[sid].model_dump_json(indent=2), encoding='utf-8')
+    idx = sorted(sessions.keys())
+    PERSIST_FILES["sessions_index"].write_text(
+        json.dumps(idx, ensure_ascii=False), encoding='utf-8')
+
+_load_persist()
+
+
 @app.get("/")
 async def root():
-    """Serve the main frontend page."""
+    """Serve the main frontend page (project management)."""
     frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if frontend_path.exists():
-        return HTMLResponse(content=frontend_path.read_text(encoding='utf-8'))
+        html = frontend_path.read_text(encoding='utf-8')
+        script = '<script>window.LANDING_MODE="projects";</script>'
+        html = html.replace("</head>", f"{script}</head>")
+        return HTMLResponse(content=html)
     return {"message": "Budget Table Editor API", "version": "1.0.0"}
+
+
+@app.get("/editor/{session_id}")
+async def editor_page(session_id: str):
+    """Serve editor page for a specific session."""
+    frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
+    if not frontend_path.exists():
+        raise HTTPException(status_code=404, detail="Page not found")
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    html = frontend_path.read_text(encoding='utf-8')
+    script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
+    html = html.replace("</head>", f"{script}</head>")
+    return HTMLResponse(content=html)
 
 
 @app.post("/api/upload-xlsx")
@@ -115,6 +182,7 @@ async def upload_xlsx(
             )
 
             sessions[session_id] = session
+            _save_session(session_id)
 
             return {
                 "success": True,
@@ -136,6 +204,7 @@ async def upload_xlsx(
             )
 
             sessions[session_id] = session
+            _save_session(session_id)
 
             return {
                 "success": True,
@@ -163,7 +232,10 @@ async def list_sessions():
                 "created_at": s.created_at,
                 "updated_at": s.updated_at,
                 "row_count": s.metadata.get('row_count', 0),
-                "col_count": s.metadata.get('col_count', 0)
+                "col_count": s.metadata.get('col_count', 0),
+                "published": s.id in published_forms,
+                "share_token": published_forms.get(s.id),
+                "response_count": len(response_store.get(s.id, []))
             }
             for s in sessions.values()
         ]
@@ -199,6 +271,7 @@ async def save_session(session_id: str, request: SaveRequest):
     session = sessions[session_id]
     session.current_data = request.data
     session.updated_at = datetime.now().isoformat()
+    _save_session(session_id)
 
     return {"success": True, "updated_at": session.updated_at}
 
@@ -290,6 +363,7 @@ async def delete_session(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
 
     del sessions[session_id]
+    _save_session(session_id)  # updates index
     return {"success": True, "message": "Session deleted"}
 
 
@@ -355,6 +429,7 @@ async def load_template(template_id: str):
 
     sessions[session_id] = session
 
+    _save_session(session_id)
     return {"success": True, "session_id": session_id}
 
 
@@ -382,6 +457,8 @@ async def publish_form(session_id: str):
         token = str(uuid.uuid4())[:12]
         publish_store[token] = session_id
         published_forms[session_id] = token
+        _save_persist("publish_store")
+        _save_persist("published_forms")
 
     return PublishResponse(
         share_token=token,
@@ -414,6 +491,8 @@ async def unpublish_form(session_id: str):
     if session_id in published_forms:
         token = published_forms.pop(session_id)
         publish_store.pop(token, None)
+        _save_persist("published_forms")
+        _save_persist("publish_store")
     return {"success": True, "published": False}
 
 @app.get("/fill/{token}")
@@ -462,6 +541,7 @@ async def submit_fill(token: str, request: SubmitRequest):
     if session_id not in response_store:
         response_store[session_id] = []
     response_store[session_id].append(resp)
+    _save_persist("response_store")
 
     return {"success": True, "response_id": resp["id"], "submitted_at": resp["submitted_at"]}
 
@@ -504,6 +584,7 @@ async def delete_response(session_id: str, response_id: str):
     for i, r in enumerate(responses):
         if r["id"] == response_id:
             del response_store[session_id][i]
+            _save_persist("response_store")
             return {"success": True, "deleted": response_id}
     raise HTTPException(status_code=404, detail="Response not found")
 
