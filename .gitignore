@@ -4,3 +4,11 @@ __pycache__
 uploads/*.xlsx
 uploads/*.xls
 templates/*.json
+.venv/
+.pytest_cache/
+data/
+uploads/
+*.egg-info/
+dist/
+build/
+.DS_Store
