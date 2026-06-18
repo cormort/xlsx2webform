@@ -129,7 +129,7 @@ async def root():
         head_script = '<script>window.LANDING_MODE="projects";</script>'
         head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}</style>'
         html = html.replace("</head>", f"{head_script}{head_style}</head>")
-        return HTMLResponse(content=html)
+        return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return {"message": "Budget Table Editor API", "version": "1.0.0"}
 
 
@@ -146,7 +146,7 @@ async def editor_page(session_id: str):
     head_script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
     head_style = '<style>#projects-section{display:none!important}#fill-mode{display:none!important}#editor{display:block!important}</style>'
     html = html.replace("</head>", f"{head_script}{head_style}</head>")
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 
 @app.post("/api/upload-xlsx")
@@ -509,7 +509,7 @@ async def fill_form_page(token: str):
     head_script = f'<script>window.FILL_TOKEN="{token}";</script>'
     head_style = '<style>#projects-section{display:none!important}#editor{display:none!important}#fill-mode{display:block!important}#fill-banner{display:block!important}</style>'
     html = html.replace("</head>", f"{head_script}{head_style}</head>")
-    return HTMLResponse(content=html)
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 @app.get("/api/fill/{token}/data")
 async def get_fill_data(token: str):
