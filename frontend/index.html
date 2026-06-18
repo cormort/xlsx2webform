@@ -96,6 +96,22 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 .resp-table-wrap table{font-size:12px;min-width:100%}
 .resp-table-wrap td{padding:4px 8px;white-space:nowrap}
 .resp-table-wrap td:first-child{font-weight:500;color:#475569}
+
+/* Tab bar */
+.tab-bar{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid #e2e8f0}
+.tab-bar .tab{padding:8px 20px;font-size:13px;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
+.tab-bar .tab:hover{color:#475569}
+.tab-bar .tab.active{color:#2563eb;border-bottom-color:#2563eb}
+
+/* Responses dashboard */
+.resp-stats{font-size:13px;color:#64748b;margin-bottom:12px}
+.resp-compare-table{font-size:12px;min-width:100%}
+.resp-compare-table thead th{background:#f8fafc;font-weight:600;color:#475569;position:sticky;top:0;z-index:2;padding:6px 10px;border:1px solid #e2e8f0;white-space:nowrap}
+.resp-compare-table td{padding:5px 10px;border:1px solid #e2e8f0;white-space:nowrap}
+.resp-compare-table tbody tr:hover{background:#f8fafc}
+.resp-compare-table .resp-row-label{color:#64748b;font-size:11px}
+.resp-compare-table .resp-delete{color:#dc2626;cursor:pointer;font-size:12px;padding:2px 6px;border:none;background:none;border-radius:4px}
+.resp-compare-table .resp-delete:hover{background:#fef2f2}
 </style>
 </head>
 <body>
@@ -125,6 +141,13 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 
 <!-- Editor -->
 <div id="editor" style="display:none">
+    <div class="tab-bar">
+        <div class="tab active" data-tab="edit">✏️ 編輯</div>
+        <div class="tab" data-tab="responses">📋 回應結果</div>
+    </div>
+
+    <div id="editor-tab" class="editor-tab">
+
     <div class="toolbar">
         <button class="btn btn-success" id="btn-save">💾 儲存</button>
         <button class="btn btn-primary" id="btn-export">📤 匯出 JSON</button>
@@ -137,7 +160,6 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
         <button class="btn btn-outline-red" id="btn-clear">✕ 清除值</button>
         <div class="sep"></div>
         <button class="btn btn-primary" id="btn-publish" style="margin-left:auto">🔗 發布表單</button>
-        <button class="btn btn-outline" id="btn-responses">📋 回應</button>
         <button class="btn btn-outline" id="btn-new-upload">📂 新檔案</button>
     </div>
 
@@ -152,6 +174,20 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div class="table-wrap">
         <div class="scroll" id="table-scroll">
             <div id="table-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Responses tab -->
+<div id="responses-tab" style="display:none">
+    <div class="toolbar">
+        <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
+        <button class="btn btn-outline" id="btn-refresh-responses">🔄 重新整理</button>
+        <span class="resp-stats" id="resp-stats" style="margin-left:auto"></span>
+    </div>
+    <div class="table-wrap">
+        <div class="scroll" id="resp-scroll" style="max-height:calc(100vh - 200px)">
+            <div id="responses-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
         </div>
     </div>
 </div>
@@ -201,18 +237,6 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <button class="btn btn-success" id="btn-publish-confirm">✅ 發布</button>
             <button class="btn btn-outline-red" id="btn-unpublish">🗑️ 取消發布</button>
         </div>
-    </div>
-</div>
-
-<!-- Responses dialog -->
-<div class="modal-overlay" id="responses-dialog">
-    <div class="modal-box">
-        <button class="close" id="close-responses">&times;</button>
-        <h2>📋 回應列表</h2>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-            <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
-        </div>
-        <div id="responses-list"><p style="color:#94a3b8;font-size:13px">暫無回應</p></div>
     </div>
 </div>
 
@@ -544,62 +568,72 @@ function initEditorMode(){
         try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE'});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');toast('已取消發布')}}catch(e){toast(e.message,1)}
     });
 
-    // Responses
-    document.getElementById('btn-responses').addEventListener('click',async()=>{
-        if(!sessionId){toast('請先上傳檔案',1);return}
-        try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
-            const list=document.getElementById('responses-list');
-            if(!res.responses||!res.responses.length){
-                list.innerHTML='<p style="color:#94a3b8;font-size:13px">暫無回應</p>';
-            } else {
-                let html='';
-                for(const resp of res.responses){
-                    html+=`<div class="resp-item">
-                        <div class="info"><strong>${escape(resp.respondent||'匿名')}</strong><span>${resp.submitted_at}</span></div>
-                        <div class="actions">
-                            <button class="btn btn-outline" onclick="viewResponse('${resp.id}')">👁️ 檢視</button>
-                            <button class="btn btn-outline-red" onclick="deleteResponse('${resp.id}')">🗑️</button>
-                        </div>
-                    </div>`;
-                }
-                list.innerHTML=html;
-            }
-            document.getElementById('responses-dialog').classList.add('show');
-        }catch(e){toast(e.message,1)}
+    // Tab switching
+    document.querySelectorAll('.tab-bar .tab').forEach(tab=>{
+        tab.addEventListener('click',()=>{
+            document.querySelectorAll('.tab-bar .tab').forEach(t=>t.classList.remove('active'));
+            tab.classList.add('active');
+            const show=tab.dataset.tab;
+            document.getElementById('editor-tab').style.display=show==='edit'?'block':'none';
+            document.getElementById('responses-tab').style.display=show==='responses'?'block':'none';
+            if(show==='responses')loadResponses();
+        });
     });
 
-    document.getElementById('close-responses').addEventListener('click',()=>document.getElementById('responses-dialog').classList.remove('show'));
-    document.getElementById('responses-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('responses-dialog').classList.remove('show')});
+    // Load responses
+    async function loadResponses(){
+        if(!sessionId){document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">請先上傳檔案</p>';return}
+        document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
+            const container=document.getElementById('responses-container');
+            document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
+            if(!res.responses||!res.responses.length){
+                container.innerHTML='<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無回應<br><span style="font-size:12px">發布表單後，填表人提交的資料會顯示在這裡</span></p>';
+                return;
+            }
+            // Build comparison table: header fields from original data[0], each response is a row
+            const headers=(data[0]||[]).map(c=>c.value||'');
+            // Fetch full response data for each
+            const fulls=[];
+            for(const resp of res.responses){
+                const rd=await fetch(`/api/sessions/${sessionId}/responses/${resp.id}`);const full=await rd.json();fulls.push(full);
+            }
+            // Determine max columns
+            const maxC=Math.max(...fulls.map(f=>{const d=f.data||[];return Math.max(...d.map(r=>r.length||0),1)}),1);
+            let h='<table class="resp-compare-table"><thead><tr><th style="min-width:30px">#</th><th>填表人</th><th>時間</th>';
+            for(let c=0;c<maxC;c++){h+=`<th>${escape(headers[c]||'')}</th>`}
+            h+='<th></th></tr></thead><tbody>';
+            fulls.forEach((full,idx)=>{
+                const resp=full;const rowData=resp.data||[];
+                // Flatten all data cells into one row (first row only for simplicity)
+                const firstRow=rowData[0]||[];
+                h+=`<tr><td style="text-align:center;color:#94a3b8">${idx+1}</td>`;
+                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong></td>`;
+                h+=`<td class="resp-row-label">${resp.submitted_at}</td>`;
+                for(let c=0;c<maxC;c++){
+                    let val='';
+                    // Walk through data rows to find first non-empty value for this column
+                    for(let ri=0;ri<rowData.length;ri++){
+                        const v=rowData[ri]?.[c]?.value;
+                        if(v){val=v;break}
+                    }
+                    h+=`<td>${escape(val||'')}</td>`;
+                }
+                h+=`<td><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
+                h+='</tr>';
+            });
+            h+='</tbody></table>';
+            container.innerHTML=h;
+        }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escape(e.message)}</p>`;toast(e.message,1)}
+    }
 
     document.getElementById('btn-export-csv').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/responses/export/csv`,'_blank')});
-
-    window.viewResponse=async function(responseId){
-        try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`);const res=await r.json();
-            const respData=res.data||[];
-            const maxC=Math.max(...respData.map(r=>r.length||0),1);
-            let h='<div class="resp-table-wrap"><table>';
-            for(let ri=0;ri<respData.length;ri++){
-                h+='<tr>';
-                for(let ci=0;ci<Math.max(maxC,respData[ri]?.length||0);ci++){
-                    const val=respData[ri]?.[ci]?.value||'';
-                    const tag=ri===0?'th':'td';
-                    h+=`<${tag}>${escape(val)}</${tag}>`;
-                }
-                h+='</tr>';
-            }
-            h+='</table></div>';
-            const list=document.getElementById('responses-list');
-            list.innerHTML=`<div style="margin-bottom:8px"><button class="btn btn-outline" onclick="backToResponses()">← 返回</button> <strong>${escape(res.respondent||'匿名')}</strong> <span style="color:#94a3b8;font-size:12px">${res.submitted_at}</span></div>${h}`;
-        }catch(e){toast(e.message,1)}
-    };
-
-    window.backToResponses=function(){document.getElementById('btn-responses').click()};
+    document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
 
     window.deleteResponse=async function(responseId){
         if(!confirm('確定刪除此回應？'))return;
-        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');document.getElementById('btn-responses').click()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
     };
 
     window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
