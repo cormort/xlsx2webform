@@ -631,7 +631,7 @@ function updateFormulaCols(){
     document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
     document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
     document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
-    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
+    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',headers:getAuthHeaders(),body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`,{headers:getAuthHeaders()}).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
     document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
     document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
     document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
@@ -649,7 +649,7 @@ function updateFormulaCols(){
         document.getElementById('publish-title').textContent='🔗 發布表單';
         document.getElementById('publish-dialog').classList.add('show');
         try{
-            const r=await fetch(`/api/sessions/${sessionId}/publish`);
+            const r=await fetch(`/api/sessions/${sessionId}/publish`,{headers:getAuthHeaders()});
             const res=await r.json();
             if(res.published!==false){
                 document.getElementById('publish-step1').style.display='none';
@@ -663,7 +663,7 @@ function updateFormulaCols(){
     document.getElementById('btn-publish-generate').addEventListener('click',async()=>{
         if(!sessionId)return;
         try{
-            const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST'});const res=await r.json();
+            const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST',headers:getAuthHeaders()});const res=await r.json();
             if(!r.ok)throw new Error(res.detail||'發布失敗');
             document.getElementById('publish-step1').style.display='none';
             document.getElementById('publish-step2').style.display='block';
@@ -681,7 +681,7 @@ function updateFormulaCols(){
     });
     document.getElementById('btn-unpublish').addEventListener('click',async()=>{
         if(!sessionId)return;if(!confirm('取消發布後，現有分享連結將失效。確定？'))return;
-        try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE'});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');loadProjects();toast('已取消發布')}}catch(e){toast(e.message,1)}
+        try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE',headers:getAuthHeaders()});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');loadProjects();toast('已取消發布')}}catch(e){toast(e.message,1)}
     });
 
     // Tab switching
@@ -701,7 +701,7 @@ function updateFormulaCols(){
         if(!sessionId){document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">請先上傳檔案</p>';return}
         document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
         try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
+            const r=await fetch(`/api/sessions/${sessionId}/responses`,{headers:getAuthHeaders()});const res=await r.json();
             const container=document.getElementById('responses-container');
             document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
             if(!res.responses||!res.responses.length){
