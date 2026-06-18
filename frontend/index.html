@@ -159,6 +159,16 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     </div>
     <!-- Upload area (shown when clicking 新增專案) -->
     <div id="project-upload-area" class="upload-area" style="display:none">
+        <div id="upload-fields" style="max-width:320px;margin:0 auto 20px;text-align:left">
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📧 專案發起人 Email</label>
+                <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+            </div>
+            <div style="margin-bottom:12px">
+                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">🔑 設定專案編輯密碼</label>
+                <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+            </div>
+        </div>
         <div class="icon">📄</div>
         <h3>上傳 XLSX 檔案</h3>
         <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
@@ -238,6 +248,8 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div id="fill-submit-area" class="submit-bar">
         <input id="fill-respondent" placeholder="你的姓名（選填）">
         <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" id="btn-fill-import-xlsx" style="font-size:12px;padding:4px 10px">📥 匯入 Excel</button>
+            <span style="color:#cbd5e1">|</span>
             <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:12px;padding:4px 10px">＋列</button>
             <button class="btn btn-outline-red" id="btn-fill-del-row" style="font-size:12px;padding:4px 10px">−列</button>
             <span style="color:#cbd5e1">|</span>
@@ -245,6 +257,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <button class="btn btn-outline" id="btn-fill-reset">🔄 重填</button>
         </div>
     </div>
+    <input type="file" id="fill-file-input" hidden accept=".xlsx,.xls">
     <div id="fill-success" class="submit-msg" style="display:none">
         <div class="icon">✅</div>
         <h2>已成功送出</h2>
@@ -282,6 +295,22 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     </div>
 </div>
 
+<!-- Password auth overlay -->
+<div class="modal-overlay" id="password-overlay" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:200;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:400px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">🔒</div>
+        <h2 id="password-overlay-title" style="font-size:18px;margin-bottom:8px;color:#1e293b">此專案受密碼保護</h2>
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入專案編輯密碼以解鎖內容。</p>
+        <div style="margin-bottom:16px">
+            <input type="password" id="overlay-password-input" placeholder="請輸入密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;text-align:center">
+        </div>
+        <div style="display:flex;gap:8px">
+            <button class="btn btn-outline" onclick="location.href='/'" style="flex:1;justify-content:center;padding:10px;font-size:14px">← 返回列表</button>
+            <button class="btn btn-primary" id="btn-submit-password" style="flex:1;justify-content:center;padding:10px;font-size:14px">解鎖專案</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ===== Detect mode =====
 const isFillMode = !!(window.FILL_TOKEN);
@@ -298,6 +327,15 @@ let isDirty = false;
 let selectedCell = null;
 
 // ===== Helpers =====
+function getAuthHeaders(customHeaders = {}){
+    const headers={...customHeaders};
+    const sid=sessionId||editSessionId;
+    const pwd=sessionStorage.getItem('project_password_'+sid);
+    if(pwd){
+        headers['X-Project-Password']=pwd;
+    }
+    return headers;
+}
 function escape(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function parseNum(v){const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?null:n}
 function fmtNum(n){if(n===null||isNaN(n))return '';const p=n%1===0?0:2;return n.toLocaleString('en-US',{minimumFractionDigits:p,maximumFractionDigits:2})}
@@ -376,7 +414,10 @@ function initProjectsPage(){
         uploadArea.style.display=d==='none'?'block':'none';
     });
 
-    uploadArea.addEventListener('click',()=>fileInput.click());
+    uploadArea.addEventListener('click',e=>{
+        if(e.target.tagName==='INPUT'||e.target.tagName==='LABEL')return;
+        fileInput.click();
+    });
     uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('drag-over')});
     uploadArea.addEventListener('dragleave',()=>uploadArea.classList.remove('drag-over'));
     uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)projectUpload(f)});
@@ -423,20 +464,47 @@ async function loadProjects(){
 }
 
 async function deleteProject(id){
-    if(!confirm('確定刪除此專案？所有回應將一併移除。'))return;
-    try{const r=await fetch(`/api/sessions/${id}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadProjects()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+    const password = prompt('請輸入此專案的編輯密碼以確認刪除：');
+    if(password === null) return;
+    if(!password.trim()){
+        toast('必須輸入密碼才能刪除專案', 1);
+        return;
+    }
+    try{
+        const r=await fetch(`/api/sessions/${id}`,{
+            method:'DELETE',
+            headers: { 'X-Project-Password': password.trim() }
+        });
+        if(r.ok){
+            toast('已刪除');
+            loadProjects();
+        } else {
+            const res = await r.json();
+            throw new Error(res.detail || '刪除失敗');
+        }
+    }catch(e){toast(e.message,1)}
 }
 
 async function projectUpload(file){
     if(!file.name.match(/\.xlsx?$/i)){toast('請選擇 .xlsx 檔案',1);return}
+    const email=document.getElementById('project-email').value.trim();
+    const password=document.getElementById('project-password').value.trim();
+    if(!email||!password){
+        toast('請先輸入 Email 與專案編輯密碼！',1);
+        return;
+    }
     const loading=document.getElementById('project-upload-loading');
     const area=document.getElementById('project-upload-area');
     loading.style.display='block';area.style.display='none';
-    const fd=new FormData();fd.append('file',file);
+    const fd=new FormData();
+    fd.append('file',file);
+    fd.append('email',email);
+    fd.append('password',password);
     try{
         const r=await fetch('/api/upload-xlsx',{method:'POST',body:fd});const res=await r.json();
         if(!r.ok)throw new Error(res.detail||'失敗');
-        // Redirect to editor
+        // 保存編輯密碼在 sessionStorage，進入編輯器時能一鍵免密碼解鎖
+        sessionStorage.setItem('project_password_'+res.session_id,password);
         location.href=`/editor/${res.session_id}`;
     }catch(e){toast(e.message,1);loading.style.display='none';area.style.display='block'}
 }
@@ -453,8 +521,19 @@ async function loadEditorSession(){
     const tableContainer=document.getElementById('table-container');
     const fileName=document.getElementById('file-name');
     try{
-        const r=await fetch(`/api/sessions/${sessionId}`);const res=await r.json();
+        const r=await fetch(`/api/sessions/${sessionId}`, {
+            headers: getAuthHeaders()
+        });
+        if(r.status===401||r.status===403){
+            document.getElementById('password-overlay').style.display='flex';
+            if(r.status===403){
+                toast('密碼錯誤，請重新輸入！',1);
+            }
+            return;
+        }
+        const res=await r.json();
         if(!r.ok)throw new Error(res.detail||'載入失敗');
+        document.getElementById('password-overlay').style.display='none';
         data=res.current_data||res.json||[];
         original=JSON.parse(JSON.stringify(data));
         fileName.textContent=res.name||'';
@@ -652,13 +731,37 @@ function updateFormulaCols(){
         }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escape(e.message)}</p>`;toast(e.message,1)}
     }
 
-    document.getElementById('btn-export-csv').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/responses/export/csv`,'_blank')});
+    document.getElementById('btn-export-csv').addEventListener('click',()=>{
+        if(!sessionId)return;
+        const pwd=sessionStorage.getItem('project_password_'+sessionId)||'';
+        window.open(`/api/sessions/${sessionId}/responses/export/csv?password=${encodeURIComponent(pwd)}`,'_blank');
+    });
     document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
 
     window.deleteResponse=async function(responseId){
         if(!confirm('確定刪除此回應？'))return;
-        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{
+                method:'DELETE',
+                headers:getAuthHeaders()
+            });
+            if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')
+        }catch(e){toast(e.message,1)}
     };
+
+    document.getElementById('btn-submit-password').addEventListener('click',()=>{
+        const pwd=document.getElementById('overlay-password-input').value.trim();
+        if(!pwd){
+            toast('請輸入密碼！',1);
+            return;
+        }
+        sessionStorage.setItem('project_password_'+(sessionId||editSessionId),pwd);
+        document.getElementById('overlay-password-input').value='';
+        loadEditorSession();
+    });
+    document.getElementById('overlay-password-input').addEventListener('keydown',e=>{
+        if(e.key==='Enter')document.getElementById('btn-submit-password').click();
+    });
 
     window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
 })();
@@ -680,12 +783,62 @@ async function initFillMode(){
         original=JSON.parse(JSON.stringify(data));
         document.getElementById('file-name').textContent=res.name||'';
         renderFillTable();
+        bindFillImportEvents();
         document.getElementById('fill-mode').style.display='block';
     }catch(e){
         toast(e.message,1);
         document.getElementById('fill-mode').innerHTML=`<div class="submit-msg"><div class="icon">❌</div><h2>無法載入</h2><p>${escape(e.message)}</p></div>`;
         document.getElementById('fill-mode').style.display='block';
     }
+}
+
+function bindFillImportEvents(){
+    const importBtn=document.getElementById('btn-fill-import-xlsx');
+    const fileInput=document.getElementById('fill-file-input');
+    if(!importBtn||!fileInput)return;
+    importBtn.addEventListener('click',()=>fileInput.click());
+    fileInput.addEventListener('change',async e=>{
+        const file=e.target.files[0];
+        if(!file)return;
+        if(!file.name.match(/\.xlsx?$/i)){
+            toast('請選擇 .xlsx 檔案',1);
+            return;
+        }
+        const fd=new FormData();
+        fd.append('file',file);
+        toast('正在解析 Excel 檔案⋯');
+        try{
+            const r=await fetch('/api/parse-xlsx',{method:'POST',body:fd});
+            const res=await r.json();
+            if(!r.ok)throw new Error(res.detail||'解析失敗');
+            const uploadedJson=res.json||[];
+            if(!uploadedJson.length){
+                toast('匯入的 Excel 無資料',1);
+                return;
+            }
+            const currentHeaders=getHeaders();
+            const uploadedHeaders=uploadedJson[0].map(c=>(c?c.value||'':''));
+            if(currentHeaders.length!==uploadedHeaders.length){
+                alert(`欄位數量不符！\n原表單欄位：[${currentHeaders.join(', ')}]\n上傳檔案欄位：[${uploadedHeaders.join(', ')}]`);
+                fileInput.value='';
+                return;
+            }
+            for(let i=0;i<currentHeaders.length;i++){
+                if(currentHeaders[i].trim()!==uploadedHeaders[i].trim()){
+                    alert(`欄位名稱不符！第 ${i+1} 欄應該為「${currentHeaders[i]}」，但上傳檔案中卻為「${uploadedHeaders[i]}」\n不開放匯入。`);
+                    fileInput.value='';
+                    return;
+                }
+            }
+            data=uploadedJson;
+            renderFillTable();
+            toast(`已成功讀入 Excel 共 ${data.length-1} 筆資料！`);
+        }catch(e){
+            toast(e.message,1);
+        }finally{
+            fileInput.value='';
+        }
+    });
 }
 
 function renderFillTable(){

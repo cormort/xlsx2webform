@@ -12,7 +12,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -58,6 +58,27 @@ class SessionData(BaseModel):
     metadata: dict
     current_data: Optional[list] = None
     form_data: Optional[dict] = None
+    email: Optional[str] = ""
+    password_hash: Optional[str] = ""
+
+
+def check_session_auth(session_id: str, password_header: Optional[str] = None, password_query: Optional[str] = None):
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    session = sessions[session_id]
+    if session.password_hash:
+        pwd = password_header or password_query
+        if not pwd:
+            raise HTTPException(
+                status_code=401,
+                detail="Password required",
+                headers={"X-Needs-Password": "true"}
+            )
+        import hashlib
+        h = hashlib.sha256(pwd.encode('utf-8')).hexdigest()
+        if h != session.password_hash:
+            raise HTTPException(status_code=403, detail="Incorrect password")
+    return session
 
 
 class SaveRequest(BaseModel):
@@ -153,7 +174,9 @@ async def editor_page(session_id: str):
 async def upload_xlsx(
     file: UploadFile = File(...),
     sheet_index: int = Form(0),
-    mode: str = Form("table")  # 'table' or 'form'
+    mode: str = Form("table"),  # 'table' or 'form'
+    email: str = Form(""),
+    password: str = Form("")
 ):
     """Upload an XLSX file and convert to HTML table or form."""
     if not file.filename.endswith(('.xlsx', '.xls')):
@@ -170,6 +193,11 @@ async def upload_xlsx(
         # Process the XLSX file
         result = process_xlsx(str(file_path), sheet_index, mode=mode)
 
+        import hashlib
+        password_hash = ""
+        if password:
+            password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+
         if mode == 'form':
             # Form mode
             session = SessionData(
@@ -181,7 +209,9 @@ async def upload_xlsx(
                 original_json=[],
                 metadata=result['metadata'],
                 current_data=[],
-                form_data=result.get('form')
+                form_data=result.get('form'),
+                email=email,
+                password_hash=password_hash
             )
 
             sessions[session_id] = session
@@ -203,7 +233,9 @@ async def upload_xlsx(
                 original_html=result['html'],
                 original_json=result['json'],
                 metadata=result['metadata'],
-                current_data=result['json']
+                current_data=result['json'],
+                email=email,
+                password_hash=password_hash
             )
 
             sessions[session_id] = session
@@ -246,12 +278,12 @@ async def list_sessions():
 
 
 @app.get("/api/sessions/{session_id}")
-async def get_session(session_id: str):
+async def get_session(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Get session data by ID."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    session = sessions[session_id]
+    session = check_session_auth(session_id, x_project_password)
     return {
         "id": session.id,
         "name": session.name,
@@ -266,12 +298,13 @@ async def get_session(session_id: str):
 
 
 @app.post("/api/sessions/{session_id}/save")
-async def save_session(session_id: str, request: SaveRequest):
+async def save_session(
+    session_id: str,
+    request: SaveRequest,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Save edited data to session."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    session = sessions[session_id]
+    session = check_session_auth(session_id, x_project_password)
     session.current_data = request.data
     session.updated_at = datetime.now().isoformat()
     _save_session(session_id)
@@ -280,12 +313,13 @@ async def save_session(session_id: str, request: SaveRequest):
 
 
 @app.get("/api/sessions/{session_id}/export/json")
-async def export_json(session_id: str):
+async def export_json(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    password: Optional[str] = None
+):
     """Export session data as JSON file."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    session = sessions[session_id]
+    session = check_session_auth(session_id, x_project_password, password)
     data = {
         "session": {
             "id": session.id,
@@ -309,16 +343,17 @@ async def export_json(session_id: str):
 
 
 @app.post("/api/sessions/{session_id}/import/json")
-async def import_json(session_id: str, file: UploadFile = File(...)):
+async def import_json(
+    session_id: str,
+    file: UploadFile = File(...),
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Import JSON data into session."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
+    session = check_session_auth(session_id, x_project_password)
     try:
         content = await file.read()
         data = json.loads(content.decode('utf-8'))
 
-        session = sessions[session_id]
         if 'data' in data:
             session.current_data = data['data']
         session.updated_at = datetime.now().isoformat()
@@ -332,12 +367,12 @@ async def import_json(session_id: str, file: UploadFile = File(...)):
 
 
 @app.post("/api/sessions/{session_id}/reset")
-async def reset_session(session_id: str):
+async def reset_session(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Reset session to original data."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
-    session = sessions[session_id]
+    session = check_session_auth(session_id, x_project_password)
     session.current_data = session.original_json
 
     # Reset form_data to original by re-processing the uploaded file
@@ -355,16 +390,16 @@ async def reset_session(session_id: str):
                 pass
 
     session.updated_at = datetime.now().isoformat()
-
     return {"success": True, "message": "Session reset to original data"}
 
 
 @app.delete("/api/sessions/{session_id}")
-async def delete_session(session_id: str):
+async def delete_session(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Delete a session."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-
+    session = check_session_auth(session_id, x_project_password)
     del sessions[session_id]
     _save_session(session_id)  # updates index
     return {"success": True, "message": "Session deleted"}
@@ -449,10 +484,12 @@ class SubmitRequest(BaseModel):
     respondent: Optional[str] = ""
 
 @app.post("/api/sessions/{session_id}/publish")
-async def publish_form(session_id: str):
+async def publish_form(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Publish a form for others to fill."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
 
     if session_id in published_forms:
         token = published_forms[session_id]
@@ -471,10 +508,12 @@ async def publish_form(session_id: str):
     )
 
 @app.get("/api/sessions/{session_id}/publish")
-async def get_publish_status(session_id: str):
+async def get_publish_status(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Get publish status for a session."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
 
     if session_id in published_forms:
         token = published_forms[session_id]
@@ -487,10 +526,12 @@ async def get_publish_status(session_id: str):
     return {"published": False}
 
 @app.delete("/api/sessions/{session_id}/publish")
-async def unpublish_form(session_id: str):
+async def unpublish_form(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Unpublish a form."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
     if session_id in published_forms:
         token = published_forms.pop(session_id)
         publish_store.pop(token, None)
@@ -550,10 +591,12 @@ async def submit_fill(token: str, request: SubmitRequest):
     return {"success": True, "response_id": resp["id"], "submitted_at": resp["submitted_at"]}
 
 @app.get("/api/sessions/{session_id}/responses")
-async def list_responses(session_id: str):
+async def list_responses(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """List all submitted responses for a session."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
     responses = response_store.get(session_id, [])
     return {
         "session_id": session_id,
@@ -569,10 +612,13 @@ async def list_responses(session_id: str):
     }
 
 @app.get("/api/sessions/{session_id}/responses/{response_id}")
-async def get_response(session_id: str, response_id: str):
+async def get_response(
+    session_id: str,
+    response_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Get a single response with full data."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
     responses = response_store.get(session_id, [])
     for r in responses:
         if r["id"] == response_id:
@@ -580,10 +626,13 @@ async def get_response(session_id: str, response_id: str):
     raise HTTPException(status_code=404, detail="Response not found")
 
 @app.delete("/api/sessions/{session_id}/responses/{response_id}")
-async def delete_response(session_id: str, response_id: str):
+async def delete_response(
+    session_id: str,
+    response_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+):
     """Delete a single response."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
+    session = check_session_auth(session_id, x_project_password)
     responses = response_store.get(session_id, [])
     for i, r in enumerate(responses):
         if r["id"] == response_id:
@@ -593,11 +642,13 @@ async def delete_response(session_id: str, response_id: str):
     raise HTTPException(status_code=404, detail="Response not found")
 
 @app.get("/api/sessions/{session_id}/responses/export/csv")
-async def export_responses_csv(session_id: str):
+async def export_responses_csv(
+    session_id: str,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    password: Optional[str] = None
+):
     """Export all responses as CSV."""
-    if session_id not in sessions:
-        raise HTTPException(status_code=404, detail="Session not found")
-    session = sessions[session_id]
+    session = check_session_auth(session_id, x_project_password, password)
     responses = response_store.get(session_id, [])
     if not responses:
         raise HTTPException(status_code=404, detail="No responses to export")
@@ -624,6 +675,35 @@ async def export_responses_csv(session_id: str):
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename=responses_{session_id}.csv"}
     )
+
+
+@app.post("/api/parse-xlsx")
+async def parse_xlsx_only(
+    file: UploadFile = File(...),
+    sheet_index: int = Form(0)
+):
+    """Parse an XLSX file and return raw JSON data without saving any session."""
+    if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
+
+    temp_id = str(uuid.uuid4())[:8]
+    temp_path = UPLOAD_DIR / f"temp_{temp_id}_{file.filename}"
+    try:
+        with open(temp_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        result = process_xlsx(str(temp_path), sheet_index, mode='table')
+        return {
+            "success": True,
+            "json": result['json'],
+            "metadata": result['metadata']
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        if temp_path.exists():
+            temp_path.unlink()
+
 
 # Mount static files for frontend assets
 frontend_dir = Path(__file__).parent.parent / "frontend"
