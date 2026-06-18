@@ -398,6 +398,9 @@ async function loadProjects(){
             const badge=p.published
                 ? `<span class="badge published">✅ 已發布 (${p.response_count})</span>`
                 : '<span class="badge unpublished">📋 未發布</span>';
+            const viewRespBtn = p.published
+                ? `<button class="btn btn-success" onclick="location.href='/editor/${p.id}#responses'">📊 彙整</button>`
+                : '';
             h+=`<div class="project-card">
                 <div class="info">
                     <div class="name">${escape(p.name)}</div>
@@ -408,6 +411,7 @@ async function loadProjects(){
                     </div>
                 </div>
                 <div class="actions">
+                    ${viewRespBtn}
                     <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
                     <button class="btn btn-outline-red" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
                 </div>
@@ -457,6 +461,10 @@ async function loadEditorSession(){
         document.getElementById('app-title').textContent='✏️ '+res.name?.replace(/\.xlsx?$/i,'')||'預算表單編輯器';
         recalcAutoSum();render();
         editor.style.display='block';
+        if(window.location.hash==='#responses'){
+            const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
+            if(respTab)respTab.click();
+        }
     }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escape(e.message)}</p>`;editor.style.display='block'}
 }
 
