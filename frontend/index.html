@@ -147,7 +147,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <a id="back-link" href="/" style="display:none;font-size:13px;color:#2563eb;text-decoration:none;margin-left:auto">← 專案列表</a>
 </div></header>
 
-<div id="fill-banner" class="fill-banner" style="display:none">📋 填寫模式 — 請在下方填入資料後提交</div>
+<div id="fill-banner" class="fill-banner">📋 填寫模式 — 請在下方填入資料後提交</div>
 
 <main>
 
@@ -175,7 +175,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 </div>
 
 <!-- Editor -->
-<div id="editor" style="display:none">
+<div id="editor">
     <div class="tab-bar">
         <div class="tab active" data-tab="edit">✏️ 編輯</div>
         <div class="tab" data-tab="responses">📋 回應結果</div>
@@ -214,7 +214,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 </div>
 
 <!-- Responses tab -->
-<div id="responses-tab" style="display:none">
+<div id="responses-tab">
     <div class="toolbar">
         <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
         <button class="btn btn-outline" id="btn-refresh-responses">🔄 重新整理</button>
@@ -228,7 +228,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 </div>
 
 <!-- Fill mode -->
-<div id="fill-mode" style="display:none">
+<div id="fill-mode">
     <div class="table-wrap" style="margin-bottom:12px">
         <div class="scroll" id="fill-table-scroll">
             <div id="fill-table-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
@@ -464,7 +464,7 @@ function render(){
     if(!data.length){tableContainer.innerHTML='';return}
     const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
     let h='<table id="main-table"><thead><tr>';
-    for(let c=0;c<maxC;c++){h+=`<th><input type="text" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
+    for(let c=0;c<maxC;c++){h+=`<th><input type="text" id="hdr-${c}" name="hdr-${c}" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
     h+='</tr></thead><tbody>';
     for(let r=1;r<data.length;r++){
         const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
@@ -474,7 +474,7 @@ function render(){
             const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
             const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
             h+=`<td${hasF?' class="formula"':''}>`;
-            h+=`<input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
+            h+=`<input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
             h+='</td>';
         }
         h+='</tr>';
@@ -696,10 +696,10 @@ function renderFillTable(){
             const cell=row[c]||{};const val=cell.value||'';
             const isNum=nums.includes(c);const isAuto=cell._autoSum;
             if(isAuto){
-                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" value="${escape(val)}" disabled style="background:transparent;cursor:default"></td>`;
+                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escape(val)}" disabled style="background:transparent;cursor:default"></td>`;
             } else {
                 const cls=`${isNum?'num':'txt'}`;
-                h+=`<td><input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
+                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
             }
         }
         h+='</tr>';

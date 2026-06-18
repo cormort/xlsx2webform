@@ -127,7 +127,7 @@ async def root():
     if frontend_path.exists():
         html = frontend_path.read_text(encoding='utf-8')
         head_script = '<script>window.LANDING_MODE="projects";</script>'
-        head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}</style>'
+        head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}#fill-banner{display:none!important}</style>'
         html = html.replace("</head>", f"{head_script}{head_style}</head>")
         return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
     return {"message": "Budget Table Editor API", "version": "1.0.0"}
@@ -144,7 +144,7 @@ async def editor_page(session_id: str):
     html = frontend_path.read_text(encoding='utf-8')
     # Inject EDIT_SESSION_ID and hide projects/fill, show editor
     head_script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
-    head_style = '<style>#projects-section{display:none!important}#fill-mode{display:none!important}#editor{display:block!important}</style>'
+    head_style = '<style>#projects-section{display:none!important}#fill-mode{display:none!important}#fill-banner{display:none!important}#editor{display:block!important}</style>'
     html = html.replace("</head>", f"{head_script}{head_style}</head>")
     return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
