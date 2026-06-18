@@ -525,19 +525,34 @@ if(isFillMode){
 
 // ===== Projects Page =====
 function initProjectsPage(){
-    if(adminRequired){
-        checkAdminAuth();
+    const isCreateMode = window.LANDING_MODE === "create";
+
+    if (isCreateMode) {
+        // Create mode: show upload area directly, hide admin overlay & listing items
+        document.getElementById('project-upload-area').style.display = 'block';
+        document.getElementById('project-list').style.display = 'none';
+        document.getElementById('btn-new-project').style.display = 'none';
+        
+        // Update header/title to make it clear for the user
+        const headerTitle = document.querySelector('.projects-header h2');
+        if (headerTitle) headerTitle.textContent = '📤 上傳 XLSX 並建立新專案';
     } else {
-        loadProjects();
+        if(adminRequired){
+            checkAdminAuth();
+        } else {
+            loadProjects();
+        }
     }
 
     const uploadArea=document.getElementById('project-upload-area');
     const fileInput=document.getElementById('project-file-input');
 
-    document.getElementById('btn-new-project').addEventListener('click',()=>{
-        const d=uploadArea.style.display;
-        uploadArea.style.display=d==='none'?'block':'none';
-    });
+    if (!isCreateMode) {
+        document.getElementById('btn-new-project').addEventListener('click',()=>{
+            const d=uploadArea.style.display;
+            uploadArea.style.display=d==='none'?'block':'none';
+        });
+    }
 
     uploadArea.addEventListener('click',e=>{
         if(e.target.tagName==='INPUT'||e.target.tagName==='LABEL')return;
@@ -548,7 +563,7 @@ function initProjectsPage(){
     uploadArea.addEventListener('drop',e=>{e.preventDefault();uploadArea.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)projectUpload(f)});
     fileInput.addEventListener('change',e=>{if(e.target.files[0])projectUpload(e.target.files[0])});
 
-    document.getElementById('app-title').addEventListener('click',()=>{location.href='/'});
+    document.getElementById('app-title').addEventListener('click',()=>{location.href=getAdminToken()?'/':'/create'});
 }
 
 async function checkAdminAuth(){
@@ -662,7 +677,14 @@ async function projectUpload(file){
 // ===== Editor Mode =====
 function initEditorWithSession(sid){
     sessionId=sid;
-    document.getElementById('back-link').style.display='inline';
+    const backLink = document.getElementById('back-link');
+    if (backLink) {
+        backLink.style.display = 'inline';
+        backLink.href = getAdminToken() ? '/' : '/create';
+        if (!getAdminToken()) {
+            backLink.textContent = '← 建立新專案';
+        }
+    }
     loadEditorSession();
 }
 
@@ -778,10 +800,10 @@ function updateFormulaCols(){
     document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
     document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
     document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAutoSum();render();isDirty=true;toast('已清除')});
-    document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href='/'});
+    document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
     document.getElementById('btn-apply-formula').addEventListener('click',()=>{const col=parseInt(document.getElementById('formula-col').value);const formula=document.getElementById('formula-input').value.trim();if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}applyFormula(col,formula);render();toast('公式已套用')});
     document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
-    document.getElementById('app-title').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href='/'});
+    document.getElementById('app-title').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
 
     // Publish
     document.getElementById('btn-publish').addEventListener('click',async()=>{

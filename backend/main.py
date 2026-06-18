@@ -334,6 +334,19 @@ async def root():
     return {"message": "Budget Table Editor API", "version": "1.0.0"}
 
 
+@app.get("/create")
+async def create_page():
+    """Serve project creation page without listing other projects."""
+    frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
+    if frontend_path.exists():
+        html = frontend_path.read_text(encoding='utf-8')
+        head_script = '<script>window.LANDING_MODE="create";window.ADMIN_REQUIRED=false;</script>'
+        head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}#fill-banner{display:none!important}</style>'
+        html = html.replace("</head>", f"{head_script}{head_style}</head>")
+        return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
+    return {"message": "Budget Table Editor API", "version": "1.0.0"}
+
+
 @app.get("/editor/{session_id}")
 async def editor_page(session_id: str):
     """Serve editor page for a specific session."""
@@ -360,9 +373,8 @@ async def upload_xlsx(
     mode: str = Form("table"),  # 'table' or 'form'
     email: str = Form(""),
     password: str = Form(""),
-    _admin=Depends(check_admin)
 ):
-    """Upload an XLSX file and convert to HTML table or form. Requires admin auth."""
+    """Upload an XLSX file and convert to HTML table or form (Open for public creation)."""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 
