@@ -26,6 +26,32 @@ pinned: false
 
 ---
 
+## 🌟 進階特色功能
+
+為了滿足實際數據收集情境與提升企業級安全性，本專案全新引入了以下重大功能：
+
+### 1. 🔑 專案發起人身分驗證與密碼保護
+- **專案防護**：上傳 Excel 新建專案時，發起人可設定 Email 與編輯密碼。
+- **全 API 保護**：所有涉及專案數據編輯、導出、發布、刪除、及查看 responses 列表的 API，皆在後端通過 **SHA256 密碼雜湊驗證** 嚴密鎖定。
+- **無縫解鎖遮罩**：前端加入「不透明密碼輸入 Overlay」遮罩阻絕任何數據泄露，並將憑證緩存在 `sessionStorage` 提供一鍵免登入重載。
+- **刪除確認**：防禦他人惡意刪除專案，唯有填入正確密碼方能執行刪除。
+
+### 2. 📝 填表人身分綁定與「自動辨識覆蓋修正」
+- **資料修正無重複**：填表人可在送出時填寫其 Email 與填表密碼。
+- **自動覆蓋**：日後若發現填寫有誤，使用**相同 Email 和密碼**再次送出時，後端會自動辨識並**覆蓋更新**其先前同一筆數據（維持原 response_id 且不產生重複垃圾行），完美保持統計乾淨！
+- **歷史數據反填**：填表人點擊「🔍 載入我之前填過的資料」，輸入 Email/密碼校驗通過後，可將之前填寫的全部數據一鍵帶回畫面，直接微調後重新送出。
+- **發起人修正提醒**：當填寫人修正其數據後，管理員的「回應結果」列表中會立刻在該員名字旁貼上 **`⚠️ 已修正`** 黃色顯眼標章（hover 可見修改時間），提供發起者最醒目的通知。
+
+### 3. 📥 填表端 Excel 匯入與「欄位比對驗證防呆」
+- **極速填寫**：支援填表人直接拖放或上傳其 `.xlsx` 檔案，一鍵將整份 Excel 填寫內容匯入到網頁表格中，省去逐字敲打的煩惱。
+- **嚴格格式比對**：後端提供 Stateless 專屬 Excel 解析 API；前端接收數據後，會與目前發布的表單進行**雙重驗證（欄位數量是否一致、欄位名稱順序是否相同）**，若有一絲不符，立即彈出詳細錯誤提示並**拒絕匯入**，保障收集數據的絕對一致性。
+
+### 4. 📊 彙整表與 CSV 匯出的跨列 `rowspan` 聚合分組
+- **高質感對齊**：如果上傳的 Excel 檔案包含多行（例如 280 列的 checklist），回應列表在呈現時會使用 **`rowspan` 跨列聚合技術** 將填表人身分（姓名、Email、修改標章、時間）以及「刪除回應」按鈕完美分組合併，整個大畫面乾淨精巧。
+- **關係型 CSV 導出**：CSV 導出時會自動拆分，呈現完美的關係型資料表，極度方便發佈者在 Excel 裡面做樞紐分析（Pivot Table）或統計！
+
+---
+
 ## 使用者流程
 
 ```
@@ -112,28 +138,30 @@ sessions_index (list)    → data/sessions_index.json
 
 #### 路由一覽
 
-| 方法 | 路徑 | 用途 |
-|------|------|------|
-| GET | `/` | 首頁（專案列表）、伺服端 CSS 注入 |
-| GET | `/editor/{id}` | 編輯器頁面、CSS 注入 |
-| GET | `/fill/{token}` | 填寫頁面、CSS 注入 |
-| POST | `/api/upload-xlsx` | 上傳 XLSX → 解析 → 建立 session |
-| GET | `/api/sessions` | 列出所有 session（含發布狀態、回應數） |
-| GET | `/api/sessions/{id}` | 取得單一 session 資料 |
-| POST | `/api/sessions/{id}/save` | 儲存編輯後的 data |
-| GET | `/api/sessions/{id}/export/json` | 匯出 JSON |
-| POST | `/api/sessions/{id}/import/json` | 匯入 JSON |
-| POST | `/api/sessions/{id}/reset` | 重置為原始資料 |
-| DELETE | `/api/sessions/{id}` | 刪除 session |
-| POST | `/api/sessions/{id}/publish` | 發布（產生存取 token） |
-| GET | `/api/sessions/{id}/publish` | 查詢發布狀態 |
-| DELETE | `/api/sessions/{id}/publish` | 取消發布 |
-| GET | `/api/fill/{token}/data` | 填表端取得表單資料 |
-| POST | `/api/fill/{token}/submit` | 填表端提交回應 |
-| GET | `/api/sessions/{id}/responses` | 列出所有回應 |
-| GET | `/api/sessions/{id}/responses/{rid}` | 取得單一回應 |
-| DELETE | `/api/sessions/{id}/responses/{rid}` | 刪除回應 |
-| GET | `/api/sessions/{id}/responses/export/csv` | 匯出 CSV |
+| 方法 | 路徑 | 用途 | 安全限制 |
+|------|------|------|----------|
+| GET | `/` | 首頁（專案列表）、伺服端 CSS 注入 | 公開 |
+| GET | `/editor/{id}` | 編輯器頁面、CSS 注入 | 密碼鎖定 |
+| GET | `/fill/{token}` | 填寫頁面、CSS 注入 | 公開 |
+| POST | `/api/upload-xlsx` | 上傳 XLSX 建立新專案 | 設定發起人 Email & 密碼 |
+| POST | `/api/parse-xlsx` | 填寫端 Excel 免存檔解析 API | 公開（嚴格欄位校驗） |
+| GET | `/api/sessions` | 列出所有 session 簡介 | 公開 |
+| GET | `/api/sessions/{id}` | 取得單一 session 資料 | 需 `X-Project-Password` |
+| POST | `/api/sessions/{id}/save` | 儲存編輯後的 data | 需 `X-Project-Password` |
+| GET | `/api/sessions/{id}/export/json` | 匯出 JSON | 需 `X-Project-Password` |
+| POST | `/api/sessions/{id}/import/json` | 匯入 JSON | 需 `X-Project-Password` |
+| POST | `/api/sessions/{id}/reset` | 重置為原始資料 | 需 `X-Project-Password` |
+| DELETE | `/api/sessions/{id}` | 刪除 session | 需 `X-Project-Password` |
+| POST | `/api/sessions/{id}/publish` | 發布（產生存取 token） | 需 `X-Project-Password` |
+| GET | `/api/sessions/{id}/publish` | 查詢發布狀態 | 需 `X-Project-Password` |
+| DELETE | `/api/sessions/{id}/publish` | 取消發布 | Ref / getAuthHeaders() |
+| GET | `/api/fill/{token}/data` | 填表端取得表單資料 | 公開 |
+| POST | `/api/fill/{token}/submit` | 填表端提交或覆蓋修正回應 | 驗證填表者 Email & 密碼 |
+| POST | `/api/fill/{token}/load-response` | 填表端載入歷史填表資料 | 驗證填表者 Email & 密碼 |
+| GET | `/api/sessions/{id}/responses` | 列出所有回應 | 需 `X-Project-Password` |
+| GET | `/api/sessions/{id}/responses/{rid}` | 取得單一回應 | 需 `X-Project-Password` |
+| DELETE | `/api/sessions/{id}/responses/{rid}` | 刪除回應 | 需 `X-Project-Password` |
+| GET | `/api/sessions/{id}/responses/export/csv` | 匯出 CSV | 需 `X-Project-Password` / Query 密碼 |
 
 #### 發布流程
 
