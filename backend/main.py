@@ -286,11 +286,9 @@ def check_session_auth(
         raise HTTPException(status_code=404, detail="Session not found")
     session = sessions[session_id]
     
-    # Bypass verification if the user is admin or the owner (email matches)
+    # Bypass verification if the user is admin
     auth = get_current_auth_optional(x_admin_token)
     if auth["role"] == "admin":
-        return session
-    if auth["role"] == "user" and session.email and auth["email"] == session.email:
         return session
 
     if session.password_hash:
