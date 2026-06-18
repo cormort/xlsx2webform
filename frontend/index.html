@@ -6,9 +6,21 @@
 <title>預算表單編輯器</title>
 <style>
 *,::before,::after{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Microsoft JhengHei','PingFang TC','Noto Sans TC',sans-serif;background:#f1f5f9;color:#334155}
+:root{
+  --bg:#f1f5f9;--surface:#fff;--surface-alt:#f8fafc;--border:#e2e8f0;--border-strong:#cbd5e1;
+  --text:#334155;--text-strong:#1e293b;--text-soft:#64748b;--text-muted:#94a3b8;
+  --primary:#2563eb;--primary-hover:#1d4ed8;--primary-soft:#eff6ff;
+  --success:#059669;--success-hover:#047857;--success-soft:#dcfce7;
+  --danger:#ef4444;--danger-hover:#dc2626;--danger-soft:#fca5a5;
+  --warn:#b45309;--warn-soft:#fef3c7;--excel:#107c41;
+  --radius-sm:6px;--radius:8px;--radius-lg:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 12px rgba(0,0,0,.08);
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
+  --fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;
+}
+body{font-family:'Microsoft JhengHei','PingFang TC','Noto Sans TC',sans-serif;background:var(--bg);color:var(--text)}
 header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50}
-header .inner{max-width:100%;margin:0 auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+header .inner{max-width:100%;margin:0 auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
 header h1{font-size:17px;font-weight:700;color:#1e293b}
 header .file{font-size:13px;color:#94a3b8}
 main{padding:12px 16px;max-width:100%}
@@ -30,7 +42,7 @@ main{padding:12px 16px;max-width:100%}
 .btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
 .btn-outline{background:#fff;color:#475569;border-color:#cbd5e1}.btn-outline:hover{background:#f8fafc}
 .btn-outline-red{background:#fff;color:#dc2626;border-color:#fca5a5}.btn-outline-red:hover{background:#fef2f2}
-.formula-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 12px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;font-size:12px}
+.formula-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px;padding:6px 12px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;font-size:12px}
 .formula-bar label{color:#64748b;font-weight:500;white-space:nowrap}
 .formula-bar select{padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff}
 .formula-bar input{flex:1;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-family:monospace}
@@ -137,6 +149,55 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 .upload-area .icon{font-size:32px;margin-bottom:4px}
 .upload-area h3{font-size:15px;color:#475569;margin-bottom:2px}
 .upload-area p{font-size:12px;color:#94a3b8}
+
+/* ── Identity bar (header) ── */
+.identity{display:flex;align-items:center;gap:var(--sp-2);margin-left:auto;font-size:var(--fs-base)}
+.identity .who{display:flex;align-items:center;gap:6px;color:var(--text-soft);max-width:220px}
+.identity .who .email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.identity .badge-role{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;background:var(--primary-soft);color:var(--primary)}
+.identity .badge-role.admin{background:var(--warn-soft);color:var(--warn)}
+
+/* ── Projects toolbar: search / filter / sort ── */
+.projects-toolbar{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-bottom:var(--sp-3)}
+.projects-toolbar .search{position:relative;flex:1;min-width:200px}
+.projects-toolbar .search input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text)}
+.projects-toolbar .search input:focus{outline:2px solid var(--primary);border-color:transparent}
+.projects-toolbar .search .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
+.projects-toolbar select{padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
+
+/* ── Batch action bar ── */
+.batch-bar{display:none;align-items:center;gap:var(--sp-3);padding:10px 14px;background:var(--primary-soft);border:1px solid #bfdbfe;border-radius:var(--radius);margin-bottom:var(--sp-3)}
+.batch-bar.show{display:flex;flex-wrap:wrap}
+.batch-bar .count{font-size:var(--fs-base);font-weight:600;color:var(--primary)}
+.batch-bar label{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-base);color:var(--text-soft);cursor:pointer}
+.batch-bar .spacer{flex:1}
+
+/* ── Richer project card ── */
+.project-card .check{flex-shrink:0;margin-right:var(--sp-3);display:flex;align-items:center}
+.project-card .check input{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
+.project-card.selected{border-color:var(--primary);background:#f5f9ff}
+.project-card .meta .resp{color:var(--success);font-weight:500}
+.project-card .meta .updated{color:var(--text-muted)}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-size:13px;color:var(--text-soft);transition:.15s}
+.icon-btn:hover{background:var(--surface-alt);color:var(--text-strong)}
+.icon-btn.danger:hover{background:#fef2f2;color:var(--danger-hover);border-color:var(--danger-soft)}
+.empty-projects.filtered .icon{font-size:32px}
+
+/* ── Responsive ── */
+@media(max-width:640px){
+  header .inner{flex-wrap:wrap;gap:6px;padding:8px 12px}
+  header h1{font-size:15px}
+  .identity .who{max-width:130px}
+  main{padding:10px 12px}
+  .projects-section{padding:16px 0}
+  .projects-header h2{font-size:var(--fs-lg)}
+  .project-card{flex-wrap:wrap}
+  .project-card .actions{margin-left:0;margin-top:var(--sp-2);width:100%;justify-content:flex-end}
+  .toolbar{gap:var(--sp-1)}
+  .submit-bar{flex-direction:column;align-items:stretch}
+  .submit-bar input{max-width:none}
+  .modal-box{width:94%;padding:16px}
+}
 </style>
 </head>
 <body>
@@ -144,7 +205,8 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <header><div class="inner">
     <h1 id="app-title" style="cursor:pointer">預算表單編輯器</h1>
     <span class="file" id="file-name"></span>
-    <a id="back-link" href="/" style="display:none;font-size:13px;color:#2563eb;text-decoration:none;margin-left:auto">← 專案列表</a>
+    <a id="back-link" href="/" style="display:none;font-size:13px;color:var(--primary);text-decoration:none;margin-left:auto">← 專案列表</a>
+    <div class="identity" id="identity" style="display:none"></div>
 </div></header>
 
 <div id="fill-banner" class="fill-banner">📋 填寫模式 — 請在下方填入資料後提交</div>
@@ -190,6 +252,36 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <div class="spinner"></div>
             <p>處理中⋯</p>
         </div>
+
+        <!-- Search / filter / sort -->
+        <div class="projects-toolbar" id="projects-toolbar" style="display:none">
+            <div class="search">
+                <span class="ico">🔍</span>
+                <input type="text" id="proj-search" placeholder="搜尋專案名稱⋯">
+            </div>
+            <select id="proj-filter" title="篩選發布狀態">
+                <option value="all">全部狀態</option>
+                <option value="published">已發布</option>
+                <option value="unpublished">未發布</option>
+            </select>
+            <select id="proj-sort" title="排序方式">
+                <option value="updated">最近更新</option>
+                <option value="created">建立時間</option>
+                <option value="name">名稱</option>
+                <option value="responses">回應數</option>
+            </select>
+        </div>
+
+        <!-- Batch action bar -->
+        <div class="batch-bar" id="batch-bar">
+            <label><input type="checkbox" id="batch-select-all"> 全選</label>
+            <span class="count" id="batch-count">已選 0 項</span>
+            <span class="spacer"></span>
+            <button class="btn btn-primary" id="btn-batch-publish" style="padding:5px 12px">🔗 批次發布</button>
+            <button class="btn btn-outline-red" id="btn-batch-delete" style="padding:5px 12px">🗑️ 批次刪除</button>
+            <button class="btn btn-outline" id="btn-batch-clear" style="padding:5px 12px">取消選取</button>
+        </div>
+
         <div id="project-list"><div class="empty-projects" id="empty-projects">
             <div class="icon">📋</div>
             <p>尚無專案，請上傳 Excel 檔案開始使用</p>
@@ -255,9 +347,10 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div class="formula-bar">
         <label for="formula-col">公式</label>
         <select id="formula-col"><option value="">— 選擇欄位 —</option></select>
-        <input id="formula-input" placeholder="=A+B 逐列運算，=A2+B2 絕對參照" value="">
-        <button class="btn btn-primary" id="btn-apply-formula">套用</button>
-        <span class="hint">Ctrl+V 可貼上 Excel 資料</span>
+        <input id="formula-input" placeholder="=B+C 逐列運算 · =B2*1.05 指定儲存格" value="">
+        <button class="btn btn-primary" id="btn-apply-formula" title="套用到整欄">套用整欄</button>
+        <button class="btn btn-outline" id="btn-apply-cell" title="只套用到目前選取的儲存格">套用此格</button>
+        <span class="hint">改了來源值會自動重算 · Ctrl+V 貼上 Excel</span>
     </div>
 
     <div class="table-wrap">
@@ -268,7 +361,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 </div>
 
 <!-- Responses tab -->
-<div id="responses-tab">
+<div id="responses-tab" style="display:none">
     <div class="toolbar">
         <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
         <button class="btn btn-outline" id="btn-refresh-responses">🔄 重新整理</button>
@@ -564,15 +657,76 @@ function safeEval(expr) {
     return result;
 }
 
-function applyFormula(colIdx,formula){
-    const maxR=data.length;
-    for(let r=1;r<maxR;r++){
+// Column letters → 0-based index (A=0, B=1, AA=26 …), matching the column dropdown.
+function colLettersToIndex(letters){
+    return letters.toUpperCase().split('').reduce((a,ch)=>a*26+(ch.charCodeAt(0)-64),0)-1;
+}
+// Kill floating-point noise (0.1+0.2 → 0.3) without harming legitimate decimals.
+function roundNum(n){return Math.round((n+(n>=0?Number.EPSILON:-Number.EPSILON))*1e10)/1e10}
+
+// Resolve a formula body into a pure arithmetic expression for cell (curR,curC).
+// Supports absolute cell refs (A2, B10) AND per-row column refs (A, B).
+function resolveFormulaExpr(body,curR,curC){
+    // 1) Absolute cell refs: column letters immediately followed by a row number.
+    let expr=body.replace(/([A-Za-z]+)(\d+)/g,(m,letters,digits)=>{
+        const col=colLettersToIndex(letters),row=parseInt(digits,10);
+        if(row===curR&&col===curC)return '0';              // self-reference guard
+        const v=parseNum(data[row]?.[col]?.value);
+        return v===null?'0':String(v);
+    });
+    // 2) Remaining bare letters = per-row column refs (use the current row).
+    expr=expr.replace(/[A-Za-z]+/g,(m)=>{
+        const col=colLettersToIndex(m);
+        if(col===curC)return '0';                          // self-column guard
+        const v=parseNum(data[curR]?.[col]?.value);
+        return v===null?'0':String(v);
+    });
+    return expr;
+}
+
+// Evaluate one cell's formula. Returns a finite number, or NaN if invalid/div-by-zero.
+function evalFormula(curR,curC,formula){
+    const body=formula&&formula.startsWith('=')?formula.slice(1):'';
+    if(!body.trim())return NaN;
+    const res=safeEval(resolveFormulaExpr(body,curR,curC));
+    return (typeof res==='number'&&isFinite(res))?roundNum(res):NaN;
+}
+
+// Apply a formula to a whole column, or to a single row when onlyRow is given.
+function applyFormula(colIdx,formula,onlyRow){
+    const start=onlyRow!=null?onlyRow:1;
+    const end=onlyRow!=null?onlyRow+1:data.length;
+    for(let r=start;r<end;r++){
         const cell=data[r]?.[colIdx];if(!cell)continue;if(cell._autoSum)continue;
-        const f=formula.startsWith('=')?formula.slice(1):'';if(!f){cell._formula='';continue}
-        cell._formula=formula;let expr=f;
-        expr=expr.replace(/\b([A-Za-z]+)\b(?![\(\)\d])/g,(m,colLet)=>{const refC=colLet.toUpperCase().split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;if(refC===colIdx)return '0';return parseNum(data[r]?.[refC]?.value)??'0'});
-        const result=safeEval(expr);
-        if(typeof result==='number'&&!isNaN(result)){cell.value=String(result);cell._formula=formula}
+        const body=formula.startsWith('=')?formula.slice(1):'';
+        if(!body){cell._formula='';continue}               // empty formula clears it
+        cell._formula=formula;
+        const res=evalFormula(r,colIdx,formula);
+        cell.value=(typeof res==='number'&&!isNaN(res))?String(res):'';
+    }
+}
+
+// Re-evaluate every stored formula cell against current source values (live recalc).
+function recalcFormulas(){
+    for(let r=1;r<data.length;r++){
+        const row=data[r];if(!row)continue;
+        for(let c=0;c<row.length;c++){
+            const cell=row[c];
+            if(!cell||!cell._formula||cell._autoSum)continue;
+            const res=evalFormula(r,c,cell._formula);
+            cell.value=(typeof res==='number'&&!isNaN(res))?String(res):'';
+        }
+    }
+}
+
+// Full recompute: iterate formulas + hierarchy auto-sum to a fixed point.
+// The iteration cap (12) protects against circular references.
+function recalcAll(){
+    for(let i=0;i<12;i++){
+        const snap=JSON.stringify(data.map(row=>row?row.map(c=>c?c.value:''):[]));
+        recalcFormulas();
+        recalcAutoSum();
+        if(JSON.stringify(data.map(row=>row?row.map(c=>c?c.value:''):[]))===snap)break;
     }
 }
 
@@ -593,6 +747,31 @@ if(isFillMode){
 }
 
 // ===== Admin Login UI & Layout Functions =====
+function authLogout(){
+    fetch('/api/auth/logout',{method:'POST',headers:getAuthHeaders()}).finally(()=>{
+        setAdminToken('');
+        sessionStorage.removeItem('auth_role');
+        sessionStorage.removeItem('auth_email');
+        location.reload();
+    });
+}
+window.authLogout = authLogout;
+
+function renderIdentity(role, email){
+    const box = document.getElementById('identity');
+    if(!box) return;
+    // Only show when authenticated (token present, or admin not required)
+    const authed = !!getAdminToken() || !adminRequired;
+    if(!authed || !role){ box.style.display='none'; box.innerHTML=''; return; }
+    const roleLabel = role === 'admin' ? '管理員' : '使用者';
+    const roleClass = role === 'admin' ? 'badge-role admin' : 'badge-role';
+    const who = email
+        ? `<span class="who"><span class="${roleClass}">${roleLabel}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></span>`
+        : `<span class="who"><span class="${roleClass}">${roleLabel}</span></span>`;
+    box.innerHTML = `${who}<button class="btn btn-outline" onclick="authLogout()" style="padding:5px 12px">🚪 登出</button>`;
+    box.style.display = 'flex';
+}
+
 function updateAdminLayout() {
     const role = sessionStorage.getItem('auth_role');
     const email = sessionStorage.getItem('auth_email');
@@ -600,33 +779,8 @@ function updateAdminLayout() {
     const userMgmtView = document.getElementById('user-management-view');
     const projectMgmtView = document.getElementById('project-management-view');
     
-    // Add logout button if authenticated
-    let logoutBtn = document.getElementById('btn-auth-logout');
-    if (!logoutBtn) {
-        logoutBtn = document.createElement('button');
-        logoutBtn.id = 'btn-auth-logout';
-        logoutBtn.className = 'btn btn-outline';
-        logoutBtn.textContent = '🚪 登出';
-        logoutBtn.style.marginLeft = '8px';
-        logoutBtn.addEventListener('click', async () => {
-            await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() });
-            setAdminToken('');
-            sessionStorage.removeItem('auth_role');
-            sessionStorage.removeItem('auth_email');
-            location.reload();
-        });
-        const headerInner = document.querySelector('header .inner');
-        if (headerInner) {
-            headerInner.appendChild(logoutBtn);
-        }
-    }
-    
-    // If not authenticated and adminRequired, hide logout
-    if (adminRequired && !getAdminToken()) {
-        if (logoutBtn) logoutBtn.style.display = 'none';
-    } else {
-        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
-    }
+    // Render identity bar (role + email + logout)
+    renderIdentity(role, email);
 
     if (role === 'admin') {
         if (adminTabs) adminTabs.style.display = 'flex';
@@ -823,6 +977,29 @@ function initProjectsPage(){
         });
     }
 
+    // Search / filter / sort
+    document.getElementById('proj-search')?.addEventListener('input', renderProjects);
+    document.getElementById('proj-filter')?.addEventListener('change', renderProjects);
+    document.getElementById('proj-sort')?.addEventListener('change', renderProjects);
+
+    // Batch actions
+    document.getElementById('batch-select-all')?.addEventListener('change', e=>{
+        projSelected.clear();
+        if(e.target.checked){
+            document.querySelectorAll('.proj-check').forEach(cb=>{ projSelected.add(cb.dataset.id); cb.checked=true; cb.closest('.project-card')?.classList.add('selected'); });
+        } else {
+            document.querySelectorAll('.proj-check').forEach(cb=>{ cb.checked=false; cb.closest('.project-card')?.classList.remove('selected'); });
+        }
+        updateBatchBar();
+    });
+    document.getElementById('btn-batch-publish')?.addEventListener('click', batchPublish);
+    document.getElementById('btn-batch-delete')?.addEventListener('click', batchDelete);
+    document.getElementById('btn-batch-clear')?.addEventListener('click', ()=>{
+        projSelected.clear();
+        document.querySelectorAll('.proj-check').forEach(cb=>{ cb.checked=false; cb.closest('.project-card')?.classList.remove('selected'); });
+        updateBatchBar();
+    });
+
     if (isCreateMode) {
         // Create mode: show upload area directly, hide admin overlay & listing items
         document.getElementById('project-upload-area').style.display = 'block';
@@ -918,6 +1095,9 @@ async function checkAdminAuth(){
     }
 }
 
+let allProjects=[];
+const projSelected=new Set();
+
 async function loadProjects(){
     try{
         const r=await fetch('/api/sessions',{headers:getAuthHeaders()});
@@ -927,51 +1107,172 @@ async function loadProjects(){
             return;
         }
         const res=await r.json();
-        const list=document.getElementById('project-list');
-        if(!res.sessions||!res.sessions.length){
-            list.innerHTML='<div class="empty-projects"><div class="icon">📋</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
-            return;
-        }
-        let h='<div class="project-grid">';
-        for(const p of res.sessions){
-            const badge=p.published
-                ? `<span class="badge published">✅ 已發布 (${p.response_count})</span>`
-                : '<span class="badge unpublished">📋 未發布</span>';
-            const viewRespBtn = p.published
-                ? `<button class="btn btn-success" onclick="location.href='/editor/${p.id}#responses'">📊 彙整</button>`
-                : '';
-            h+=`<div class="project-card">
-                <div class="info">
-                    <div class="name">${escapeHtml(p.name)}</div>
-                    <div class="meta">
-                        <span>${p.row_count||0} 列</span>
-                        <span>${p.created_at?.split('T')[0]||''}</span>
-                        ${badge}
-                    </div>
-                </div>
-                <div class="actions">
-                    ${viewRespBtn}
-                    <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
-                    <button class="btn btn-outline-red" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
-                </div>
-            </div>`;
-        }
-        h+='</div>';
-        list.innerHTML=h;
+        allProjects=res.sessions||[];
+        projSelected.clear();
+        const tb=document.getElementById('projects-toolbar');
+        if(tb) tb.style.display=allProjects.length?'flex':'none';
+        renderProjects();
+        updateBatchBar();
     }catch(e){toast(e.message,1)}
 }
 
-async function deleteProject(id){
-    const password = prompt('請輸入此專案的編輯密碼以確認刪除：');
-    if(password === null) return;
-    if(!password.trim()){
-        toast('必須輸入密碼才能刪除專案', 1);
+function renderProjects(){
+    const list=document.getElementById('project-list');
+    if(!list) return;
+    if(!allProjects.length){
+        list.innerHTML='<div class="empty-projects"><div class="icon">📋</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
         return;
+    }
+    const q=(document.getElementById('proj-search')?.value||'').trim().toLowerCase();
+    const filter=document.getElementById('proj-filter')?.value||'all';
+    const sort=document.getElementById('proj-sort')?.value||'updated';
+
+    let rows=allProjects.filter(p=>{
+        if(q && !String(p.name||'').toLowerCase().includes(q)) return false;
+        if(filter==='published' && !p.published) return false;
+        if(filter==='unpublished' && p.published) return false;
+        return true;
+    });
+    rows.sort((a,b)=>{
+        if(sort==='name') return String(a.name||'').localeCompare(String(b.name||''),'zh-Hant');
+        if(sort==='created') return String(b.created_at||'').localeCompare(String(a.created_at||''));
+        if(sort==='responses') return (b.response_count||0)-(a.response_count||0);
+        return String(b.updated_at||'').localeCompare(String(a.updated_at||'')); // updated (default)
+    });
+
+    if(!rows.length){
+        list.innerHTML='<div class="empty-projects filtered"><div class="icon">🔍</div><p>沒有符合條件的專案</p></div>';
+        return;
+    }
+
+    let h='<div class="project-grid">';
+    for(const p of rows){
+        const badge=p.published
+            ? `<span class="badge published">✅ 已發布 (${p.response_count||0})</span>`
+            : '<span class="badge unpublished">📋 未發布</span>';
+        const viewRespBtn = p.published
+            ? `<button class="btn btn-success" onclick="location.href='/editor/${p.id}#responses'">📊 彙整</button>`
+            : '';
+        const copyBtn = p.published
+            ? `<button class="icon-btn" onclick="copyShareLink('${p.share_token}')" title="複製分享連結">🔗</button>`
+            : '';
+        const updated = (p.updated_at||p.created_at||'').replace('T',' ').slice(0,16);
+        const checked = projSelected.has(p.id)?'checked':'';
+        h+=`<div class="project-card${checked?' selected':''}" data-id="${p.id}">
+            <div class="check"><input type="checkbox" class="proj-check" data-id="${p.id}" ${checked}></div>
+            <div class="info">
+                <div class="name">${escapeHtml(p.name)}</div>
+                <div class="meta">
+                    <span>${p.row_count||0} 列 × ${p.col_count||0} 欄</span>
+                    ${p.published?`<span class="resp">📥 ${p.response_count||0} 筆回應</span>`:''}
+                    <span class="updated">🕒 ${updated}</span>
+                    ${badge}
+                </div>
+            </div>
+            <div class="actions">
+                ${copyBtn}
+                ${viewRespBtn}
+                <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
+                <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
+            </div>
+        </div>`;
+    }
+    h+='</div>';
+    list.innerHTML=h;
+
+    list.querySelectorAll('.proj-check').forEach(cb=>{
+        cb.addEventListener('change',()=>{
+            const id=cb.dataset.id;
+            if(cb.checked) projSelected.add(id); else projSelected.delete(id);
+            cb.closest('.project-card')?.classList.toggle('selected',cb.checked);
+            updateBatchBar();
+        });
+    });
+}
+
+function copyShareLink(token){
+    const url=location.origin+'/fill/'+token;
+    navigator.clipboard?.writeText(url).then(
+        ()=>toast('已複製分享連結'),
+        ()=>{prompt('複製此連結：',url)}
+    );
+}
+window.copyShareLink=copyShareLink;
+
+function updateBatchBar(){
+    const bar=document.getElementById('batch-bar');
+    const count=document.getElementById('batch-count');
+    const all=document.getElementById('batch-select-all');
+    if(!bar) return;
+    const n=projSelected.size;
+    bar.classList.toggle('show',n>0);
+    if(count) count.textContent=`已選 ${n} 項`;
+    if(all){
+        const visible=document.querySelectorAll('.proj-check').length;
+        all.checked = n>0 && n===visible;
+    }
+}
+
+async function batchPublish(){
+    if(!projSelected.size) return;
+    const ids=[...projSelected];
+    if(!confirm(`確定發布所選的 ${ids.length} 個專案？`)) return;
+    let ok=0;
+    for(const id of ids){
+        try{
+            const r=await fetch(`/api/sessions/${id}/publish`,{method:'POST',headers:projHeaders(id)});
+            if(r.ok) ok++;
+        }catch(e){}
+    }
+    toast(`已發布 ${ok}/${ids.length} 個專案`);
+    loadProjects();
+}
+
+async function batchDelete(){
+    if(!projSelected.size) return;
+    const ids=[...projSelected];
+    if(!confirm(`確定刪除所選的 ${ids.length} 個專案？此動作無法復原。`)) return;
+    let ok=0;
+    for(const id of ids){
+        try{
+            const r=await fetch(`/api/sessions/${id}`,{method:'DELETE',headers:projHeaders(id)});
+            if(r.ok) ok++;
+        }catch(e){}
+    }
+    toast(`已刪除 ${ok}/${ids.length} 個專案`);
+    loadProjects();
+}
+
+// Build headers for per-project actions: admin token bypasses password;
+// otherwise fall back to the password cached when the project was created.
+function projHeaders(id){
+    const h={};
+    const tk=getAdminToken();
+    if(tk) h['X-Admin-Token']=tk;
+    const pwd=sessionStorage.getItem('project_password_'+id);
+    if(pwd) h['X-Project-Password']=pwd;
+    return h;
+}
+
+async function deleteProject(id){
+    const isAdmin = sessionStorage.getItem('auth_role')==='admin' || (!adminRequired);
+    let headers;
+    if(isAdmin){
+        if(!confirm('確定刪除此專案？此動作無法復原。')) return;
+        headers = projHeaders(id);
+    } else {
+        const password = prompt('請輸入此專案的編輯密碼以確認刪除：');
+        if(password === null) return;
+        if(!password.trim()){
+            toast('必須輸入密碼才能刪除專案', 1);
+            return;
+        }
+        headers = { 'X-Project-Password': password.trim() };
     }
     try{
         const r=await fetch(`/api/sessions/${id}`,{
             method:'DELETE',
-            headers: { 'X-Project-Password': password.trim() }
+            headers
         });
         if(r.ok){
             toast('已刪除');
@@ -1056,7 +1357,7 @@ async function loadEditorSession(){
             editorProjName.value = res.name || '';
         }
         
-        recalcAutoSum();render();
+        recalcAll();render();
         editor.style.display='block';
         if(window.location.hash==='#responses'){
             const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
@@ -1097,7 +1398,33 @@ function render(){
 function onChange(e){
     const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
-    if((data[r][c] ? data[r][c].value : '') !== val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
+    if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};
+    if(data[r][c].value!==val){
+        data[r][c].value=val;
+        // Manually editing a cell overrides any formula/auto-sum on it
+        if(data[r][c]._formula)data[r][c]._formula='';
+        if(data[r][c]._autoSum)data[r][c]._autoSum=false;
+        isDirty=true;
+    }
+    refreshComputed(r,c);
+}
+
+// Recompute the model, then push computed values into existing inputs in place —
+// preserves focus and Tab/Enter navigation (no full re-render).
+function refreshComputed(skipR,skipC){
+    recalcAll();
+    const tbl=document.getElementById('main-table');if(!tbl)return;
+    const nums=getNumerics();
+    tbl.querySelectorAll('input[data-r]').forEach(inp=>{
+        const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+        if((r===skipR&&c===skipC)||inp===document.activeElement)return;
+        const cell=data[r]?.[c];if(!cell)return;
+        const isAuto=!!cell._autoSum,hasF=!!cell._formula&&!cell._autoSum;
+        if(!isAuto&&!hasF)return;                          // only update computed cells
+        inp.value=(c>0&&nums.includes(c))?fmtNum(parseNum(cell.value)):(cell.value||'');
+        inp.className=`${nums.includes(c)?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
+        const td=inp.closest('td');if(td)td.className=hasF?'formula':'';
+    });
 }
 
 function onFocus(e){
@@ -1126,7 +1453,7 @@ function onPaste(e){
     const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
     const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
     cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={row:targetR+1,col:targetC+1,value:'',type:'str'};data[targetR][targetC].value=val.trim()})});
-    isDirty=true;recalcAutoSum();render();
+    isDirty=true;recalcAll();render();
     const newInput=document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);if(newInput)newInput.focus();
     toast(`已貼上 ${cells.length} 列`);
 }
@@ -1174,13 +1501,27 @@ function updateFormulaCols(){
         toast('匯出 XLSX 成功');
     });
     document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
-    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',headers:getAuthHeaders(),body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`,{headers:getAuthHeaders()}).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
-    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
-    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
-    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
-    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAutoSum();render();isDirty=true;toast('已清除')});
+    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',headers:getAuthHeaders(),body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`,{headers:getAuthHeaders()}).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAll();render()}}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAll();render();isDirty=true;toast('新增一列')});
+    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAll();render();isDirty=true;toast('已刪除')});
+    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAll();render();isDirty=false;toast('已重置')});
+    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAll();render();isDirty=true;toast('已清除')});
     document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
-    document.getElementById('btn-apply-formula').addEventListener('click',()=>{const col=parseInt(document.getElementById('formula-col').value);const formula=document.getElementById('formula-input').value.trim();if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}applyFormula(col,formula);render();toast('公式已套用')});
+    document.getElementById('btn-apply-formula').addEventListener('click',()=>{
+        const col=parseInt(document.getElementById('formula-col').value);
+        const formula=document.getElementById('formula-input').value.trim();
+        if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}
+        if(!formula.startsWith('=')){toast('公式需以 = 開頭，例如 =B+C',1);return}
+        applyFormula(col,formula);recalcAll();render();toast('公式已套用至整欄');
+    });
+    document.getElementById('btn-apply-cell').addEventListener('click',()=>{
+        const formula=document.getElementById('formula-input').value.trim();
+        if(!selectedCell){toast('請先點選要套用的儲存格',1);return}
+        if(selectedCell.c===0){toast('名稱欄不支援公式',1);return}
+        if(!formula){toast('請輸入公式',1);return}
+        if(!formula.startsWith('=')){toast('公式需以 = 開頭，例如 =B2*1.05',1);return}
+        applyFormula(selectedCell.c,formula,selectedCell.r);recalcAll();render();toast('公式已套用至此格');
+    });
     document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
     document.getElementById('app-title').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
 
