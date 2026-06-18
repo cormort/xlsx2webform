@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>預算表單編輯器</title>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Microsoft JhengHei','PingFang TC','Noto Sans TC',sans-serif;background:#f1f5f9;color:#334155}
+header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50}
+header .inner{max-width:100%;margin:0 auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:17px;font-weight:700;color:#1e293b}
+header .file{font-size:13px;color:#94a3b8}
+main{padding:12px 16px;max-width:100%}
+.drop-zone{border:3px dashed #cbd5e1;border-radius:12px;padding:36px 24px;text-align:center;cursor:pointer;transition:.3s;margin-top:40px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:#3b82f6;background:#eff6ff}
+.drop-zone .icon{font-size:40px;margin-bottom:8px}
+.drop-zone h2{font-size:18px;color:#475569;margin-bottom:6px}
+.drop-zone p{color:#94a3b8;font-size:13px}
+.loading{text-align:center;padding:40px;display:none}
+.loading .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+.loading p{margin-top:8px;color:#64748b;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e2e8f0}
+.toolbar .sep{width:1px;height:24px;background:#e2e8f0;margin:0 4px}
+.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:.15s}
+.btn svg{width:14px;height:14px;fill:currentColor}
+.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
+.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
+.btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
+.btn-outline{background:#fff;color:#475569;border-color:#cbd5e1}.btn-outline:hover{background:#f8fafc}
+.btn-outline-red{background:#fff;color:#dc2626;border-color:#fca5a5}.btn-outline-red:hover{background:#fef2f2}
+.formula-bar{display:flex;align-items:center;gap:8px;margin-bottom:6px;padding:6px 12px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;font-size:12px}
+.formula-bar label{color:#64748b;font-weight:500;white-space:nowrap}
+.formula-bar select{padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff}
+.formula-bar input{flex:1;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-family:monospace}
+.formula-bar .hint{color:#94a3b8;font-size:11px}
+.formula-bar .btn{padding:3px 10px;font-size:12px}
+.table-wrap{background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0}
+.table-wrap .scroll{overflow:auto;max-height:calc(100vh - 240px)}
+table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto;min-width:100%}
+thead th{background:#f8fafc;font-weight:600;color:#475569;text-align:center;position:sticky;top:0;z-index:2;border-bottom:2px solid #cbd5e1;padding:0}
+thead th input{border:none;background:transparent;text-align:center;font-weight:600;width:100%;font-size:12px;color:#475569;padding:5px 6px}
+thead th input:focus{outline:2px solid #3b82f6;background:#fff;border-radius:2px}
+th,td{border:1px solid #e2e8f0}
+td{padding:0;min-width:60px;position:relative}
+td.focused::before{content:'';position:absolute;inset:0;border:2px solid #2563eb;pointer-events:none;z-index:1;background:rgba(37,99,235,.04)}
+td.formula::after{content:'ƒ';position:absolute;top:0;right:2px;font-size:9px;color:#d97706;pointer-events:none}
+td input{border:none;width:100%;font-size:12px;padding:4px 6px;background:transparent;color:#334155;min-height:26px}
+td input:focus{outline:none}
+td input.num{text-align:right}
+td input.txt{text-align:left}
+td input.auto-sum{background:#fef3c7;color:#92400e;font-weight:600}
+td input.auto-sum:focus{background:#fef9c3}
+td input.formula-cell{color:#d97706;font-style:italic}
+.lv-1 td:first-child input{padding-left:20px}
+.lv-2 td:first-child input{padding-left:36px}
+.lv-3 td:first-child input{padding-left:52px}
+.lv-4 td:first-child input{padding-left:68px}
+tbody tr:hover td{background:#f8fafc}
+tbody tr:hover td input{background:#f8fafc}
+tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
+.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:100;opacity:0;transition:.3s;pointer-events:none}
+.toast.show{opacity:1}
+.toast.err{background:#dc2626}
+
+/* Fill mode banner */
+.fill-banner{background:#059669;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:500}
+
+/* Fill mode submit bar */
+.submit-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:8px}
+.submit-bar .btn{padding:8px 20px;font-size:14px}
+.submit-bar input{padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;flex:1;max-width:300px}
+.submit-msg{padding:40px;text-align:center}
+.submit-msg .icon{font-size:48px;margin-bottom:12px}
+.submit-msg h2{color:#059669;font-size:20px;margin-bottom:8px}
+.submit-msg p{color:#64748b;font-size:14px}
+
+/* Modal overlay */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+.modal-overlay.show{display:flex}
+.modal-box{background:#fff;border-radius:12px;padding:20px;max-width:640px;width:90%;max-height:80vh;overflow:auto}
+.modal-box h2{font-size:16px;margin-bottom:12px;color:#1e293b}
+.modal-box .close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8}
+.modal-box .close:hover{color:#475569}
+.share-url{display:flex;gap:8px;margin:12px 0}
+.share-url input{flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#f8fafc}
+.share-url .btn{padding:8px 14px;white-space:nowrap}
+.resp-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:6px}
+.resp-item:hover{background:#f8fafc}
+.resp-item .info{font-size:13px}
+.resp-item .info strong{color:#1e293b}
+.resp-item .info span{color:#94a3b8;margin-left:8px}
+.resp-item .actions{display:flex;gap:4px}
+.resp-table-wrap{overflow:auto;margin-top:8px}
+.resp-table-wrap table{font-size:12px;min-width:100%}
+.resp-table-wrap td{padding:4px 8px;white-space:nowrap}
+.resp-table-wrap td:first-child{font-weight:500;color:#475569}
+</style>
+</head>
+<body>
+
+<header><div class="inner">
+    <h1 id="app-title">預算表單編輯器</h1>
+    <span class="file" id="file-name"></span>
+</div></header>
+
+<div id="fill-banner" class="fill-banner" style="display:none">📋 填寫模式 — 請在下方填入資料後提交</div>
+
+<main>
+
+<!-- Upload -->
+<div id="upload-section">
+    <div id="drop-zone" class="drop-zone">
+        <div class="icon">📄</div>
+        <h2>上傳 XLSX 檔案</h2>
+        <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
+        <input type="file" id="file-input" hidden accept=".xlsx,.xls">
+    </div>
+    <div class="loading" id="loading">
+        <div class="spinner"></div>
+        <p>處理中⋯</p>
+    </div>
+</div>
+
+<!-- Editor -->
+<div id="editor" style="display:none">
+    <div class="toolbar">
+        <button class="btn btn-success" id="btn-save">💾 儲存</button>
+        <button class="btn btn-primary" id="btn-export">📤 匯出 JSON</button>
+        <button class="btn btn-outline" id="btn-import">📥 匯入</button>
+        <div class="sep"></div>
+        <button class="btn btn-outline" id="btn-add-row">＋列</button>
+        <button class="btn btn-outline-red" id="btn-del-row">−列</button>
+        <div class="sep"></div>
+        <button class="btn btn-outline" id="btn-reset">🔄 重置</button>
+        <button class="btn btn-outline-red" id="btn-clear">✕ 清除值</button>
+        <div class="sep"></div>
+        <button class="btn btn-primary" id="btn-publish" style="margin-left:auto">🔗 發布表單</button>
+        <button class="btn btn-outline" id="btn-responses">📋 回應</button>
+        <button class="btn btn-outline" id="btn-new-upload">📂 新檔案</button>
+    </div>
+
+    <div class="formula-bar">
+        <label>公式</label>
+        <select id="formula-col"><option value="">— 選擇欄位 —</option></select>
+        <input id="formula-input" placeholder="=A+B 逐列運算，=A2+B2 絕對參照" value="">
+        <button class="btn btn-primary" id="btn-apply-formula">套用</button>
+        <span class="hint">Ctrl+V 可貼上 Excel 資料</span>
+    </div>
+
+    <div class="table-wrap">
+        <div class="scroll" id="table-scroll">
+            <div id="table-container"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Fill mode -->
+<div id="fill-mode" style="display:none">
+    <div class="table-wrap" style="margin-bottom:12px">
+        <div class="scroll" id="fill-table-scroll">
+            <div id="fill-table-container"></div>
+        </div>
+    </div>
+    <div id="fill-submit-area" class="submit-bar">
+        <input id="fill-respondent" placeholder="你的姓名（選填）">
+        <div style="display:flex;gap:8px;align-items:center">
+            <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:12px;padding:4px 10px">＋列</button>
+            <button class="btn btn-outline-red" id="btn-fill-del-row" style="font-size:12px;padding:4px 10px">−列</button>
+            <span style="color:#cbd5e1">|</span>
+            <button class="btn btn-primary" id="btn-fill-submit" style="font-size:14px">📤 送出</button>
+            <button class="btn btn-outline" id="btn-fill-reset">🔄 重填</button>
+        </div>
+    </div>
+    <div id="fill-success" class="submit-msg" style="display:none">
+        <div class="icon">✅</div>
+        <h2>已成功送出</h2>
+        <p>感謝您的填寫！</p>
+        <button class="btn btn-primary" id="btn-fill-another" style="margin-top:16px">再填一筆</button>
+    </div>
+</div>
+
+</main>
+
+<div id="toast" class="toast"><span id="toast-msg"></span></div>
+<input type="file" id="json-import" hidden accept=".json">
+
+<!-- Publish dialog -->
+<div class="modal-overlay" id="publish-dialog">
+    <div class="modal-box">
+        <button class="close" id="close-publish">&times;</button>
+        <h2>🔗 發布表單</h2>
+        <p style="font-size:13px;color:#64748b;margin-bottom:6px">分享此連結給填表人：</p>
+        <div class="share-url">
+            <input id="share-url-input" readonly value="">
+            <button class="btn btn-primary" id="btn-copy-url">📋 複製</button>
+        </div>
+        <p id="publish-stats" style="font-size:12px;color:#94a3b8"></p>
+        <div style="display:flex;gap:8px;margin-top:12px">
+            <button class="btn btn-success" id="btn-publish-confirm">✅ 發布</button>
+            <button class="btn btn-outline-red" id="btn-unpublish">🗑️ 取消發布</button>
+        </div>
+    </div>
+</div>
+
+<!-- Responses dialog -->
+<div class="modal-overlay" id="responses-dialog">
+    <div class="modal-box">
+        <button class="close" id="close-responses">&times;</button>
+        <h2>📋 回應列表</h2>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
+        </div>
+        <div id="responses-list"><p style="color:#94a3b8;font-size:13px">暫無回應</p></div>
+    </div>
+</div>
+
+<script>
+// ===== Detect mode =====
+const isFillMode = !!(window.FILL_TOKEN);
+const fillToken = window.FILL_TOKEN || '';
+
+// ===== State =====
+let sessionId = null;
+let data = [];
+let original = [];
+let isDirty = false;
+let selectedCell = null;
+
+// ===== Helpers =====
+function escape(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function parseNum(v){const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?null:n}
+function fmtNum(n){if(n===null||isNaN(n))return '';const p=n%1===0?0:2;return n.toLocaleString('en-US',{minimumFractionDigits:p,maximumFractionDigits:2})}
+function toast(msg,err){const el=document.getElementById('toast-msg');el.textContent=msg;const t=document.getElementById('toast');t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',2500)}
+function alpha(c){let s='';let n=c;while(n>=0){s=String.fromCharCode(65+n%26)+s;n=Math.floor(n/26)-1}return s||'A'}
+function cellRef(r,c){return alpha(c)+r}
+function parseRef(s){const m=s.match(/^([A-Z]+)(\d+)$/i);if(!m)return null;const col=m[1].toUpperCase().split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;const row=parseInt(m[2]);return{r:row,c:col}}
+
+function detectLevel(name){
+    if(!name)return 1;const n=String(name).trim();if(!n)return 1;
+    if(/^\s{4,}/.test(n))return 3;
+    if(/^\s{2}/.test(n)||/^[（(][一二三四五六七八九十]+[）)]/.test(n))return 2;
+    if(/^[一二三四五六七八九十]+[、.]/.test(n))return 1;
+    if(/^\d+[.、]/.test(n)||/^[（(]\d+[）)]/.test(n))return 2;
+    return 1;
+}
+
+function isNumericCol(colIdx){
+    let n=0,t=0;
+    for(let r=1;r<Math.min(data.length,15);r++){const v=data[r]?.[colIdx]?.value;if(v){t++;if(parseNum(v)!==null)n++}}
+    return t>0&&n/t>0.3;
+}
+
+function getNumerics(){const nc=[];if(!data.length)return nc;for(let c=0;c<Math.max(...data.map(r=>r.length));c++)if(isNumericCol(c))nc.push(c);return nc}
+function getHeaders(){if(!data.length)return[];return(data[0]||[]).map(c=>c?c.value||'':'')}
+
+function recalcAutoSum(){
+    const nodes=[];
+    for(let r=1;r<data.length;r++){const n=data[r]?.[0]?.value||'';nodes.push({idx:r,level:detectLevel(n),name:n,children:[],parent:null})}
+    for(let i=0;i<nodes.length;i++){if(nodes[i].level<=1)continue;for(let j=i-1;j>=0;j--){if(nodes[j].level<nodes[i].level&&nodes[j].level>0){nodes[j].children.push(nodes[i]);nodes[i].parent=nodes[j];break}}}
+    const nums=getNumerics();
+    function process(node){
+        node.children.forEach(process);
+        if(!node.children.length)return;
+        nums.forEach(ci=>{let s=0,h=false;node.children.forEach(ch=>{const v=parseNum(data[ch.idx]?.[ci]?.value);if(v!==null){s+=v;h=true}});if(h&&s!==0){const c=data[node.idx]?.[ci];if(c){c.value=String(s);c._autoSum=true;c._formula=''}}});
+    }
+    nodes.filter(n=>!n.parent).forEach(process);
+}
+
+function applyFormula(colIdx,formula){
+    const maxR=data.length;
+    for(let r=1;r<maxR;r++){
+        const cell=data[r]?.[colIdx];if(!cell)continue;if(cell._autoSum)continue;
+        const f=formula.startsWith('=')?formula.slice(1):'';if(!f){cell._formula='';continue}
+        cell._formula=formula;let expr=f;
+        expr=expr.replace(/\b([A-Za-z]+)\b(?![\(\)\d])/g,(m,colLet)=>{const refC=colLet.toUpperCase().split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;if(refC===colIdx)return '0';return parseNum(data[r]?.[refC]?.value)??'0'});
+        try{const result=Function('"use strict";return ('+expr+')')();if(typeof result==='number'&&!isNaN(result)){cell.value=String(result);cell._formula=formula}}catch(e){}
+    }
+}
+
+// ===== Init =====
+if(isFillMode){
+    document.getElementById('upload-section').style.display='none';
+    document.getElementById('editor').style.display='none';
+    document.getElementById('fill-banner').style.display='block';
+    document.getElementById('app-title').textContent='📋 填寫表單';
+    initFillMode();
+} else {
+    initEditorMode();
+}
+
+// ===== Fill Mode =====
+async function initFillMode(){
+    try{
+        const r=await fetch(`/api/fill/${fillToken}/data`);
+        if(!r.ok)throw new Error('表單不存在或已取消發布');
+        const res=await r.json();
+        sessionId=res.session_id;
+        data=res.data||[];
+        // Ensure at least one editable row
+        if(data.length<2){
+            const maxC=data[0]?data[0].length:1;
+            const nr=[];
+            for(let c=0;c<maxC;c++)nr.push({value:''});
+            data.push(nr);
+        }
+        original=JSON.parse(JSON.stringify(data));
+        document.getElementById('file-name').textContent=res.name||'';
+        renderFillTable();
+        document.getElementById('fill-mode').style.display='block';
+    }catch(e){
+        toast(e.message,1);
+        document.getElementById('fill-mode').innerHTML=`<div class="submit-msg"><div class="icon">❌</div><h2>無法載入</h2><p>${escape(e.message)}</p></div>`;
+        document.getElementById('fill-mode').style.display='block';
+    }
+}
+
+function renderFillTable(){
+    if(!data.length){document.getElementById('fill-table-container').innerHTML='';return}
+    const maxC=Math.max(...data.map(r=>r.length||0),1);
+    const hdrs=getHeaders();
+    const nums=getNumerics();
+
+    let h='<table id="fill-table"><thead><tr>';
+    for(let c=0;c<maxC;c++){h+=`<th>${escape(hdrs[c]||'')}</th>`}
+    h+='</tr></thead><tbody>';
+
+    for(let r=1;r<data.length;r++){
+        const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
+        h+=`<tr class="lv-${lv}">`;
+        for(let c=0;c<Math.max(maxC,row.length);c++){
+            const cell=row[c]||{};const val=cell.value||'';
+            const isNum=nums.includes(c);const isAuto=cell._autoSum;
+            if(isAuto){
+                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" value="${escape(val)}" disabled style="background:transparent;cursor:default"></td>`;
+            } else {
+                const cls=`${isNum?'num':'txt'}`;
+                h+=`<td><input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
+            }
+        }
+        h+='</tr>';
+    }
+    h+='</tbody></table>';
+    document.getElementById('fill-table-container').innerHTML=h;
+
+    document.querySelectorAll('#fill-table input:not([disabled])').forEach(inp=>{
+        inp.addEventListener('change',onFillChange);
+        inp.addEventListener('paste',onFillPaste);
+    });
+    document.getElementById('fill-submit-area').style.display='flex';
+    document.getElementById('fill-success').style.display='none';
+}
+
+function onFillChange(e){
+    const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    if(!data[r])data[r]=[];if(!data[r][c])data[r][c]={value:''};
+    data[r][c].value=inp.value;
+}
+
+function onFillPaste(e){
+    e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
+    const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
+    cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={value:''};data[targetR][targetC].value=val.trim()})});
+    renderFillTable();toast(`已貼上 ${cells.length} 列`);
+}
+
+document.getElementById('btn-fill-submit').addEventListener('click',async()=>{
+    const respondent=document.getElementById('fill-respondent').value.trim();
+    if(!confirm('確定送出填寫資料？'))return;
+    try{
+        const r=await fetch(`/api/fill/${fillToken}/submit`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({data,respondent})});
+        if(!r.ok)throw new Error('送出失敗');
+        document.getElementById('fill-submit-area').style.display='none';
+        document.getElementById('fill-success').style.display='block';
+        toast('已成功送出');
+    }catch(e){toast(e.message,1)}
+});
+
+document.getElementById('btn-fill-reset').addEventListener('click',()=>{
+    data=JSON.parse(JSON.stringify(original));
+    renderFillTable();
+    toast('已重填');
+});
+
+document.getElementById('btn-fill-add-row').addEventListener('click',()=>{
+    const maxC=Math.max(...data.map(r=>r.length),2);
+    const nr=[];
+    for(let c=0;c<maxC;c++)nr.push({value:''});
+    data.push(nr);
+    renderFillTable();
+    toast('新增一列');
+});
+
+document.getElementById('btn-fill-del-row').addEventListener('click',()=>{
+    if(data.length<=1){toast('至少保留一列',1);return}
+    if(!confirm('刪除最後一列？'))return;
+    data.pop();
+    renderFillTable();
+    toast('已刪除');
+});
+
+document.getElementById('btn-fill-another').addEventListener('click',()=>{
+    const resp=document.getElementById('fill-respondent');
+    if(resp)resp.value='';
+    data=JSON.parse(JSON.stringify(original));
+    renderFillTable();
+});
+
+// ===== Editor Mode =====
+function initEditorMode(){
+    const dropZone=document.getElementById('drop-zone'),fileInput=document.getElementById('file-input'),loading=document.getElementById('loading');
+    const uploadSection=document.getElementById('upload-section'),editor=document.getElementById('editor');
+    const tableContainer=document.getElementById('table-container'),fileName=document.getElementById('file-name');
+
+    dropZone.addEventListener('click',()=>fileInput.click());
+    dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over')});
+    dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');const f=e.dataTransfer.files[0];if(f)upload(f)});
+    fileInput.addEventListener('change',e=>{if(e.target.files[0])upload(e.target.files[0])});
+
+    async function upload(file){
+        if(!file.name.match(/\.xlsx?$/i)){toast('請選擇 .xlsx 檔案',1);return}
+        loading.style.display='block';dropZone.style.display='none';
+        const fd=new FormData();fd.append('file',file);
+        try{
+            const r=await fetch('/api/upload-xlsx',{method:'POST',body:fd});const res=await r.json();
+            if(!r.ok)throw new Error(res.detail||'失敗');
+            sessionId=res.session_id;data=JSON.parse(JSON.stringify(res.json));original=JSON.parse(JSON.stringify(data));
+            fileName.textContent=file.name;
+            recalcAutoSum();render();
+            uploadSection.style.display='none';editor.style.display='block';
+            toast('上傳成功');
+        }catch(e){toast(e.message,1);loading.style.display='none';dropZone.style.display='block'}
+    }
+
+    function render(){
+        if(!data.length){tableContainer.innerHTML='';return}
+        const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
+        let h='<table id="main-table"><thead><tr>';
+        for(let c=0;c<maxC;c++){h+=`<th><input type="text" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
+        h+='</tr></thead><tbody>';
+        for(let r=1;r<data.length;r++){
+            const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
+            h+=`<tr class="lv-${lv}">`;
+            for(let c=0;c<Math.max(maxC,row.length);c++){
+                const cell=row[c]||{value:'',_autoSum:false,_formula:''};const val=cell.value||'';
+                const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
+                const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
+                h+=`<td${hasF?' class="formula"':''}>`;
+                h+=`<input type="text" class="${cls}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
+                h+='</td>';
+            }
+            h+='</tr>';
+        }
+        h+='</tbody></table>';
+        tableContainer.innerHTML=h;
+        document.querySelectorAll('#main-table input').forEach(inp=>{
+            inp.addEventListener('change',onChange);inp.addEventListener('focus',onFocus);
+            inp.addEventListener('blur',onBlur);inp.addEventListener('paste',onPaste);inp.addEventListener('keydown',onKeyDown);
+        });
+        updateFormulaCols();
+    }
+
+    function onChange(e){
+        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+        const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
+        if(data[r][c]?data[r][c].value:''!==val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
+    }
+
+    function onFocus(e){
+        const inp=e.target;selectedCell={r:parseInt(inp.dataset.r),c:parseInt(inp.dataset.c)};
+        document.querySelectorAll('td.focused').forEach(t=>t.classList.remove('focused'));const td=inp.closest('td');if(td)td.classList.add('focused');inp.select();
+        const cell=data[selectedCell.r]?.[selectedCell.c];const colSelect=document.getElementById('formula-col');colSelect.value=selectedCell.c;
+        document.getElementById('formula-input').value=cell?._formula||'';
+    }
+
+    function onBlur(e){
+        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+        if(c>0){const n=parseNum(inp.value);if(n!==null)inp.value=fmtNum(n)}
+    }
+
+    function onKeyDown(e){
+        const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+        const tr=inp.closest('tr');const tbody=tr.parentElement;const rows=Array.from(tbody.querySelectorAll('tr'));const cells=Array.from(tr.querySelectorAll('td'));
+        const idx=rows.indexOf(tr);const ci=cells.indexOf(inp.closest('td'));
+        if(e.key==='Tab'){e.preventDefault();const dir=e.shiftKey?-1:1;const next=ci+dir;const td=next>=0&&next<cells.length?cells[next]:(dir>0?cells[0]:cells[cells.length-1]);const input=td?.querySelector('input');if(input)input.focus()}
+        if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const nextTr=rows[idx+1];if(nextTr){const nextCells=nextTr.querySelectorAll('td');const td=nextCells[ci]||nextCells[0];const input=td?.querySelector('input');if(input)input.focus()}}
+        if(e.key==='Escape'){inp.blur()}
+    }
+
+    function onPaste(e){
+        e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+        const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
+        const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
+        cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={row:targetR+1,col:targetC+1,value:'',type:'str'};data[targetR][targetC].value=val.trim()})});
+        isDirty=true;recalcAutoSum();render();
+        const newInput=document.querySelector(`input[data-r="${r}"][data-c="${c}"]`);if(newInput)newInput.focus();
+        toast(`已貼上 ${cells.length} 列`);
+    }
+
+    function updateFormulaCols(){
+        const sel=document.getElementById('formula-col');sel.innerHTML='<option value="">— 選擇欄位 —</option>';const hdrs=getHeaders();
+        for(let c=1;c<Math.max(...data.map(r=>r.length),2);c++){const opt=document.createElement('option');opt.value=c;opt.textContent=`${alpha(c)}：${hdrs[c]||'欄'+alpha(c)}`;sel.appendChild(opt)}
+    }
+
+    // Toolbar
+    document.getElementById('btn-save').addEventListener('click',async()=>{if(!sessionId)return;try{const r=await fetch(`/api/sessions/${sessionId}/save`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:sessionId,data})});if(r.ok){isDirty=false;toast('已儲存')}else throw new Error('失敗')}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-export').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/export/json`,'_blank')});
+    document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
+    document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAutoSum();render()}}catch(e){toast(e.message,1)}});
+    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAutoSum();render();isDirty=true;toast('新增一列')});
+    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAutoSum();render();isDirty=true;toast('已刪除')});
+    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAutoSum();render();isDirty=false;toast('已重置')});
+    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAutoSum();render();isDirty=true;toast('已清除')});
+    document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;editor.style.display='none';uploadSection.style.display='block';loading.style.display='none';dropZone.style.display='block';sessionId=null;data=[];original=[];isDirty=false;fileName.textContent=''});
+
+    document.getElementById('btn-apply-formula').addEventListener('click',()=>{const col=parseInt(document.getElementById('formula-col').value);const formula=document.getElementById('formula-input').value.trim();if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}applyFormula(col,formula);render();toast('公式已套用')});
+    document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
+
+    // Publish
+    document.getElementById('btn-publish').addEventListener('click',async()=>{
+        if(!sessionId){toast('請先上傳檔案',1);return}
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST'});const res=await r.json();
+            if(!r.ok)throw new Error(res.detail||'發布失敗');
+            document.getElementById('share-url-input').value=`${window.location.origin}${res.fill_url}`;
+            document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
+            document.getElementById('publish-dialog').classList.add('show');
+        }catch(e){toast(e.message,1)}
+    });
+
+    document.getElementById('close-publish').addEventListener('click',()=>document.getElementById('publish-dialog').classList.remove('show'));
+    document.getElementById('publish-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('publish-dialog').classList.remove('show')});
+
+    document.getElementById('btn-copy-url').addEventListener('click',()=>{
+        const inp=document.getElementById('share-url-input');inp.select();navigator.clipboard?.writeText(inp.value);
+        toast('已複製連結');
+    });
+
+    document.getElementById('btn-unpublish').addEventListener('click',async()=>{
+        if(!sessionId)return;if(!confirm('取消發布後，現有分享連結將失效。確定？'))return;
+        try{const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'DELETE'});if(r.ok){document.getElementById('publish-dialog').classList.remove('show');toast('已取消發布')}}catch(e){toast(e.message,1)}
+    });
+
+    // Responses
+    document.getElementById('btn-responses').addEventListener('click',async()=>{
+        if(!sessionId){toast('請先上傳檔案',1);return}
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/responses`);const res=await r.json();
+            const list=document.getElementById('responses-list');
+            if(!res.responses||!res.responses.length){
+                list.innerHTML='<p style="color:#94a3b8;font-size:13px">暫無回應</p>';
+            } else {
+                let html='';
+                for(const resp of res.responses){
+                    html+=`<div class="resp-item">
+                        <div class="info"><strong>${escape(resp.respondent||'匿名')}</strong><span>${resp.submitted_at}</span></div>
+                        <div class="actions">
+                            <button class="btn btn-outline" onclick="viewResponse('${resp.id}')">👁️ 檢視</button>
+                            <button class="btn btn-outline-red" onclick="deleteResponse('${resp.id}')">🗑️</button>
+                        </div>
+                    </div>`;
+                }
+                list.innerHTML=html;
+            }
+            document.getElementById('responses-dialog').classList.add('show');
+        }catch(e){toast(e.message,1)}
+    });
+
+    document.getElementById('close-responses').addEventListener('click',()=>document.getElementById('responses-dialog').classList.remove('show'));
+    document.getElementById('responses-dialog').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('responses-dialog').classList.remove('show')});
+
+    document.getElementById('btn-export-csv').addEventListener('click',()=>{if(!sessionId)return;window.open(`/api/sessions/${sessionId}/responses/export/csv`,'_blank')});
+
+    window.viewResponse=async function(responseId){
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`);const res=await r.json();
+            const respData=res.data||[];
+            const maxC=Math.max(...respData.map(r=>r.length||0),1);
+            let h='<div class="resp-table-wrap"><table>';
+            for(let ri=0;ri<respData.length;ri++){
+                h+='<tr>';
+                for(let ci=0;ci<Math.max(maxC,respData[ri]?.length||0);ci++){
+                    const val=respData[ri]?.[ci]?.value||'';
+                    const tag=ri===0?'th':'td';
+                    h+=`<${tag}>${escape(val)}</${tag}>`;
+                }
+                h+='</tr>';
+            }
+            h+='</table></div>';
+            const list=document.getElementById('responses-list');
+            list.innerHTML=`<div style="margin-bottom:8px"><button class="btn btn-outline" onclick="backToResponses()">← 返回</button> <strong>${escape(res.respondent||'匿名')}</strong> <span style="color:#94a3b8;font-size:12px">${res.submitted_at}</span></div>${h}`;
+        }catch(e){toast(e.message,1)}
+    };
+
+    window.backToResponses=function(){document.getElementById('btn-responses').click()};
+
+    window.deleteResponse=async function(responseId){
+        if(!confirm('確定刪除此回應？'))return;
+        try{const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{method:'DELETE'});if(r.ok){toast('已刪除');document.getElementById('btn-responses').click()}else throw new Error('刪除失敗')}catch(e){toast(e.message,1)}
+    };
+
+    window.addEventListener('beforeunload',e=>{if(isDirty){e.preventDefault();e.returnValue=''}});
+}
+</script>
+</body>
+</html>
