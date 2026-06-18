@@ -1055,18 +1055,15 @@ async def export_xlsx_api(
         ws = wb.create_sheet(title=sheet_title)
         
         # First write values and styles
-        for row in payload.data:
+        for row_idx, row in enumerate(payload.data):
             if not isinstance(row, list):
                 continue
-            for c in row:
+            for col_idx, c in enumerate(row):
                 if not isinstance(c, dict):
                     continue
-                r_idx = c.get('row')
-                c_idx = c.get('col')
+                r_idx = c.get('row') if c.get('row') is not None else (row_idx + 1)
+                c_idx = c.get('col') if c.get('col') is not None else (col_idx + 1)
                 val = c.get('value', '')
-                
-                if r_idx is None or c_idx is None:
-                    continue
                     
                 cell = ws.cell(row=r_idx, column=c_idx, value=val)
                 
