@@ -19,10 +19,11 @@ import bcrypt
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
+from urllib.parse import quote
 
 from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depends, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
@@ -361,10 +362,25 @@ def _save_session(sid):
     PERSIST_FILES["sessions_index"].write_text(
         json.dumps(idx, ensure_ascii=False), encoding='utf-8')
 
+def _cleanup_orphan_uploads():
+    """Remove leftover temp files and uploads whose session no longer exists."""
+    for f in UPLOAD_DIR.glob("*"):
+        if f.name == ".gitkeep" or not f.is_file():
+            continue
+        # temp_ files are transient parse artifacts; never tied to a live session
+        if f.name.startswith("temp_"):
+            f.unlink(missing_ok=True)
+            continue
+        session_prefix = f.name.split("_", 1)[0]
+        if session_prefix not in sessions:
+            f.unlink(missing_ok=True)
+
+
 _load_persist()
 _load_admin_tokens()
 _load_users()
 _load_user_tokens()
+_cleanup_orphan_uploads()
 
 
 # ── Authentication & User Management Endpoints ───────────
@@ -617,8 +633,7 @@ async def upload_xlsx(
     auth = get_current_auth(x_admin_token)
     if auth["role"] == "user":
         email = auth["email"]
-    """Upload an XLSX file and convert to HTML table or form (Open for public creation)."""
-    if not file.filename.endswith(('.xlsx', '.xls')):
+    if not file.filename or not file.filename.endswith('.xlsx'):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 
     # Check file size
@@ -697,7 +712,8 @@ async def upload_xlsx(
         # Clean up file on error
         if file_path.exists():
             file_path.unlink()
-        raise HTTPException(status_code=500, detail=f"Error processing file: {str(e)}")
+        logger.error("Error processing uploaded file (session %s): %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="無法處理此檔案，請確認為有效的 XLSX 檔案")
 
 
 @app.get("/api/sessions")
@@ -789,13 +805,13 @@ async def export_json(
     }
 
     json_str = json.dumps(data, ensure_ascii=False, indent=2)
-    json_path = TEMPLATE_DIR / f"{session_id}_export.json"
-    json_path.write_text(json_str, encoding='utf-8')
-
-    return FileResponse(
-        path=str(json_path),
-        filename=f"budget_export_{session.name.replace('.xlsx', '')}_{session_id}.json",
-        media_type="application/json"
+    filename = f"budget_export_{session.name.replace('.xlsx', '')}_{session_id}.json"
+    # RFC 5987 encoding so non-ASCII (e.g. 中文) filenames survive in Content-Disposition
+    disposition = f"attachment; filename=\"export_{session_id}.json\"; filename*=UTF-8''{quote(filename)}"
+    return Response(
+        content=json_str.encode('utf-8'),
+        media_type="application/json",
+        headers={"Content-Disposition": disposition}
     )
 
 
@@ -815,13 +831,15 @@ async def import_json(
         if 'data' in data:
             session.current_data = data['data']
         session.updated_at = datetime.now().isoformat()
+        _save_session(session_id)
 
         return {"success": True, "message": "JSON imported successfully"}
 
     except json.JSONDecodeError:
         raise HTTPException(status_code=400, detail="Invalid JSON file")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error importing JSON: {str(e)}")
+        logger.error("Error importing JSON (session %s): %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="匯入 JSON 失敗")
 
 
 @app.post("/api/sessions/{session_id}/reset")
@@ -846,6 +864,7 @@ async def reset_session(
                 logger.warning("Failed to re-process XLSX for reset (session %s): %s", session_id, e)
 
     session.updated_at = datetime.now().isoformat()
+    _save_session(session_id)
     return {"success": True, "message": "Session reset to original data"}
 
 
@@ -985,7 +1004,9 @@ async def publish_form(
     if session_id in published_forms:
         token = published_forms[session_id]
     else:
-        token = str(uuid.uuid4())[:12]
+        # Unguessable share token (≈128-bit) — this token is the only access
+        # control for public fill links, so it must resist enumeration.
+        token = secrets.token_urlsafe(16)
         publish_store[token] = session_id
         published_forms[session_id] = token
         _save_persist("publish_store")
@@ -1046,7 +1067,8 @@ async def fill_form_page(token: str):
     return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 @app.get("/api/fill/{token}/data")
-async def get_fill_data(token: str):
+@limiter.limit("30/minute")
+async def get_fill_data(token: str, request: Request):
     """Get form data for fill mode."""
     if token not in publish_store:
         raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
@@ -1286,7 +1308,8 @@ async def parse_xlsx_only(
             "metadata": result['metadata']
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error("Error parsing XLSX (%s): %s", temp_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="無法解析此 XLSX 檔案")
     finally:
         if temp_path.exists():
             temp_path.unlink()
@@ -1385,8 +1408,8 @@ async def export_xlsx_api(
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
     except Exception as e:
-        logger.error(f"Error generating XLSX: {str(e)}", exc_info=True)
-        raise HTTPException(status_code=500, detail=f"Error generating Excel file: {str(e)}")
+        logger.error("Error generating XLSX: %s", e, exc_info=True)
+        raise HTTPException(status_code=500, detail="產生 Excel 檔案失敗")
 
 
 # Mount static files for frontend assets

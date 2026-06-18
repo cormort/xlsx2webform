@@ -387,3 +387,18 @@ uvicorn backend.main:app --host 0.0.0.0 --port 7860 --reload
 ### Hugging Face Spaces
 
 `sdk: docker`（已寫在 README frontmatter），HF Spaces 會自動 build Dockerfile。
+
+---
+
+## ⚙️ 部署注意事項
+
+- **必須以單一 uvicorn worker 執行**：本服務的工作階段、發布狀態與回應資料儲存在「記憶體 dict + data/ 下的 JSON 檔」，並非跨行程共享。請勿使用 `--workers` 大於 1，否則各 worker 狀態不一致會導致資料錯亂。Docker 預設 CMD 即為單一 worker。
+- **資料持久化**：所有狀態寫入 data/ 目錄，請確保該目錄在容器/主機重啟後仍存在（掛載 volume）。
+- **啟動清理**：服務啟動時會自動移除 uploads/ 中的暫存檔（temp_ 開頭）與不再對應任何工作階段的孤立檔案。
+
+## 🔒 安全性說明（近期強化）
+
+- 分享連結 token 改用約 128-bit 的不可預測亂數，抵抗列舉攻擊。
+- 填表資料讀取端點加入速率限制，降低被掃描枚舉的風險。
+- 所有 API 的錯誤回應不再外洩內部例外細節，詳細錯誤僅寫入伺服器日誌。
+- 匯出 JSON 改為記憶體串流回傳，不再於伺服器留下暫存檔。
