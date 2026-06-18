@@ -747,9 +747,11 @@ async def export_responses_csv(
 
     for r in responses:
         row_data = r.get("data", [])
-        # Flatten the first data row's values
-        vals = [c.get("value", "") for c in (row_data[0] if row_data else [])]
-        writer.writerow([r["submitted_at"], r["respondent"]] + vals)
+        # 排除 row_data[0]（標題列），匯出所有填寫的數據列
+        for ri in range(1, len(row_data)):
+            row = row_data[ri]
+            vals = [c.get("value", "") for c in row]
+            writer.writerow([r["submitted_at"], r["respondent"]] + vals)
 
     csv_content = output.getvalue()
     return Response(

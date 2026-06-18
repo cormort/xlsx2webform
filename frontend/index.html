@@ -725,26 +725,31 @@ function updateFormulaCols(){
             h+='<th></th></tr></thead><tbody>';
             fulls.forEach((full,idx)=>{
                 const resp=full;const rowData=resp.data||[];
-                const firstRow=rowData[0]||[];
+                const dataRows=rowData.slice(1);
+                if(!dataRows.length)return;
+                const rowSpan=dataRows.length;
                 const modifiedBadge=resp.modified
                     ? `<span class="badge" style="background:#fef3c7;color:#d97706;margin-left:4px;font-size:10px;padding:1px 4px" title="修改時間：${resp.modified_at}">⚠️ 已修正</span>`
                     : '';
                 const emailLabel=resp.email
                     ? `<br><span style="font-size:11px;color:#94a3b8">${escape(resp.email)}</span>`
                     : '';
-                h+=`<tr><td style="text-align:center;color:#94a3b8">${idx+1}</td>`;
-                h+=`<td><strong>${escape(resp.respondent||'匿名')}</strong>${modifiedBadge}${emailLabel}</td>`;
-                h+=`<td class="resp-row-label">${resp.submitted_at}</td>`;
-                for(let c=0;c<maxC;c++){
-                    let val='';
-                    for(let ri=0;ri<rowData.length;ri++){
-                        const v=rowData[ri]?.[c]?.value;
-                        if(v){val=v;break}
+                dataRows.forEach((row,ri)=>{
+                    h+=`<tr>`;
+                    if(ri===0){
+                        h+=`<td style="text-align:center;color:#94a3b8" rowspan="${rowSpan}">${idx+1}</td>`;
+                        h+=`<td rowspan="${rowSpan}"><strong>${escape(resp.respondent||'匿名')}</strong>${modifiedBadge}${emailLabel}</td>`;
+                        h+=`<td class="resp-row-label" rowspan="${rowSpan}">${resp.submitted_at}</td>`;
                     }
-                    h+=`<td>${escape(val||'')}</td>`;
-                }
-                h+=`<td><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
-                h+='</tr>';
+                    for(let c=0;c<maxC;c++){
+                        const cell=row[c]||{};
+                        h+=`<td>${escape(cell.value||'')}</td>`;
+                    }
+                    if(ri===0){
+                        h+=`<td rowspan="${rowSpan}"><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
+                    }
+                    h+=`</tr>`;
+                });
             });
             h+='</tbody></table>';
             container.innerHTML=h;
