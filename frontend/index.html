@@ -226,16 +226,22 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <div class="modal-overlay" id="publish-dialog">
     <div class="modal-box">
         <button class="close" id="close-publish">&times;</button>
-        <h2>🔗 發布表單</h2>
-        <p style="font-size:13px;color:#64748b;margin-bottom:6px">分享此連結給填表人：</p>
-        <div class="share-url">
-            <input id="share-url-input" readonly value="">
-            <button class="btn btn-primary" id="btn-copy-url">📋 複製</button>
+        <h2 id="publish-title">🔗 發布表單</h2>
+        <div id="publish-step1">
+            <p style="font-size:13px;color:#64748b;margin-bottom:12px">點擊下方按鈕產生分享連結，填表人即可在連結中填寫資料。</p>
+            <button class="btn btn-primary" id="btn-publish-generate" style="padding:10px 24px;font-size:14px">✅ 產生連結並發布</button>
         </div>
-        <p id="publish-stats" style="font-size:12px;color:#94a3b8"></p>
-        <div style="display:flex;gap:8px;margin-top:12px">
-            <button class="btn btn-success" id="btn-publish-confirm">✅ 發布</button>
-            <button class="btn btn-outline-red" id="btn-unpublish">🗑️ 取消發布</button>
+        <div id="publish-step2" style="display:none">
+            <p style="font-size:13px;color:#059669;margin-bottom:6px;font-weight:500">✅ 已發布</p>
+            <p style="font-size:13px;color:#64748b;margin-bottom:6px">分享此連結給填表人：</p>
+            <div class="share-url">
+                <input id="share-url-input" readonly value="">
+                <button class="btn btn-primary" id="btn-copy-url">📋 複製</button>
+            </div>
+            <p id="publish-stats" style="font-size:12px;color:#94a3b8;margin-top:6px"></p>
+            <div style="display:flex;gap:8px;margin-top:12px">
+                <button class="btn btn-outline-red" id="btn-unpublish">🗑️ 取消發布</button>
+            </div>
         </div>
     </div>
 </div>
@@ -546,12 +552,35 @@ function initEditorMode(){
     // Publish
     document.getElementById('btn-publish').addEventListener('click',async()=>{
         if(!sessionId){toast('請先上傳檔案',1);return}
+        // Check if already published
+        document.getElementById('publish-step1').style.display='block';
+        document.getElementById('publish-step2').style.display='none';
+        document.getElementById('publish-title').textContent='🔗 發布表單';
+        document.getElementById('publish-dialog').classList.add('show');
+        // Pre-check existing publish status
+        try{
+            const r=await fetch(`/api/sessions/${sessionId}/publish`);
+            const res=await r.json();
+            if(res.published!==false){
+                // Already published
+                document.getElementById('publish-step1').style.display='none';
+                document.getElementById('publish-step2').style.display='block';
+                document.getElementById('share-url-input').value=`${window.location.origin}/fill/${res.share_token}`;
+                document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
+            }
+        }catch(e){}
+    });
+
+    document.getElementById('btn-publish-generate').addEventListener('click',async()=>{
+        if(!sessionId)return;
         try{
             const r=await fetch(`/api/sessions/${sessionId}/publish`,{method:'POST'});const res=await r.json();
             if(!r.ok)throw new Error(res.detail||'發布失敗');
+            document.getElementById('publish-step1').style.display='none';
+            document.getElementById('publish-step2').style.display='block';
             document.getElementById('share-url-input').value=`${window.location.origin}${res.fill_url}`;
             document.getElementById('publish-stats').textContent=`已有 ${res.response_count} 筆回應`;
-            document.getElementById('publish-dialog').classList.add('show');
+            toast('已發布');
         }catch(e){toast(e.message,1)}
     });
 
