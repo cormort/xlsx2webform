@@ -90,11 +90,13 @@ logger = logging.getLogger(__name__)
 # Upload size limit (10 MB)
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
-# ── Admin Authentication ─────────────────────────────────
+# ── Admin & User Authentication ──────────────────────────
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", secrets.token_hex(32))
 ADMIN_TOKEN_EXPIRY_HOURS = int(os.environ.get("ADMIN_TOKEN_EXPIRY_HOURS", "24"))
 admin_tokens: dict[str, datetime] = {}  # token → expiry datetime
+users: dict[str, dict] = {}             # email → {password_hash, created_at}
+user_tokens: dict[str, dict] = {}        # token → {email, expiry: datetime}
 
 
 def _generate_admin_token() -> str:
@@ -139,6 +141,81 @@ def _load_admin_tokens():
                     admin_tokens[token_id] = expiry
         except Exception as e:
             logger.warning("Failed to load admin tokens: %s", e)
+
+
+def _save_users():
+    """Persist users to disk."""
+    (DATA_DIR / "users.json").write_text(
+        json.dumps(users, ensure_ascii=False, indent=2), encoding='utf-8')
+
+
+def _load_users():
+    """Load users from disk."""
+    path = DATA_DIR / "users.json"
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            users.update(data)
+        except Exception as e:
+            logger.warning("Failed to load users: %s", e)
+
+
+def _save_user_tokens():
+    """Persist user tokens to disk."""
+    data = {
+        k: {"email": v["email"], "expiry": v["expiry"].isoformat()}
+        for k, v in user_tokens.items()
+        if datetime.now() < v["expiry"]
+    }
+    (DATA_DIR / "user_tokens.json").write_text(
+        json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
+
+def _load_user_tokens():
+    """Load user tokens from disk."""
+    path = DATA_DIR / "user_tokens.json"
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            now = datetime.now()
+            for token_id, val in data.items():
+                expiry = datetime.fromisoformat(val["expiry"])
+                if now < expiry:
+                    user_tokens[token_id] = {"email": val["email"], "expiry": expiry}
+        except Exception as e:
+            logger.warning("Failed to load user tokens: %s", e)
+
+
+def get_current_auth_optional(x_admin_token: Optional[str] = None) -> dict:
+    """Helper: returns current role and email without raising exception."""
+    if not ADMIN_PASSWORD:
+        return {"role": "admin", "email": None}
+    
+    if x_admin_token:
+        if _validate_admin_token(x_admin_token):
+            return {"role": "admin", "email": None}
+        if x_admin_token in user_tokens:
+            val = user_tokens[x_admin_token]
+            if datetime.now() < val["expiry"]:
+                return {"role": "user", "email": val["email"]}
+            else:
+                del user_tokens[x_admin_token]
+                _save_user_tokens()
+    return {"role": "guest", "email": None}
+
+
+def get_current_auth(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+) -> dict:
+    """Dependency: require valid admin or user token. Raises 401 if guest."""
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] == "guest":
+        raise HTTPException(
+            status_code=401,
+            detail="Authentication required",
+            headers={"X-Needs-Auth": "true"}
+        )
+    return auth
 
 
 def check_admin(
@@ -199,10 +276,23 @@ def _verify_password(pwd: str, hashed: str) -> bool:
         return hmac.compare_digest(legacy_hash, hashed)
 
 
-def check_session_auth(session_id: str, password_header: Optional[str] = None, password_query: Optional[str] = None):
+def check_session_auth(
+    session_id: str,
+    password_header: Optional[str] = None,
+    password_query: Optional[str] = None,
+    x_admin_token: Optional[str] = None
+):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     session = sessions[session_id]
+    
+    # Bypass verification if the user is admin or the owner (email matches)
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] == "admin":
+        return session
+    if auth["role"] == "user" and session.email and auth["email"] == session.email:
+        return session
+
     if session.password_hash:
         pwd = password_header or password_query
         if not pwd:
@@ -275,18 +365,30 @@ def _save_session(sid):
 
 _load_persist()
 _load_admin_tokens()
+_load_users()
+_load_user_tokens()
 
 
-# ── Admin Login Endpoints ────────────────────────────────
+# ── Authentication & User Management Endpoints ───────────
 
 class AdminLoginRequest(BaseModel):
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class CreateUserRequest(BaseModel):
+    email: str
     password: str
 
 
 @app.post("/api/admin/login")
 @limiter.limit("5/minute")
 async def admin_login(request: Request, payload: AdminLoginRequest):
-    """Authenticate as admin. Returns a session token."""
+    """Authenticate as admin. Returns a session token (Backward compatibility)."""
     if not ADMIN_PASSWORD:
         return {"success": True, "token": "", "message": "No admin password configured"}
     if payload.password != ADMIN_PASSWORD:
@@ -303,7 +405,7 @@ async def admin_login(request: Request, payload: AdminLoginRequest):
 async def admin_verify(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Check if current admin token is valid."""
+    """Check if current admin token is valid (Backward compatibility)."""
     if not ADMIN_PASSWORD:
         return {"authenticated": True, "admin_required": False}
     valid = _validate_admin_token(x_admin_token or "")
@@ -314,11 +416,147 @@ async def admin_verify(
 async def admin_logout(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Invalidate an admin token."""
+    """Invalidate an admin token (Backward compatibility)."""
     if x_admin_token and x_admin_token in admin_tokens:
         del admin_tokens[x_admin_token]
         _save_admin_tokens()
     return {"success": True}
+
+
+@app.post("/api/auth/login")
+@limiter.limit("5/minute")
+async def auth_login(request: Request, payload: LoginRequest):
+    """Unified login for admin and users."""
+    email = payload.email.strip()
+    password = payload.password
+    
+    is_admin = False
+    if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
+        if not email or email.lower() == "admin":
+            is_admin = True
+            
+    if not ADMIN_PASSWORD:
+        is_admin = True
+        
+    if is_admin:
+        token = _generate_admin_token()
+        return {
+            "success": True,
+            "role": "admin",
+            "token": token,
+            "expires_in_hours": ADMIN_TOKEN_EXPIRY_HOURS
+        }
+        
+    # Check regular user
+    email_lower = email.lower()
+    if email_lower in users:
+        user_info = users[email_lower]
+        if _verify_password(password, user_info["password_hash"]):
+            token = secrets.token_hex(24)
+            expiry = datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS)
+            user_tokens[token] = {"email": email_lower, "expiry": expiry}
+            _save_user_tokens()
+            return {
+                "success": True,
+                "role": "user",
+                "email": email_lower,
+                "token": token,
+                "expires_in_hours": ADMIN_TOKEN_EXPIRY_HOURS
+            }
+            
+    raise HTTPException(status_code=403, detail="帳號或密碼錯誤")
+
+
+@app.get("/api/auth/verify")
+async def auth_verify(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Check token status and return role + email."""
+    if not ADMIN_PASSWORD:
+        return {"authenticated": True, "role": "admin", "admin_required": False}
+        
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] == "guest":
+        return {"authenticated": False, "role": "guest", "admin_required": True}
+        
+    return {
+        "authenticated": True,
+        "role": auth["role"],
+        "email": auth.get("email"),
+        "admin_required": True
+    }
+
+
+@app.post("/api/auth/logout")
+async def auth_logout(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Invalidate any token (admin or user)."""
+    if x_admin_token:
+        if x_admin_token in admin_tokens:
+            del admin_tokens[x_admin_token]
+            _save_admin_tokens()
+        elif x_admin_token in user_tokens:
+            del user_tokens[x_admin_token]
+            _save_user_tokens()
+    return {"success": True}
+
+
+# User maintenance endpoints (Admin only)
+@app.get("/api/admin/users")
+async def list_users(_admin=Depends(check_admin)):
+    """List all registered users. Admin only."""
+    return {
+        "users": [
+            {
+                "email": email,
+                "created_at": info.get("created_at", "")
+            }
+            for email, info in users.items()
+        ]
+    }
+
+
+@app.post("/api/admin/users")
+async def create_user(payload: CreateUserRequest, _admin=Depends(check_admin)):
+    """Create a new user. Admin only."""
+    email = payload.email.strip().lower()
+    if not email:
+        raise HTTPException(status_code=400, detail="Email cannot be empty")
+    
+    if "@" not in email:
+        raise HTTPException(status_code=400, detail="Invalid email address")
+        
+    if email in users:
+        raise HTTPException(status_code=400, detail="User already exists")
+        
+    pwd_hash = _hash_password(payload.password)
+    users[email] = {
+        "password_hash": pwd_hash,
+        "created_at": datetime.now().isoformat()
+    }
+    _save_users()
+    return {"success": True, "message": f"User {email} created successfully"}
+
+
+@app.delete("/api/admin/users/{email}")
+async def delete_user(email: str, _admin=Depends(check_admin)):
+    """Delete a user. Admin only."""
+    email = email.strip().lower()
+    if email not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+        
+    del users[email]
+    _save_users()
+    
+    # Revoke tokens for deleted user
+    tokens_to_del = [t for t, val in user_tokens.items() if val["email"] == email]
+    for t in tokens_to_del:
+        del user_tokens[t]
+    if tokens_to_del:
+        _save_user_tokens()
+        
+    return {"success": True, "message": f"User {email} deleted successfully"}
 
 
 @app.get("/")
@@ -375,7 +613,12 @@ async def upload_xlsx(
     email: str = Form(""),
     password: str = Form(""),
     name: str = Form(""),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
+    """Upload an XLSX file and convert to HTML table or form (Authenticated)."""
+    auth = get_current_auth(x_admin_token)
+    if auth["role"] == "user":
+        email = auth["email"]
     """Upload an XLSX file and convert to HTML table or form (Open for public creation)."""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
@@ -460,8 +703,15 @@ async def upload_xlsx(
 
 
 @app.get("/api/sessions")
-async def list_sessions(_admin=Depends(check_admin)):
-    """List all active editing sessions. Requires admin auth."""
+async def list_sessions(auth=Depends(get_current_auth)):
+    """List active editing sessions. Admins see all, users see only their own."""
+    if auth["role"] == "admin":
+        visible_sessions = list(sessions.values())
+    elif auth["role"] == "user":
+        visible_sessions = [s for s in sessions.values() if s.email == auth["email"]]
+    else:
+        visible_sessions = []
+
     return {
         "sessions": [
             {
@@ -475,7 +725,7 @@ async def list_sessions(_admin=Depends(check_admin)):
                 "share_token": published_forms.get(s.id),
                 "response_count": len(response_store.get(s.id, []))
             }
-            for s in sessions.values()
+            for s in visible_sessions
         ]
     }
 
@@ -485,10 +735,11 @@ async def list_sessions(_admin=Depends(check_admin)):
 async def get_session(
     request: Request,
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Get session data by ID. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Get session data by ID. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     return {
         "id": session.id,
         "name": session.name,
@@ -506,10 +757,11 @@ async def get_session(
 async def save_session(
     session_id: str,
     request: SaveRequest,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Save edited data to session. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Save edited data to session. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     session.current_data = request.data
     if request.name:
         session.name = request.name
@@ -522,10 +774,11 @@ async def save_session(
 @app.get("/api/sessions/{session_id}/export/json")
 async def export_json(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Export session data as JSON file. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Export session data as JSON file. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     data = {
         "session": {
             "id": session.id,
@@ -552,10 +805,11 @@ async def export_json(
 async def import_json(
     session_id: str,
     file: UploadFile = File(...),
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Import JSON data into session."""
-    session = check_session_auth(session_id, x_project_password)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     try:
         content = await file.read()
         data = json.loads(content.decode('utf-8'))
@@ -575,10 +829,11 @@ async def import_json(
 @app.post("/api/sessions/{session_id}/reset")
 async def reset_session(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Reset session to original data. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Reset session to original data. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     session.current_data = session.original_json
 
     # Reset form_data to original by re-processing the uploaded file
@@ -599,10 +854,11 @@ async def reset_session(
 @app.delete("/api/sessions/{session_id}")
 async def delete_session(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Delete a session and all associated data. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Delete a session and all associated data. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     del sessions[session_id]
 
     # Clean up session JSON file
@@ -722,10 +978,11 @@ class LoadResponseRequest(BaseModel):
 @app.post("/api/sessions/{session_id}/publish")
 async def publish_form(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Publish a form for others to fill. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Publish a form for others to fill. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
 
     if session_id in published_forms:
         token = published_forms[session_id]
@@ -746,10 +1003,11 @@ async def publish_form(
 @app.get("/api/sessions/{session_id}/publish")
 async def get_publish_status(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Get publish status for a session. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Get publish status for a session. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
 
     if session_id in published_forms:
         token = published_forms[session_id]
@@ -764,10 +1022,11 @@ async def get_publish_status(
 @app.delete("/api/sessions/{session_id}/publish")
 async def unpublish_form(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Unpublish a form. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Unpublish a form. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     if session_id in published_forms:
         token = published_forms.pop(session_id)
         publish_store.pop(token, None)
@@ -900,14 +1159,15 @@ async def load_filler_response(token: str, request: Request, payload: LoadRespon
 async def list_responses(
     session_id: str,
     full: bool = False,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """List all submitted responses for a session. Protected by project password.
+    """List all submitted responses for a session. Protected by project password or auth.
     
     Args:
         full: If true, include full response data (avoids N+1 queries).
     """
-    session = check_session_auth(session_id, x_project_password)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     responses = response_store.get(session_id, [])
     
     if full:
@@ -937,10 +1197,11 @@ async def list_responses(
 async def get_response(
     session_id: str,
     response_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Get a single response with full data."""
-    session = check_session_auth(session_id, x_project_password)
+    """Get a single response with full data. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     responses = response_store.get(session_id, [])
     for r in responses:
         if r["id"] == response_id:
@@ -951,10 +1212,11 @@ async def get_response(
 async def delete_response(
     session_id: str,
     response_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Delete a single response."""
-    session = check_session_auth(session_id, x_project_password)
+    """Delete a single response. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     responses = response_store.get(session_id, [])
     for i, r in enumerate(responses):
         if r["id"] == response_id:
@@ -967,10 +1229,11 @@ async def delete_response(
 @app.post("/api/sessions/{session_id}/responses/export/csv")
 async def export_responses_csv(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Export all responses as CSV. Protected by project password."""
-    session = check_session_auth(session_id, x_project_password)
+    """Export all responses as CSV. Protected by project password or auth."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
     responses = response_store.get(session_id, [])
     if not responses:
         raise HTTPException(status_code=404, detail="No responses to export")
@@ -1004,9 +1267,11 @@ async def export_responses_csv(
 async def parse_xlsx_only(
     request: Request,
     file: UploadFile = File(...),
-    sheet_index: int = Form(0)
+    sheet_index: int = Form(0),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
-    """Parse an XLSX file and return raw JSON data without saving any session."""
+    """Parse an XLSX file and return raw JSON data without saving any session (Authenticated)."""
+    get_current_auth(x_admin_token)
     if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 

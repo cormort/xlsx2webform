@@ -153,39 +153,72 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 
 <!-- Projects page -->
 <div id="projects-section" class="projects-section">
-    <div class="projects-header">
-        <h2>📁 我的專案</h2>
-        <button class="btn btn-primary" id="btn-new-project" style="padding:8px 18px;font-size:14px">📤 新增專案</button>
+    <!-- Admin Tabs (visible to admin only) -->
+    <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:20px">
+        <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">📁 專案管理</div>
+        <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">👥 使用者管理</div>
     </div>
-    <!-- Upload area (shown when clicking 新增專案) -->
-    <div id="project-upload-area" class="upload-area" style="display:none">
-        <div id="upload-fields" style="max-width:320px;margin:0 auto 20px;text-align:left">
-            <div style="margin-bottom:12px">
-                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📧 專案發起人 Email</label>
-                <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+
+    <!-- Project Management Section -->
+    <div id="project-management-view">
+        <div class="projects-header">
+            <h2>📁 我的專案</h2>
+            <button class="btn btn-primary" id="btn-new-project" style="padding:8px 18px;font-size:14px">📤 新增專案</button>
+        </div>
+        <!-- Upload area (shown when clicking 新增專案) -->
+        <div id="project-upload-area" class="upload-area" style="display:none">
+            <div id="upload-fields" style="max-width:320px;margin:0 auto 20px;text-align:left">
+                <div style="margin-bottom:12px">
+                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📧 專案發起人 Email</label>
+                    <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+                </div>
+                <div style="margin-bottom:12px">
+                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">🔑 設定專案編輯密碼</label>
+                    <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+                </div>
+                <div style="margin-bottom:12px">
+                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📁 專案名稱 (選填，預設為 Excel 檔名)</label>
+                    <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+                </div>
             </div>
-            <div style="margin-bottom:12px">
-                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">🔑 設定專案編輯密碼</label>
-                <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
-            </div>
-            <div style="margin-bottom:12px">
-                <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📁 專案名稱 (選填，預設為 Excel 檔名)</label>
-                <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+            <div class="icon">📄</div>
+            <h3>上傳 XLSX 檔案</h3>
+            <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
+            <input type="file" id="project-file-input" hidden accept=".xlsx,.xls">
+        </div>
+        <div id="project-upload-loading" class="loading" style="display:none">
+            <div class="spinner"></div>
+            <p>處理中⋯</p>
+        </div>
+        <div id="project-list"><div class="empty-projects" id="empty-projects">
+            <div class="icon">📋</div>
+            <p>尚無專案，請上傳 Excel 檔案開始使用</p>
+        </div></div>
+    </div>
+
+    <!-- User Management Section (visible to admin only) -->
+    <div id="user-management-view" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h3 style="font-size:16px;color:#1e293b">👥 系統使用者管理</h3>
+            <button class="btn btn-primary" id="btn-add-user" style="padding:8px 18px;font-size:14px">＋ 新增使用者</button>
+        </div>
+        <div class="table-wrap">
+            <div class="scroll">
+                <table class="resp-compare-table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>建立時間</th>
+                            <th style="width:100px;text-align:center">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list-body">
+                        <!-- Loaded dynamically -->
+                    </tbody>
+                </table>
             </div>
         </div>
-        <div class="icon">📄</div>
-        <h3>上傳 XLSX 檔案</h3>
-        <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
-        <input type="file" id="project-file-input" hidden accept=".xlsx,.xls">
     </div>
-    <div id="project-upload-loading" class="loading" style="display:none">
-        <div class="spinner"></div>
-        <p>處理中⋯</p>
-    </div>
-    <div id="project-list"><div class="empty-projects" id="empty-projects">
-        <div class="icon">📋</div>
-        <p>尚無專案，請上傳 Excel 檔案開始使用</p>
-    </div></div>
 </div>
 
 <!-- Editor -->
@@ -330,16 +363,38 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     </div>
 </div>
 
-<!-- Admin login overlay -->
+<!-- Unified login overlay -->
 <div class="modal-overlay" id="admin-overlay" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:250;align-items:center;justify-content:center">
     <div class="modal-box" style="max-width:400px;text-align:center">
-        <div style="font-size:48px;margin-bottom:12px">🛡️</div>
-        <h2 style="font-size:18px;margin-bottom:8px;color:#1e293b">管理員登入</h2>
-        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入管理員密碼以存取專案列表。</p>
-        <div style="margin-bottom:16px">
-            <input type="password" id="admin-password-input" placeholder="管理員密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">🔑</div>
+        <h2 style="font-size:18px;margin-bottom:8px;color:#1e293b">系統登入</h2>
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入 Email 帳號與密碼。<br>管理員免填 Email 直接輸入密碼登入。</p>
+        <div style="margin-bottom:12px;text-align:left">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">Email / 帳號</label>
+            <input type="email" id="admin-email-input" placeholder="example@email.com (管理員免填)" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px">
+        </div>
+        <div style="margin-bottom:16px;text-align:left">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">密碼</label>
+            <input type="password" id="admin-password-input" placeholder="請輸入密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px">
         </div>
         <button class="btn btn-primary" id="btn-admin-login" style="width:100%;justify-content:center;padding:10px;font-size:14px">🔓 登入</button>
+    </div>
+</div>
+
+<!-- Add User Dialog -->
+<div class="modal-overlay" id="add-user-dialog">
+    <div class="modal-box" style="max-width:400px">
+        <button class="close" id="close-add-user">&times;</button>
+        <h2 style="font-size:16px;margin-bottom:12px;color:#1e293b">👥 新增使用者</h2>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">Email 帳號</label>
+            <input type="email" id="new-user-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </div>
+        <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">密碼</label>
+            <input type="password" id="new-user-password" placeholder="請設定密碼" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </div>
+        <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:10px;font-size:14px">建立使用者</button>
     </div>
 </div>
 
@@ -537,41 +592,236 @@ if(isFillMode){
     initProjectsPage();
 }
 
-// ===== Admin Login UI =====
+// ===== Admin Login UI & Layout Functions =====
+function updateAdminLayout() {
+    const role = sessionStorage.getItem('auth_role');
+    const email = sessionStorage.getItem('auth_email');
+    const adminTabs = document.getElementById('admin-tabs');
+    const userMgmtView = document.getElementById('user-management-view');
+    const projectMgmtView = document.getElementById('project-management-view');
+    
+    // Add logout button if authenticated
+    let logoutBtn = document.getElementById('btn-auth-logout');
+    if (!logoutBtn) {
+        logoutBtn = document.createElement('button');
+        logoutBtn.id = 'btn-auth-logout';
+        logoutBtn.className = 'btn btn-outline';
+        logoutBtn.textContent = '🚪 登出';
+        logoutBtn.style.marginLeft = '8px';
+        logoutBtn.addEventListener('click', async () => {
+            await fetch('/api/auth/logout', { method: 'POST', headers: getAuthHeaders() });
+            setAdminToken('');
+            sessionStorage.removeItem('auth_role');
+            sessionStorage.removeItem('auth_email');
+            location.reload();
+        });
+        const headerInner = document.querySelector('header .inner');
+        if (headerInner) {
+            headerInner.appendChild(logoutBtn);
+        }
+    }
+    
+    // If not authenticated and adminRequired, hide logout
+    if (adminRequired && !getAdminToken()) {
+        if (logoutBtn) logoutBtn.style.display = 'none';
+    } else {
+        if (logoutBtn) logoutBtn.style.display = 'inline-flex';
+    }
+
+    if (role === 'admin') {
+        if (adminTabs) adminTabs.style.display = 'flex';
+        // Make sure we are on the project tab by default
+        switchTab('project-mgmt');
+    } else {
+        if (adminTabs) adminTabs.style.display = 'none';
+        if (userMgmtView) userMgmtView.style.display = 'none';
+        if (projectMgmtView) projectMgmtView.style.display = 'block';
+    }
+
+    autoFillUploadEmail();
+}
+
+function autoFillUploadEmail() {
+    const role = sessionStorage.getItem('auth_role');
+    const email = sessionStorage.getItem('auth_email') || '';
+    const emailInput = document.getElementById('project-email');
+    if (emailInput) {
+        if (role === 'user' && email) {
+            emailInput.value = email;
+            emailInput.disabled = true;
+        } else {
+            emailInput.disabled = false;
+        }
+    }
+}
+
+function switchTab(tabId) {
+    const tabProject = document.getElementById('tab-project-mgmt');
+    const tabUser = document.getElementById('tab-user-mgmt');
+    const projectView = document.getElementById('project-management-view');
+    const userView = document.getElementById('user-management-view');
+    if (!tabProject || !tabUser || !projectView || !userView) return;
+
+    if (tabId === 'project-mgmt') {
+        tabProject.classList.add('active');
+        tabUser.classList.remove('active');
+        projectView.style.display = 'block';
+        userView.style.display = 'none';
+        loadProjects();
+    } else if (tabId === 'user-mgmt') {
+        tabProject.classList.remove('active');
+        tabUser.classList.add('active');
+        projectView.style.display = 'none';
+        userView.style.display = 'block';
+        loadUsers();
+    }
+}
+
+async function loadUsers() {
+    const listBody = document.getElementById('users-list-body');
+    if (!listBody) return;
+    listBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8">載入中⋯</td></tr>';
+    try {
+        const r = await fetch('/api/admin/users', { headers: getAuthHeaders() });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.detail || '載入失敗');
+        if (!res.users || !res.users.length) {
+            listBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8">尚無使用者</td></tr>';
+            return;
+        }
+        let h = '';
+        res.users.forEach(u => {
+            h += `<tr>
+                <td style="padding:10px 14px;font-weight:600">${escapeHtml(u.email)}</td>
+                <td style="padding:10px 14px;color:#64748b">${u.created_at?.split('T')[0] || ''}</td>
+                <td style="text-align:center;padding:10px 14px">
+                    <button class="btn btn-outline-red" style="padding:3px 8px" onclick="deleteUser('${escapeHtml(u.email)}')">🗑️ 刪除</button>
+                </td>
+            </tr>`;
+        });
+        listBody.innerHTML = h;
+    } catch(e) {
+        listBody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:20px;color:#dc2626">${escapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+async function deleteUser(email) {
+    if (!confirm(`確定要刪除使用者 ${email} 嗎？\n該使用者的現有登入 Token 將會失效。`)) return;
+    try {
+        const r = await fetch(`/api/admin/users/${encodeURIComponent(email)}`, {
+            method: 'DELETE',
+            headers: getAuthHeaders()
+        });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.detail || '刪除失敗');
+        toast('使用者已刪除');
+        loadUsers();
+    } catch(e) {
+        toast(e.message, 1);
+    }
+}
+window.deleteUser = deleteUser;
+
 (function bindAdminLogin(){
     const overlay=document.getElementById('admin-overlay');
-    const input=document.getElementById('admin-password-input');
+    const emailInput=document.getElementById('admin-email-input');
+    const passwordInput=document.getElementById('admin-password-input');
     const btn=document.getElementById('btn-admin-login');
-    if(!overlay||!input||!btn)return;
+    if(!overlay||!passwordInput||!btn)return;
 
     btn.addEventListener('click',async()=>{
-        const pwd=input.value.trim();
-        if(!pwd){toast('請輸入管理員密碼',1);return}
+        const email=emailInput.value.trim();
+        const pwd=passwordInput.value.trim();
+        if(!pwd){toast('請輸入密碼',1);return}
         try{
-            const r=await fetch('/api/admin/login',{
+            const r=await fetch('/api/auth/login',{
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({password:pwd})
+                body:JSON.stringify({email:email,password:pwd})
             });
             const res=await r.json();
             if(!r.ok) throw new Error(res.detail||'登入失敗');
             setAdminToken(res.token);
+            sessionStorage.setItem('auth_role',res.role);
+            if(res.email) {
+                sessionStorage.setItem('auth_email',res.email);
+            } else {
+                sessionStorage.removeItem('auth_email');
+            }
             overlay.style.display='none';
-            input.value='';
-            toast('管理員登入成功');
-            loadProjects();
+            emailInput.value='';
+            passwordInput.value='';
+            toast('登入成功');
+            updateAdminLayout();
+            if (window.LANDING_MODE === "create") {
+                autoFillUploadEmail();
+            } else {
+                loadProjects();
+            }
         }catch(e){
             toast(e.message,1);
         }
     });
-    input.addEventListener('keydown',e=>{
+    passwordInput.addEventListener('keydown',e=>{
         if(e.key==='Enter') btn.click();
+    });
+    emailInput.addEventListener('keydown',e=>{
+        if(e.key==='Enter') btn.click();
+    });
+})();
+
+(function bindAddUserEvents() {
+    const closeBtn = document.getElementById('close-add-user');
+    const submitBtn = document.getElementById('btn-submit-new-user');
+    const dialog = document.getElementById('add-user-dialog');
+    if (!closeBtn || !submitBtn || !dialog) return;
+
+    closeBtn.addEventListener('click', () => dialog.classList.remove('show'));
+    dialog.addEventListener('click', e => { if (e.target === dialog) dialog.classList.remove('show'); });
+
+    submitBtn.addEventListener('click', async () => {
+        const email = document.getElementById('new-user-email').value.trim();
+        const password = document.getElementById('new-user-password').value.trim();
+        if (!email || !password) {
+            toast('Email 與密碼皆為必填項目', 1);
+            return;
+        }
+        try {
+            const r = await fetch('/api/admin/users', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ email, password })
+            });
+            const res = await r.json();
+            if (!r.ok) throw new Error(res.detail || '建立失敗');
+            toast('使用者建立成功');
+            dialog.classList.remove('show');
+            document.getElementById('new-user-email').value = '';
+            document.getElementById('new-user-password').value = '';
+            loadUsers();
+        } catch(e) {
+            toast(e.message, 1);
+        }
     });
 })();
 
 // ===== Projects Page =====
 function initProjectsPage(){
     const isCreateMode = window.LANDING_MODE === "create";
+
+    const tabProject = document.getElementById('tab-project-mgmt');
+    const tabUser = document.getElementById('tab-user-mgmt');
+    if (tabProject && tabUser) {
+        tabProject.addEventListener('click', () => switchTab('project-mgmt'));
+        tabUser.addEventListener('click', () => switchTab('user-mgmt'));
+    }
+
+    const btnAddUser = document.getElementById('btn-add-user');
+    if (btnAddUser) {
+        btnAddUser.addEventListener('click', () => {
+            document.getElementById('add-user-dialog').classList.add('show');
+        });
+    }
 
     if (isCreateMode) {
         // Create mode: show upload area directly, hide admin overlay & listing items
@@ -582,10 +832,17 @@ function initProjectsPage(){
         // Update header/title to make it clear for the user
         const headerTitle = document.querySelector('.projects-header h2');
         if (headerTitle) headerTitle.textContent = '📤 上傳 XLSX 並建立新專案';
+
+        if (adminRequired) {
+            checkAuthForCreation();
+        } else {
+            autoFillUploadEmail();
+        }
     } else {
         if(adminRequired){
             checkAdminAuth();
         } else {
+            updateAdminLayout();
             loadProjects();
         }
     }
@@ -601,7 +858,7 @@ function initProjectsPage(){
     }
 
     uploadArea.addEventListener('click',e=>{
-        if(e.target.tagName==='INPUT'||e.target.tagName==='LABEL')return;
+        if(e.target.tagName==='INPUT'||e.target.tagName==='LABEL'||e.target.disabled)return;
         fileInput.click();
     });
     uploadArea.addEventListener('dragover',e=>{e.preventDefault();uploadArea.classList.add('drag-over')});
@@ -612,15 +869,48 @@ function initProjectsPage(){
     document.getElementById('app-title').addEventListener('click',()=>{location.href=getAdminToken()?'/':'/create'});
 }
 
+async function checkAuthForCreation() {
+    try {
+        const r = await fetch('/api/auth/verify', {
+            headers: { 'X-Admin-Token': getAdminToken() }
+        });
+        const res = await r.json();
+        if (res.admin_required && !res.authenticated) {
+            document.getElementById('admin-overlay').style.display = 'flex';
+        } else {
+            if (res.authenticated) {
+                sessionStorage.setItem('auth_role', res.role);
+                if (res.email) {
+                    sessionStorage.setItem('auth_email', res.email);
+                } else {
+                    sessionStorage.removeItem('auth_email');
+                }
+            }
+            updateAdminLayout();
+        }
+    } catch(e) {
+        document.getElementById('admin-overlay').style.display = 'flex';
+    }
+}
+
 async function checkAdminAuth(){
     try{
-        const r=await fetch('/api/admin/verify',{
+        const r=await fetch('/api/auth/verify',{
             headers:{'X-Admin-Token':getAdminToken()}
         });
         const res=await r.json();
         if(res.admin_required && !res.authenticated){
             document.getElementById('admin-overlay').style.display='flex';
         } else {
+            if (res.authenticated) {
+                sessionStorage.setItem('auth_role', res.role);
+                if (res.email) {
+                    sessionStorage.setItem('auth_email', res.email);
+                } else {
+                    sessionStorage.removeItem('auth_email');
+                }
+            }
+            updateAdminLayout();
             loadProjects();
         }
     }catch(e){
