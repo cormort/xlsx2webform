@@ -126,8 +126,9 @@ async def root():
     frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if frontend_path.exists():
         html = frontend_path.read_text(encoding='utf-8')
-        script = '<script>window.LANDING_MODE="projects";</script>'
-        html = html.replace("</head>", f"{script}</head>")
+        head_script = '<script>window.LANDING_MODE="projects";</script>'
+        head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}</style>'
+        html = html.replace("</head>", f"{head_script}{head_style}</head>")
         return HTMLResponse(content=html)
     return {"message": "Budget Table Editor API", "version": "1.0.0"}
 
@@ -141,8 +142,10 @@ async def editor_page(session_id: str):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     html = frontend_path.read_text(encoding='utf-8')
-    script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
-    html = html.replace("</head>", f"{script}</head>")
+    # Inject EDIT_SESSION_ID and hide projects/fill, show editor
+    head_script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
+    head_style = '<style>#projects-section{display:none!important}#fill-mode{display:none!important}#editor{display:block!important}</style>'
+    html = html.replace("</head>", f"{head_script}{head_style}</head>")
     return HTMLResponse(content=html)
 
 
@@ -502,9 +505,10 @@ async def fill_form_page(token: str):
     if not frontend_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
     html = frontend_path.read_text(encoding='utf-8')
-    # Inject fill token into page
-    script = f'<script>window.FILL_TOKEN="{token}";</script>'
-    html = html.replace("</head>", f"{script}</head>")
+    # Inject fill token and CSS to hide other sections, show fill mode
+    head_script = f'<script>window.FILL_TOKEN="{token}";</script>'
+    head_style = '<style>#projects-section{display:none!important}#editor{display:none!important}#fill-mode{display:block!important}#fill-banner{display:block!important}</style>'
+    html = html.replace("</head>", f"{head_script}{head_style}</head>")
     return HTMLResponse(content=html)
 
 @app.get("/api/fill/{token}/data")
