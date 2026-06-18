@@ -5,31 +5,75 @@ FastAPI application for XLSX upload, table editing, and JSON import/export.
 """
 
 import os
+import io
+import csv
+import glob
 import uuid
 import json
+import hmac
 import shutil
-from datetime import datetime
+import secrets
+import hashlib
+import logging
+import bcrypt
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
 
-from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depends, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+
 from backend.xlsx_parser import process_xlsx
 
 app = FastAPI(title="Budget Table Editor", version="1.0.0")
 
-# CORS for local development
+# Setup rate limiter
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+# CORS configuration
+allowed_origins_raw = os.environ.get("ALLOWED_ORIGINS", "")
+if allowed_origins_raw:
+    origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
+else:
+    origins = ["*"]
+
+allow_credentials = True
+if "*" in origins:
+    allow_credentials = False
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# HTTP Security Headers Middleware
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Content-Security-Policy"] = (
+        "default-src 'self'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline'; "
+        "img-src 'self' data:; "
+        "frame-ancestors 'none';"
+    )
+    return response
 
 # Upload directory
 UPLOAD_DIR = Path(__file__).parent.parent / "uploads"
@@ -39,6 +83,78 @@ TEMPLATE_DIR.mkdir(exist_ok=True)
 
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
+
+# Logging
+logger = logging.getLogger(__name__)
+
+# Upload size limit (10 MB)
+MAX_UPLOAD_BYTES = 10 * 1024 * 1024
+
+# ── Admin Authentication ─────────────────────────────────
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+ADMIN_SECRET = os.environ.get("ADMIN_SECRET", secrets.token_hex(32))
+ADMIN_TOKEN_EXPIRY_HOURS = int(os.environ.get("ADMIN_TOKEN_EXPIRY_HOURS", "24"))
+admin_tokens: dict[str, datetime] = {}  # token → expiry datetime
+
+
+def _generate_admin_token() -> str:
+    """Generate a signed admin token with expiry."""
+    token_id = secrets.token_hex(24)
+    expiry = datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS)
+    admin_tokens[token_id] = expiry
+    # Persist admin tokens
+    _save_admin_tokens()
+    return token_id
+
+
+def _validate_admin_token(token: str) -> bool:
+    """Validate an admin token. Returns True if valid and not expired."""
+    if not token or token not in admin_tokens:
+        return False
+    expiry = admin_tokens[token]
+    if datetime.now() > expiry:
+        del admin_tokens[token]
+        _save_admin_tokens()
+        return False
+    return True
+
+
+def _save_admin_tokens():
+    """Persist valid admin tokens to disk."""
+    data = {k: v.isoformat() for k, v in admin_tokens.items() if datetime.now() < v}
+    (DATA_DIR / "admin_tokens.json").write_text(
+        json.dumps(data, ensure_ascii=False), encoding='utf-8')
+
+
+def _load_admin_tokens():
+    """Load admin tokens from disk."""
+    path = DATA_DIR / "admin_tokens.json"
+    if path.exists():
+        try:
+            data = json.loads(path.read_text(encoding='utf-8'))
+            now = datetime.now()
+            for token_id, expiry_str in data.items():
+                expiry = datetime.fromisoformat(expiry_str)
+                if now < expiry:
+                    admin_tokens[token_id] = expiry
+        except Exception as e:
+            logger.warning("Failed to load admin tokens: %s", e)
+
+
+def check_admin(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Dependency: require valid admin token. Raises 401 if invalid."""
+    if not ADMIN_PASSWORD:
+        # No admin password configured → skip auth (local dev mode)
+        return True
+    if not _validate_admin_token(x_admin_token or ""):
+        raise HTTPException(
+            status_code=401,
+            detail="Admin authentication required",
+            headers={"X-Needs-Admin": "true"}
+        )
+    return True
 
 # In-memory stores
 sessions = {}
@@ -62,6 +178,27 @@ class SessionData(BaseModel):
     password_hash: Optional[str] = ""
 
 
+def _hash_password(pwd: str) -> str:
+    """Hash a password with Bcrypt. Returns salted hash string."""
+    salt = bcrypt.gensalt()
+    return bcrypt.hashpw(pwd.encode('utf-8'), salt).decode('utf-8')
+
+
+def _verify_password(pwd: str, hashed: str) -> bool:
+    """Verify password against a Bcrypt hash, with fallback to SHA-256 for backwards compatibility."""
+    if not pwd or not hashed:
+        return False
+    if hashed.startswith("$2b$") or hashed.startswith("$2a$"):
+        try:
+            return bcrypt.checkpw(pwd.encode('utf-8'), hashed.encode('utf-8'))
+        except Exception:
+            return False
+    else:
+        # Fallback to legacy SHA-256 hash comparison
+        legacy_hash = hashlib.sha256(pwd.encode('utf-8')).hexdigest()
+        return hmac.compare_digest(legacy_hash, hashed)
+
+
 def check_session_auth(session_id: str, password_header: Optional[str] = None, password_query: Optional[str] = None):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -74,16 +211,13 @@ def check_session_auth(session_id: str, password_header: Optional[str] = None, p
                 detail="Password required",
                 headers={"X-Needs-Password": "true"}
             )
-        import hashlib
-        h = hashlib.sha256(pwd.encode('utf-8')).hexdigest()
-        if h != session.password_hash:
+        if not _verify_password(pwd, session.password_hash):
             raise HTTPException(status_code=403, detail="Incorrect password")
     return session
 
 
 class SaveRequest(BaseModel):
     """Request to save edited data."""
-    session_id: str
     data: list
 
 
@@ -120,10 +254,10 @@ def _load_persist():
                             try:
                                 sd = json.loads(sp.read_text(encoding='utf-8'))
                                 sessions[sid] = SessionData(**sd)
-                            except:
-                                pass
-            except:
-                pass
+                            except Exception as e:
+                                logger.warning("Failed to load session %s: %s", sid, e)
+            except Exception as e:
+                logger.warning("Failed to load persist file %s: %s", path, e)
 
 def _save_persist(key):
     d = {"publish_store": publish_store, "published_forms": published_forms,
@@ -139,6 +273,51 @@ def _save_session(sid):
         json.dumps(idx, ensure_ascii=False), encoding='utf-8')
 
 _load_persist()
+_load_admin_tokens()
+
+
+# ── Admin Login Endpoints ────────────────────────────────
+
+class AdminLoginRequest(BaseModel):
+    password: str
+
+
+@app.post("/api/admin/login")
+@limiter.limit("5/minute")
+async def admin_login(request: Request, payload: AdminLoginRequest):
+    """Authenticate as admin. Returns a session token."""
+    if not ADMIN_PASSWORD:
+        return {"success": True, "token": "", "message": "No admin password configured"}
+    if payload.password != ADMIN_PASSWORD:
+        raise HTTPException(status_code=403, detail="管理員密碼錯誤")
+    token = _generate_admin_token()
+    return {
+        "success": True,
+        "token": token,
+        "expires_in_hours": ADMIN_TOKEN_EXPIRY_HOURS
+    }
+
+
+@app.get("/api/admin/verify")
+async def admin_verify(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Check if current admin token is valid."""
+    if not ADMIN_PASSWORD:
+        return {"authenticated": True, "admin_required": False}
+    valid = _validate_admin_token(x_admin_token or "")
+    return {"authenticated": valid, "admin_required": True}
+
+
+@app.post("/api/admin/logout")
+async def admin_logout(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Invalidate an admin token."""
+    if x_admin_token and x_admin_token in admin_tokens:
+        del admin_tokens[x_admin_token]
+        _save_admin_tokens()
+    return {"success": True}
 
 
 @app.get("/")
@@ -147,7 +326,8 @@ async def root():
     frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if frontend_path.exists():
         html = frontend_path.read_text(encoding='utf-8')
-        head_script = '<script>window.LANDING_MODE="projects";</script>'
+        admin_required = 'true' if ADMIN_PASSWORD else 'false'
+        head_script = f'<script>window.LANDING_MODE="projects";window.ADMIN_REQUIRED={admin_required};</script>'
         head_style = '<style>#editor{display:none!important}#fill-mode{display:none!important}#fill-banner{display:none!important}</style>'
         html = html.replace("</head>", f"{head_script}{head_style}</head>")
         return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
@@ -164,23 +344,33 @@ async def editor_page(session_id: str):
         raise HTTPException(status_code=404, detail="Session not found")
     html = frontend_path.read_text(encoding='utf-8')
     # Inject EDIT_SESSION_ID and hide projects/fill, show editor
-    head_script = f'<script>window.EDIT_SESSION_ID="{session_id}";</script>'
+    admin_required = 'true' if ADMIN_PASSWORD else 'false'
+    head_script = f'<script>window.EDIT_SESSION_ID="{session_id}";window.ADMIN_REQUIRED={admin_required};</script>'
     head_style = '<style>#projects-section{display:none!important}#fill-mode{display:none!important}#fill-banner{display:none!important}#editor{display:block!important}</style>'
     html = html.replace("</head>", f"{head_script}{head_style}</head>")
     return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
 
 
 @app.post("/api/upload-xlsx")
+@limiter.limit("10/minute")
 async def upload_xlsx(
+    request: Request,
     file: UploadFile = File(...),
     sheet_index: int = Form(0),
     mode: str = Form("table"),  # 'table' or 'form'
     email: str = Form(""),
-    password: str = Form("")
+    password: str = Form(""),
+    _admin=Depends(check_admin)
 ):
-    """Upload an XLSX file and convert to HTML table or form."""
+    """Upload an XLSX file and convert to HTML table or form. Requires admin auth."""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
+
+    # Check file size
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum {MAX_UPLOAD_BYTES // (1024*1024)}MB allowed.")
+    await file.seek(0)
 
     # Save uploaded file
     session_id = str(uuid.uuid4())[:8]
@@ -193,10 +383,9 @@ async def upload_xlsx(
         # Process the XLSX file
         result = process_xlsx(str(file_path), sheet_index, mode=mode)
 
-        import hashlib
         password_hash = ""
         if password:
-            password_hash = hashlib.sha256(password.encode('utf-8')).hexdigest()
+            password_hash = _hash_password(password)
 
         if mode == 'form':
             # Form mode
@@ -257,8 +446,8 @@ async def upload_xlsx(
 
 
 @app.get("/api/sessions")
-async def list_sessions():
-    """List all active editing sessions."""
+async def list_sessions(_admin=Depends(check_admin)):
+    """List all active editing sessions. Requires admin auth."""
     return {
         "sessions": [
             {
@@ -278,11 +467,13 @@ async def list_sessions():
 
 
 @app.get("/api/sessions/{session_id}")
+@limiter.limit("10/minute")
 async def get_session(
+    request: Request,
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Get session data by ID."""
+    """Get session data by ID. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     return {
         "id": session.id,
@@ -303,7 +494,7 @@ async def save_session(
     request: SaveRequest,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Save edited data to session."""
+    """Save edited data to session. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     session.current_data = request.data
     session.updated_at = datetime.now().isoformat()
@@ -315,11 +506,10 @@ async def save_session(
 @app.get("/api/sessions/{session_id}/export/json")
 async def export_json(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
-    password: Optional[str] = None
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Export session data as JSON file."""
-    session = check_session_auth(session_id, x_project_password, password)
+    """Export session data as JSON file. Protected by project password."""
+    session = check_session_auth(session_id, x_project_password)
     data = {
         "session": {
             "id": session.id,
@@ -371,23 +561,20 @@ async def reset_session(
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Reset session to original data."""
+    """Reset session to original data. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     session.current_data = session.original_json
 
     # Reset form_data to original by re-processing the uploaded file
     if session.form_data:
-        import glob
         pattern = str(UPLOAD_DIR / f"{session_id}_*.xlsx")
         files = glob.glob(pattern)
         if files:
             try:
-                from backend.xlsx_parser import process_xlsx
                 result = process_xlsx(files[0], mode='form')
                 session.form_data = result.get('form')
             except Exception as e:
-                # If re-processing fails, keep existing form_data
-                pass
+                logger.warning("Failed to re-process XLSX for reset (session %s): %s", session_id, e)
 
     session.updated_at = datetime.now().isoformat()
     return {"success": True, "message": "Session reset to original data"}
@@ -398,16 +585,36 @@ async def delete_session(
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Delete a session."""
+    """Delete a session and all associated data. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     del sessions[session_id]
+
+    # Clean up session JSON file
+    session_file = DATA_DIR / f"session_{session_id}.json"
+    session_file.unlink(missing_ok=True)
+
+    # Clean up publish/response stores
+    if session_id in published_forms:
+        token = published_forms.pop(session_id)
+        publish_store.pop(token, None)
+        _save_persist("publish_store")
+        _save_persist("published_forms")
+
+    if session_id in response_store:
+        del response_store[session_id]
+        _save_persist("response_store")
+
+    # Clean up uploaded XLSX files
+    for f in UPLOAD_DIR.glob(f"{session_id}_*"):
+        f.unlink(missing_ok=True)
+
     _save_session(session_id)  # updates index
     return {"success": True, "message": "Session deleted"}
 
 
 @app.post("/api/templates/save")
-async def save_template(request: TemplateData):
-    """Save current data as a reusable template."""
+async def save_template(request: TemplateData, _admin=Depends(check_admin)):
+    """Save current data as a reusable template. Requires admin auth."""
     template_id = str(uuid.uuid4())[:8]
     template_path = TEMPLATE_DIR / f"template_{template_id}.json"
 
@@ -425,8 +632,8 @@ async def save_template(request: TemplateData):
 
 
 @app.get("/api/templates")
-async def list_templates():
-    """List all saved templates."""
+async def list_templates(_admin=Depends(check_admin)):
+    """List all saved templates. Requires admin auth."""
     templates = []
     for f in TEMPLATE_DIR.glob("template_*.json"):
         try:
@@ -437,15 +644,16 @@ async def list_templates():
                 "created_at": data.get('created_at'),
                 "row_count": len(data.get('data', []))
             })
-        except:
+        except Exception as e:
+            logger.warning("Failed to load template %s: %s", f.name, e)
             continue
 
     return {"templates": templates}
 
 
 @app.post("/api/templates/{template_id}/load")
-async def load_template(template_id: str):
-    """Load a template and create a new session from it."""
+async def load_template(template_id: str, _admin=Depends(check_admin)):
+    """Load a template and create a new session from it. Requires admin auth."""
     template_path = TEMPLATE_DIR / f"template_{template_id}.json"
     if not template_path.exists():
         raise HTTPException(status_code=404, detail="Template not found")
@@ -495,7 +703,7 @@ async def publish_form(
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Publish a form for others to fill."""
+    """Publish a form for others to fill. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
 
     if session_id in published_forms:
@@ -519,7 +727,7 @@ async def get_publish_status(
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Get publish status for a session."""
+    """Get publish status for a session. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
 
     if session_id in published_forms:
@@ -537,7 +745,7 @@ async def unpublish_form(
     session_id: str,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Unpublish a form."""
+    """Unpublish a form. Protected by project password."""
     session = check_session_auth(session_id, x_project_password)
     if session_id in published_forms:
         token = published_forms.pop(session_id)
@@ -577,17 +785,17 @@ async def get_fill_data(token: str):
     }
 
 @app.post("/api/fill/{token}/submit")
-async def submit_fill(token: str, request: SubmitRequest):
+@limiter.limit("10/minute")
+async def submit_fill(token: str, request: Request, payload: SubmitRequest):
     """Submit a filled form response."""
     if token not in publish_store:
         raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
     session_id = publish_store[token]
 
-    import hashlib
-    respondent_email = request.email.strip() if request.email else ""
+    respondent_email = payload.email.strip() if payload.email else ""
     password_hash = ""
-    if request.password:
-        password_hash = hashlib.sha256(request.password.encode('utf-8')).hexdigest()
+    if payload.password:
+        password_hash = _hash_password(payload.password)
 
     # 尋找是否已有同一個 Email 的填寫記錄 (自動覆蓋修正)
     existing_resp = None
@@ -599,15 +807,15 @@ async def submit_fill(token: str, request: SubmitRequest):
 
     if existing_resp:
         # 如果已經填過，必須校驗密碼
-        if not request.password or existing_resp.get("password_hash") != password_hash:
+        if not payload.password or not _verify_password(payload.password, existing_resp.get("password_hash", "")):
             raise HTTPException(
                 status_code=403,
                 detail="此 Email 已有填表紀錄。如欲修改，請輸入您當初設定的填表密碼。"
             )
 
         # 密碼正確，直接覆蓋修正該項目
-        existing_resp["data"] = request.data
-        existing_resp["respondent"] = request.respondent or ""
+        existing_resp["data"] = payload.data
+        existing_resp["respondent"] = payload.respondent or ""
         existing_resp["modified"] = True
         existing_resp["modified_at"] = datetime.now().isoformat()
         _save_persist("response_store")
@@ -624,8 +832,8 @@ async def submit_fill(token: str, request: SubmitRequest):
     resp = {
         "id": str(uuid.uuid4())[:8],
         "session_id": session_id,
-        "data": request.data,
-        "respondent": request.respondent or "",
+        "data": payload.data,
+        "respondent": payload.respondent or "",
         "email": respondent_email,
         "password_hash": password_hash,
         "submitted_at": datetime.now().isoformat(),
@@ -646,19 +854,17 @@ async def submit_fill(token: str, request: SubmitRequest):
 
 
 @app.post("/api/fill/{token}/load-response")
-async def load_filler_response(token: str, request: LoadResponseRequest):
+@limiter.limit("10/minute")
+async def load_filler_response(token: str, request: Request, payload: LoadResponseRequest):
     """Load a previous submission for a filler to modify."""
     if token not in publish_store:
         raise HTTPException(status_code=404, detail="Form not found")
     session_id = publish_store[token]
 
-    import hashlib
-    h = hashlib.sha256(request.password.encode('utf-8')).hexdigest()
-
     responses = response_store.get(session_id, [])
     for r in responses:
-        if r.get("email") == request.email.strip():
-            if r.get("password_hash") == h:
+        if r.get("email") == payload.email.strip():
+            if _verify_password(payload.password, r.get("password_hash", "")):
                 return {
                     "success": True,
                     "respondent": r.get("respondent", ""),
@@ -672,11 +878,24 @@ async def load_filler_response(token: str, request: LoadResponseRequest):
 @app.get("/api/sessions/{session_id}/responses")
 async def list_responses(
     session_id: str,
+    full: bool = False,
     x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """List all submitted responses for a session."""
+    """List all submitted responses for a session. Protected by project password.
+    
+    Args:
+        full: If true, include full response data (avoids N+1 queries).
+    """
     session = check_session_auth(session_id, x_project_password)
     responses = response_store.get(session_id, [])
+    
+    if full:
+        return {
+            "session_id": session_id,
+            "count": len(responses),
+            "responses": responses
+        }
+    
     return {
         "session_id": session_id,
         "count": len(responses),
@@ -724,23 +943,21 @@ async def delete_response(
     raise HTTPException(status_code=404, detail="Response not found")
 
 @app.get("/api/sessions/{session_id}/responses/export/csv")
+@app.post("/api/sessions/{session_id}/responses/export/csv")
 async def export_responses_csv(
     session_id: str,
-    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
-    password: Optional[str] = None
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password")
 ):
-    """Export all responses as CSV."""
-    session = check_session_auth(session_id, x_project_password, password)
+    """Export all responses as CSV. Protected by project password."""
+    session = check_session_auth(session_id, x_project_password)
     responses = response_store.get(session_id, [])
     if not responses:
         raise HTTPException(status_code=404, detail="No responses to export")
 
     # Build CSV: headers from original data row 0, then each response
-    data = session.current_data or session.original_json
-    headers = [c.get("value", "") for c in (data[0] if data else [])]
+    sess_data = session.current_data or session.original_json
+    headers = [c.get("value", "") for c in (sess_data[0] if sess_data else [])]
 
-    import io
-    import csv
     output = io.StringIO()
     writer = csv.writer(output)
     writer.writerow(["回應時間", "填表人"] + headers)
@@ -762,7 +979,9 @@ async def export_responses_csv(
 
 
 @app.post("/api/parse-xlsx")
+@limiter.limit("10/minute")
 async def parse_xlsx_only(
+    request: Request,
     file: UploadFile = File(...),
     sheet_index: int = Form(0)
 ):

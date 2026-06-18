@@ -6,10 +6,11 @@ Handles merged cells, styles, colors, and generates clean HTML tables.
 """
 
 import openpyxl
-from openpyxl.utils import get_column_letter
-from copy import copy
 import json
 import re
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 # Color mapping for markers (ported from excel2html.rb)
@@ -259,6 +260,8 @@ def worksheet_to_html(ws, header_rows=0):
     return html
 
 
+# NOTE: extract_budget_data is currently unused (no route calls it).
+# Retained for potential future use.
 def extract_budget_data(ws, config=None):
     """Extract structured budget data from a worksheet.
 
@@ -409,7 +412,7 @@ def extract_form_data(ws):
                 try:
                     float(value.replace(',', ''))
                     input_type = "number"
-                except:
+                except ValueError:
                     input_type = "text"
 
             # Check if this might be a number field based on label
@@ -445,44 +448,47 @@ def process_xlsx(file_path, sheet_index=0, mode='table'):
     Returns:
         dict with 'html', 'json', 'sheet_names', 'metadata'
     """
-    wb = openpyxl.load_workbook(file_path, data_only=True)
+    try:
+        wb = openpyxl.load_workbook(file_path, data_only=True)
 
-    sheet_names = wb.sheetnames
-    ws = wb.worksheets[sheet_index] if sheet_index < len(wb.worksheets) else wb.worksheets[0]
+        sheet_names = wb.sheetnames
+        ws = wb.worksheets[sheet_index] if sheet_index < len(wb.worksheets) else wb.worksheets[0]
 
-    if mode == 'form':
-        form_data = extract_form_data(ws)
-        metadata = {
-            'sheet_name': ws.title,
-            'sheet_names': sheet_names,
-            'mode': 'form',
-            **{k: v for k, v in form_data.items() if k != 'sections'}
-        }
-        wb.close()
-        return {
-            'form': form_data,
-            'metadata': metadata
-        }
-    else:
-        html = worksheet_to_html(ws)
-        json_data = worksheet_to_json(ws)
+        if mode == 'form':
+            form_data = extract_form_data(ws)
+            metadata = {
+                'sheet_name': ws.title,
+                'sheet_names': sheet_names,
+                'mode': 'form',
+                **{k: v for k, v in form_data.items() if k != 'sections'}
+            }
+            return {
+                'form': form_data,
+                'metadata': metadata
+            }
+        else:
+            html = worksheet_to_html(ws)
+            json_data = worksheet_to_json(ws)
 
-        metadata = {
-            'sheet_name': ws.title,
-            'row_count': ws.max_row or 0,
-            'col_count': ws.max_column or 0,
-            'merged_cells_count': len(ws.merged_cells.ranges),
-            'sheet_names': sheet_names,
-            'mode': 'table'
-        }
+            metadata = {
+                'sheet_name': ws.title,
+                'row_count': ws.max_row or 0,
+                'col_count': ws.max_column or 0,
+                'merged_cells_count': len(ws.merged_cells.ranges),
+                'sheet_names': sheet_names,
+                'mode': 'table'
+            }
 
-        wb.close()
-
-        return {
-            'html': html,
-            'json': json_data,
-            'metadata': metadata
-        }
+            return {
+                'html': html,
+                'json': json_data,
+                'metadata': metadata
+            }
+    finally:
+        try:
+            wb.close()
+        except Exception:
+            pass
 
 
 if __name__ == '__main__':

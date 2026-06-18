@@ -319,6 +319,19 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     </div>
 </div>
 
+<!-- Admin login overlay -->
+<div class="modal-overlay" id="admin-overlay" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:250;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:400px;text-align:center">
+        <div style="font-size:48px;margin-bottom:12px">🛡️</div>
+        <h2 style="font-size:18px;margin-bottom:8px;color:#1e293b">管理員登入</h2>
+        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入管理員密碼以存取專案列表。</p>
+        <div style="margin-bottom:16px">
+            <input type="password" id="admin-password-input" placeholder="管理員密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;text-align:center">
+        </div>
+        <button class="btn btn-primary" id="btn-admin-login" style="width:100%;justify-content:center;padding:10px;font-size:14px">🔓 登入</button>
+    </div>
+</div>
+
 <script>
 // ===== Detect mode =====
 const isFillMode = !!(window.FILL_TOKEN);
@@ -334,17 +347,22 @@ let original = [];
 let isDirty = false;
 let selectedCell = null;
 
+// ===== Admin Auth Helpers =====
+const adminRequired = !!(window.ADMIN_REQUIRED);
+function getAdminToken(){ return sessionStorage.getItem('admin_token')||'' }
+function setAdminToken(t){ if(t) sessionStorage.setItem('admin_token',t); else sessionStorage.removeItem('admin_token') }
+
 // ===== Helpers =====
 function getAuthHeaders(customHeaders = {}){
     const headers={...customHeaders};
     const sid=sessionId||editSessionId;
     const pwd=sessionStorage.getItem('project_password_'+sid);
-    if(pwd){
-        headers['X-Project-Password']=pwd;
-    }
+    if(pwd) headers['X-Project-Password']=pwd;
+    const adminTk=getAdminToken();
+    if(adminTk) headers['X-Admin-Token']=adminTk;
     return headers;
 }
-function escape(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function parseNum(v){const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?null:n}
 function fmtNum(n){if(n===null||isNaN(n))return '';const p=n%1===0?0:2;return n.toLocaleString('en-US',{minimumFractionDigits:p,maximumFractionDigits:2})}
 function toast(msg,err){const el=document.getElementById('toast-msg');el.textContent=msg;const t=document.getElementById('toast');t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',2500)}
@@ -383,6 +401,68 @@ function recalcAutoSum(){
     nodes.filter(n=>!n.parent).forEach(process);
 }
 
+// Safe arithmetic evaluator (no Function() — prevents XSS/code injection)
+function safeEval(expr) {
+    // Tokenize: numbers, operators, parentheses
+    const tokens = [];
+    let i = 0;
+    while (i < expr.length) {
+        if (/\s/.test(expr[i])) { i++; continue; }
+        if (/[\d.]/.test(expr[i])) {
+            let num = '';
+            while (i < expr.length && /[\d.]/.test(expr[i])) num += expr[i++];
+            tokens.push({ type: 'num', value: parseFloat(num) });
+        } else if ('+-*/'.includes(expr[i])) {
+            tokens.push({ type: 'op', value: expr[i++] });
+        } else if (expr[i] === '(') {
+            tokens.push({ type: 'lparen' }); i++;
+        } else if (expr[i] === ')') {
+            tokens.push({ type: 'rparen' }); i++;
+        } else {
+            return NaN; // disallow anything else
+        }
+    }
+    // Recursive descent parser
+    let pos = 0;
+    function peek() { return tokens[pos]; }
+    function consume() { return tokens[pos++]; }
+    function parseExpr() {
+        let left = parseTerm();
+        while (peek() && peek().type === 'op' && '+-'.includes(peek().value)) {
+            const op = consume().value;
+            const right = parseTerm();
+            left = op === '+' ? left + right : left - right;
+        }
+        return left;
+    }
+    function parseTerm() {
+        let left = parseFactor();
+        while (peek() && peek().type === 'op' && '*/'.includes(peek().value)) {
+            const op = consume().value;
+            const right = parseFactor();
+            left = op === '*' ? left * right : left / right;
+        }
+        return left;
+    }
+    function parseFactor() {
+        const t = peek();
+        if (!t) return NaN;
+        if (t.type === 'num') { consume(); return t.value; }
+        if (t.type === 'op' && t.value === '-') { consume(); return -parseFactor(); }
+        if (t.type === 'op' && t.value === '+') { consume(); return parseFactor(); }
+        if (t.type === 'lparen') {
+            consume();
+            const val = parseExpr();
+            if (peek() && peek().type === 'rparen') consume();
+            return val;
+        }
+        return NaN;
+    }
+    const result = parseExpr();
+    if (pos < tokens.length) return NaN;
+    return result;
+}
+
 function applyFormula(colIdx,formula){
     const maxR=data.length;
     for(let r=1;r<maxR;r++){
@@ -390,7 +470,8 @@ function applyFormula(colIdx,formula){
         const f=formula.startsWith('=')?formula.slice(1):'';if(!f){cell._formula='';continue}
         cell._formula=formula;let expr=f;
         expr=expr.replace(/\b([A-Za-z]+)\b(?![\(\)\d])/g,(m,colLet)=>{const refC=colLet.toUpperCase().split('').reduce((a,ch)=>a*26+ch.charCodeAt(0)-64,0)-1;if(refC===colIdx)return '0';return parseNum(data[r]?.[refC]?.value)??'0'});
-        try{const result=Function('"use strict";return ('+expr+')')();if(typeof result==='number'&&!isNaN(result)){cell.value=String(result);cell._formula=formula}}catch(e){}
+        const result=safeEval(expr);
+        if(typeof result==='number'&&!isNaN(result)){cell.value=String(result);cell._formula=formula}
     }
 }
 
@@ -410,9 +491,45 @@ if(isFillMode){
     initProjectsPage();
 }
 
+// ===== Admin Login UI =====
+(function bindAdminLogin(){
+    const overlay=document.getElementById('admin-overlay');
+    const input=document.getElementById('admin-password-input');
+    const btn=document.getElementById('btn-admin-login');
+    if(!overlay||!input||!btn)return;
+
+    btn.addEventListener('click',async()=>{
+        const pwd=input.value.trim();
+        if(!pwd){toast('請輸入管理員密碼',1);return}
+        try{
+            const r=await fetch('/api/admin/login',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({password:pwd})
+            });
+            const res=await r.json();
+            if(!r.ok) throw new Error(res.detail||'登入失敗');
+            setAdminToken(res.token);
+            overlay.style.display='none';
+            input.value='';
+            toast('管理員登入成功');
+            loadProjects();
+        }catch(e){
+            toast(e.message,1);
+        }
+    });
+    input.addEventListener('keydown',e=>{
+        if(e.key==='Enter') btn.click();
+    });
+})();
+
 // ===== Projects Page =====
 function initProjectsPage(){
-    loadProjects();
+    if(adminRequired){
+        checkAdminAuth();
+    } else {
+        loadProjects();
+    }
 
     const uploadArea=document.getElementById('project-upload-area');
     const fileInput=document.getElementById('project-file-input');
@@ -434,9 +551,31 @@ function initProjectsPage(){
     document.getElementById('app-title').addEventListener('click',()=>{location.href='/'});
 }
 
+async function checkAdminAuth(){
+    try{
+        const r=await fetch('/api/admin/verify',{
+            headers:{'X-Admin-Token':getAdminToken()}
+        });
+        const res=await r.json();
+        if(res.admin_required && !res.authenticated){
+            document.getElementById('admin-overlay').style.display='flex';
+        } else {
+            loadProjects();
+        }
+    }catch(e){
+        document.getElementById('admin-overlay').style.display='flex';
+    }
+}
+
 async function loadProjects(){
     try{
-        const r=await fetch('/api/sessions');const res=await r.json();
+        const r=await fetch('/api/sessions',{headers:getAuthHeaders()});
+        if(r.status===401){
+            // Admin token expired or invalid
+            document.getElementById('admin-overlay').style.display='flex';
+            return;
+        }
+        const res=await r.json();
         const list=document.getElementById('project-list');
         if(!res.sessions||!res.sessions.length){
             list.innerHTML='<div class="empty-projects"><div class="icon">📋</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
@@ -452,7 +591,7 @@ async function loadProjects(){
                 : '';
             h+=`<div class="project-card">
                 <div class="info">
-                    <div class="name">${escape(p.name)}</div>
+                    <div class="name">${escapeHtml(p.name)}</div>
                     <div class="meta">
                         <span>${p.row_count||0} 列</span>
                         <span>${p.created_at?.split('T')[0]||''}</span>
@@ -509,7 +648,10 @@ async function projectUpload(file){
     fd.append('email',email);
     fd.append('password',password);
     try{
-        const r=await fetch('/api/upload-xlsx',{method:'POST',body:fd});const res=await r.json();
+        const headers={};
+        const adminTk=getAdminToken();
+        if(adminTk) headers['X-Admin-Token']=adminTk;
+        const r=await fetch('/api/upload-xlsx',{method:'POST',headers,body:fd});const res=await r.json();
         if(!r.ok)throw new Error(res.detail||'失敗');
         // 保存編輯密碼在 sessionStorage，進入編輯器時能一鍵免密碼解鎖
         sessionStorage.setItem('project_password_'+res.session_id,password);
@@ -552,7 +694,7 @@ async function loadEditorSession(){
             const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
             if(respTab)respTab.click();
         }
-    }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escape(e.message)}</p>`;editor.style.display='block'}
+    }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escapeHtml(e.message)}</p>`;editor.style.display='block'}
 }
 
 function render(){
@@ -560,7 +702,7 @@ function render(){
     if(!data.length){tableContainer.innerHTML='';return}
     const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
     let h='<table id="main-table"><thead><tr>';
-    for(let c=0;c<maxC;c++){h+=`<th><input type="text" id="hdr-${c}" name="hdr-${c}" data-row="0" data-col="${c}" value="${escape(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
+    for(let c=0;c<maxC;c++){h+=`<th><input type="text" id="hdr-${c}" name="hdr-${c}" data-row="0" data-col="${c}" value="${escapeHtml(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
     h+='</tr></thead><tbody>';
     for(let r=1;r<data.length;r++){
         const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
@@ -570,7 +712,7 @@ function render(){
             const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
             const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
             h+=`<td${hasF?' class="formula"':''}>`;
-            h+=`<input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
+            h+=`<input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
             h+='</td>';
         }
         h+='</tr>';
@@ -587,7 +729,7 @@ function render(){
 function onChange(e){
     const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
-    if(data[r][c]?data[r][c].value:''!==val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
+    if((data[r][c] ? data[r][c].value : '') !== val){if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};data[r][c].value=val;isDirty=true}
 }
 
 function onFocus(e){
@@ -696,12 +838,12 @@ function updateFormulaCols(){
         });
     });
 
-    // Load responses
+    // Load responses — uses ?full=true to avoid N+1 HTTP queries
     async function loadResponses(){
         if(!sessionId){document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">請先上傳檔案</p>';return}
         document.getElementById('responses-container').innerHTML='<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
         try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses`,{headers:getAuthHeaders()});const res=await r.json();
+            const r=await fetch(`/api/sessions/${sessionId}/responses?full=true`,{headers:getAuthHeaders()});const res=await r.json();
             const container=document.getElementById('responses-container');
             document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
             if(!res.responses||!res.responses.length){
@@ -709,19 +851,10 @@ function updateFormulaCols(){
                 return;
             }
             const headers=(data[0]||[]).map(c=>c.value||'');
-            const fulls=[];
-            for(let i=0;i<res.responses.length;i++){
-                const listResp=res.responses[i];
-                const rd=await fetch(`/api/sessions/${sessionId}/responses/${listResp.id}`,{headers:getAuthHeaders()});
-                const full=await rd.json();
-                full.email=listResp.email;
-                full.modified=listResp.modified;
-                full.modified_at=listResp.modified_at;
-                fulls.push(full);
-            }
+            const fulls=res.responses;
             const maxC=Math.max(...fulls.map(f=>{const d=f.data||[];return Math.max(...d.map(r=>r.length||0),1)}),1);
             let h='<table class="resp-compare-table"><thead><tr><th style="min-width:30px">#</th><th>填表人</th><th>時間</th>';
-            for(let c=0;c<maxC;c++){h+=`<th>${escape(headers[c]||'')}</th>`}
+            for(let c=0;c<maxC;c++){h+=`<th>${escapeHtml(headers[c]||'')}</th>`}
             h+='<th></th></tr></thead><tbody>';
             fulls.forEach((full,idx)=>{
                 const resp=full;const rowData=resp.data||[];
@@ -732,47 +865,61 @@ function updateFormulaCols(){
                     ? `<span class="badge" style="background:#fef3c7;color:#d97706;margin-left:4px;font-size:10px;padding:1px 4px" title="修改時間：${resp.modified_at}">⚠️ 已修正</span>`
                     : '';
                 const emailLabel=resp.email
-                    ? `<br><span style="font-size:11px;color:#94a3b8">${escape(resp.email)}</span>`
+                    ? `<br><span style="font-size:11px;color:#94a3b8">${escapeHtml(resp.email)}</span>`
                     : '';
                 dataRows.forEach((row,ri)=>{
                     h+=`<tr>`;
                     if(ri===0){
                         h+=`<td style="text-align:center;color:#94a3b8" rowspan="${rowSpan}">${idx+1}</td>`;
-                        h+=`<td rowspan="${rowSpan}"><strong>${escape(resp.respondent||'匿名')}</strong>${modifiedBadge}${emailLabel}</td>`;
+                        h+=`<td rowspan="${rowSpan}"><strong>${escapeHtml(resp.respondent||'匿名')}</strong>${modifiedBadge}${emailLabel}</td>`;
                         h+=`<td class="resp-row-label" rowspan="${rowSpan}">${resp.submitted_at}</td>`;
                     }
                     for(let c=0;c<maxC;c++){
                         const cell=row[c]||{};
-                        h+=`<td>${escape(cell.value||'')}</td>`;
+                        h+=`<td>${escapeHtml(cell.value||'')}</td>`;
                     }
                     if(ri===0){
-                        h+=`<td rowspan="${rowSpan}"><button class="resp-delete" onclick="deleteResponse('${resp.id}')" title="刪除">✕</button></td>`;
+                        h+=`<td rowspan="${rowSpan}"><button class="resp-delete" data-resp-id="${resp.id}" title="刪除">✕</button></td>`;
                     }
                     h+=`</tr>`;
                 });
             });
             h+='</tbody></table>';
             container.innerHTML=h;
-        }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escape(e.message)}</p>`;toast(e.message,1)}
+            // Event delegation for delete buttons
+            container.querySelectorAll('.resp-delete').forEach(btn=>{
+                btn.addEventListener('click',async function(){
+                    const responseId=this.dataset.respId;
+                    if(!confirm('確定刪除此回應？'))return;
+                    try{
+                        const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{
+                            method:'DELETE',
+                            headers:getAuthHeaders()
+                        });
+                        if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')
+                    }catch(e){toast(e.message,1)}
+                });
+            });
+        }catch(e){container.innerHTML=`<p style="padding:24px;color:#dc2626;text-align:center">載入失敗：${escapeHtml(e.message)}</p>`;toast(e.message,1)}
     }
 
-    document.getElementById('btn-export-csv').addEventListener('click',()=>{
+    document.getElementById('btn-export-csv').addEventListener('click',async()=>{
         if(!sessionId)return;
-        const pwd=sessionStorage.getItem('project_password_'+sessionId)||'';
-        window.open(`/api/sessions/${sessionId}/responses/export/csv?password=${encodeURIComponent(pwd)}`,'_blank');
-    });
-    document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
-
-    window.deleteResponse=async function(responseId){
-        if(!confirm('確定刪除此回應？'))return;
         try{
-            const r=await fetch(`/api/sessions/${sessionId}/responses/${responseId}`,{
-                method:'DELETE',
+            const r=await fetch(`/api/sessions/${sessionId}/responses/export/csv`,{
+                method:'POST',
                 headers:getAuthHeaders()
             });
-            if(r.ok){toast('已刪除');loadResponses()}else throw new Error('刪除失敗')
+            if(!r.ok){const res=await r.json();throw new Error(res.detail||'匯出失敗');}
+            const blob=await r.blob();
+            const url=URL.createObjectURL(blob);
+            const a=document.createElement('a');
+            a.href=url;a.download=`responses_${sessionId}.csv`;
+            document.body.appendChild(a);a.click();
+            document.body.removeChild(a);URL.revokeObjectURL(url);
         }catch(e){toast(e.message,1)}
-    };
+    });
+    document.getElementById('btn-refresh-responses').addEventListener('click',loadResponses);
 
     document.getElementById('btn-submit-password').addEventListener('click',()=>{
         const pwd=document.getElementById('overlay-password-input').value.trim();
@@ -813,7 +960,7 @@ async function initFillMode(){
         document.getElementById('fill-mode').style.display='block';
     }catch(e){
         toast(e.message,1);
-        document.getElementById('fill-mode').innerHTML=`<div class="submit-msg"><div class="icon">❌</div><h2>無法載入</h2><p>${escape(e.message)}</p></div>`;
+        document.getElementById('fill-mode').innerHTML=`<div class="submit-msg"><div class="icon">❌</div><h2>無法載入</h2><p>${escapeHtml(e.message)}</p></div>`;
         document.getElementById('fill-mode').style.display='block';
     }
 }
@@ -911,7 +1058,7 @@ function renderFillTable(){
     const nums=getNumerics();
 
     let h='<table id="fill-table"><thead><tr>';
-    for(let c=0;c<maxC;c++){h+=`<th>${escape(hdrs[c]||'')}</th>`}
+    for(let c=0;c<maxC;c++){h+=`<th>${escapeHtml(hdrs[c]||'')}</th>`}
     h+='</tr></thead><tbody>';
 
     for(let r=1;r<data.length;r++){
@@ -921,10 +1068,10 @@ function renderFillTable(){
             const cell=row[c]||{};const val=cell.value||'';
             const isNum=nums.includes(c);const isAuto=cell._autoSum;
             if(isAuto){
-                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escape(val)}" disabled style="background:transparent;cursor:default"></td>`;
+                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
             } else {
                 const cls=`${isNum?'num':'txt'}`;
-                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escape(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
+                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
             }
         }
         h+='</tr>';
