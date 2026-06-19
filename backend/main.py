@@ -597,6 +597,19 @@ async def delete_user(email: str, _admin=Depends(check_admin)):
 
 
 # ── Fund / supervising-authority registry ────────────────
+_active_funds_cache = None
+
+def _load_active_funds():
+    global _active_funds_cache
+    if _active_funds_cache is None:
+        p = Path(__file__).parent / "active_funds.json"
+        if p.exists():
+            _active_funds_cache = json.loads(p.read_text(encoding="utf-8"))
+        else:
+            _active_funds_cache = {}
+    return _active_funds_cache
+
+
 def _resolve_supervisor(domain, code):
     """Build a supervisor record {domain, code, name} from the registry, or None."""
     domain = (domain or "").strip()
@@ -618,16 +631,15 @@ async def get_registry_api():
 
 @app.get("/api/fund-names")
 async def fund_names_api():
-    """Return a flat list of all fund names + aliases for autocomplete."""
-    reg = registry.get_registry()
-    names = []
-    for dd in reg.get("domains", {}).values():
-        for f in dd.get("funds", []):
-            names.append(f["name"])
-            for a in f.get("aliases") or []:
-                if a and a != f["name"]:
-                    names.append(a)
-    return {"names": sorted(set(names))}
+    """Return a flat list of active fund names + aliases for autocomplete."""
+    af = _load_active_funds()
+    names = set()
+    for dom in ("enterprise", "special"):
+        for n in af.get(dom, {}).get("funds", []):
+            names.add(n)
+    for alias in af.get("aliasMap", {}):
+        names.add(alias)
+    return {"names": sorted(names)}
 
 
 @app.get("/api/supervisors")
@@ -702,7 +714,10 @@ async def consolidate(_admin=Depends(check_admin)):
 
 @app.get("/api/fund-coverage")
 async def fund_coverage_api(_admin=Depends(check_admin)):
-    """Compare uploaded response fund names against registry. Admin only."""
+    """Compare uploaded response fund names against active funds list. Admin only."""
+    af = _load_active_funds()
+    alias_map = af.get("aliasMap", {})
+
     uploaded = set()
     for sid, session in sessions.items():
         responses = response_store.get(sid, [])
@@ -715,20 +730,19 @@ async def fund_coverage_api(_admin=Depends(check_admin)):
                 raw = (cell.get("value") or "").strip() if isinstance(cell, dict) else ""
                 if not raw:
                     continue
+                canonical = alias_map.get(raw)
+                if canonical:
+                    uploaded.add(canonical)
                 m = registry.match_fund(raw)
                 uploaded.add(m["name"] if m else raw)
 
-    reg = registry.get_registry()
     result = {}
-    for dom, dd in reg.get("domains", {}).items():
+    for dom in ("enterprise", "special"):
+        dd = af.get(dom, {})
+        fund_list = dd.get("funds", [])
         funds = []
-        for f in dd.get("funds", []):
-            funds.append({
-                "code": f["code"],
-                "name": f["name"],
-                "supervisor": dd.get("supervisors", {}).get(f.get("supervisor", ""), ""),
-                "uploaded": f["name"] in uploaded
-            })
+        for name in fund_list:
+            funds.append({"name": name, "uploaded": name in uploaded})
         total = len(funds)
         covered = sum(1 for f in funds if f["uploaded"])
         result[dom] = {
