@@ -228,6 +228,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:20px">
         <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">📁 專案管理</div>
         <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">👥 使用者管理</div>
+        <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">📋 基金管理</div>
         <div class="tab" id="tab-consolidate" data-tab="consolidate">📊 總彙整</div>
     </div>
 
@@ -333,6 +334,36 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- Fund Management Section (visible to admin only) -->
+    <div id="fund-management-view" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+            <h3 style="font-size:16px;color:#1e293b">📋 現行基金清單管理</h3>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-primary" id="btn-fund-save" style="padding:6px 14px">💾 儲存變更</button>
+            </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px">
+            <select id="fund-mgmt-domain" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                <option value="enterprise">營業基金（國營事業）</option>
+                <option value="special">非營業特種基金</option>
+            </select>
+            <div style="flex:1;display:flex;gap:6px">
+                <input type="text" id="fund-mgmt-add-input" placeholder="新增基金名稱⋯" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+                <button class="btn btn-outline" id="btn-fund-add" style="padding:6px 14px;font-size:13px">＋ 新增</button>
+            </div>
+        </div>
+        <div id="fund-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:450px;overflow-y:auto"></div>
+        <details style="margin-top:16px">
+            <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#475569;padding:8px 0">📝 別名對照表（aliasMap）</summary>
+            <div style="margin-top:8px;display:flex;gap:6px;margin-bottom:8px">
+                <input type="text" id="alias-add-key" placeholder="簡稱（如：央行）" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+                <input type="text" id="alias-add-val" placeholder="對應全名（如：中央銀行）" style="flex:2;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+                <button class="btn btn-outline" id="btn-alias-add" style="padding:6px 14px;font-size:13px">＋</button>
+            </div>
+            <div id="alias-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:300px;overflow-y:auto"></div>
+        </details>
     </div>
 
     <!-- Consolidation Section (visible to admin only) -->
@@ -883,6 +914,7 @@ function switchTab(tabId) {
     const map = {
         'project-mgmt': ['tab-project-mgmt', 'project-management-view', loadProjects],
         'user-mgmt':    ['tab-user-mgmt', 'user-management-view', loadUsers],
+        'fund-mgmt':    ['tab-fund-mgmt', 'fund-management-view', loadFundMgmt],
         'consolidate':  ['tab-consolidate', 'consolidate-view', loadConsolidate],
     };
     if (!document.getElementById('tab-project-mgmt')) return;
@@ -1034,6 +1066,126 @@ function exportConsolCSV() {
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
+// ── Fund Management ──
+let _fundMgmtData = null;
+
+async function loadFundMgmt() {
+    try {
+        const r = await fetch('/api/active-funds', { headers: getAuthHeaders() });
+        if (!r.ok) throw new Error('載入失敗');
+        _fundMgmtData = await r.json();
+        renderFundMgmtList();
+        renderAliasList();
+    } catch (e) { toast(e.message, 1); }
+}
+
+function renderFundMgmtList() {
+    if (!_fundMgmtData) return;
+    const dom = document.getElementById('fund-mgmt-domain').value;
+    const dd = _fundMgmtData[dom];
+    if (!dd || !dd.funds) { document.getElementById('fund-mgmt-list').innerHTML = '<p style="color:#94a3b8">無資料</p>'; return; }
+    const funds = dd.funds;
+    let h = `<div style="margin-bottom:8px;font-size:13px;color:#64748b">${escapeHtml(dd.label)} — 共 ${funds.length} 個基金</div>`;
+    h += '<div style="display:flex;flex-direction:column;gap:4px">';
+    funds.forEach((name, i) => {
+        h += `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+            <span style="flex:1;font-size:13px">${escapeHtml(name)}</span>
+            <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
+            <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
+            <button style="padding:2px 8px;font-size:12px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeFund('${dom}',${i})">✕</button>
+        </div>`;
+    });
+    h += '</div>';
+    document.getElementById('fund-mgmt-list').innerHTML = h;
+}
+
+function renderAliasList() {
+    if (!_fundMgmtData) return;
+    const aliases = _fundMgmtData.aliasMap || {};
+    const keys = Object.keys(aliases).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
+    if (!keys.length) { document.getElementById('alias-mgmt-list').innerHTML = '<p style="color:#94a3b8">無別名</p>'; return; }
+    let h = '<div style="display:flex;flex-direction:column;gap:3px">';
+    keys.forEach(k => {
+        h += `<div style="display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:12px;background:#f8fafc;border-radius:4px;border:1px solid #e2e8f0">
+            <span style="font-weight:600;min-width:80px">${escapeHtml(k)}</span>
+            <span style="color:#64748b">→</span>
+            <span style="flex:1">${escapeHtml(aliases[k])}</span>
+            <button style="padding:1px 6px;font-size:11px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeAlias('${escapeHtml(k)}')">✕</button>
+        </div>`;
+    });
+    h += '</div>';
+    document.getElementById('alias-mgmt-list').innerHTML = h;
+}
+
+function addFund() {
+    if (!_fundMgmtData) return;
+    const dom = document.getElementById('fund-mgmt-domain').value;
+    const inp = document.getElementById('fund-mgmt-add-input');
+    const name = inp.value.trim();
+    if (!name) { toast('請輸入基金名稱', 1); return; }
+    if (!_fundMgmtData[dom]) _fundMgmtData[dom] = { label: dom, funds: [] };
+    if (_fundMgmtData[dom].funds.includes(name)) { toast('此基金已存在', 1); return; }
+    _fundMgmtData[dom].funds.push(name);
+    inp.value = '';
+    renderFundMgmtList();
+    toast('已新增（記得儲存）');
+}
+
+function removeFund(dom, idx) {
+    if (!_fundMgmtData || !_fundMgmtData[dom]) return;
+    const name = _fundMgmtData[dom].funds[idx];
+    if (!confirm(`確定移除「${name}」？`)) return;
+    _fundMgmtData[dom].funds.splice(idx, 1);
+    renderFundMgmtList();
+    toast('已移除（記得儲存）');
+}
+window.removeFund = removeFund;
+
+function moveFund(dom, idx, dir) {
+    if (!_fundMgmtData || !_fundMgmtData[dom]) return;
+    const arr = _fundMgmtData[dom].funds;
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+    [arr[idx], arr[newIdx]] = [arr[newIdx], arr[idx]];
+    renderFundMgmtList();
+}
+window.moveFund = moveFund;
+
+function addAlias() {
+    if (!_fundMgmtData) return;
+    const keyInp = document.getElementById('alias-add-key');
+    const valInp = document.getElementById('alias-add-val');
+    const k = keyInp.value.trim(), v = valInp.value.trim();
+    if (!k || !v) { toast('請填寫簡稱和對應全名', 1); return; }
+    if (!_fundMgmtData.aliasMap) _fundMgmtData.aliasMap = {};
+    _fundMgmtData.aliasMap[k] = v;
+    keyInp.value = ''; valInp.value = '';
+    renderAliasList();
+    toast('已新增別名（記得儲存）');
+}
+
+function removeAlias(key) {
+    if (!_fundMgmtData || !_fundMgmtData.aliasMap) return;
+    if (!confirm(`確定移除別名「${key}」？`)) return;
+    delete _fundMgmtData.aliasMap[key];
+    renderAliasList();
+    toast('已移除（記得儲存）');
+}
+window.removeAlias = removeAlias;
+
+async function saveFundMgmt() {
+    if (!_fundMgmtData) return;
+    try {
+        const r = await fetch('/api/active-funds', {
+            method: 'POST',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify(_fundMgmtData)
+        });
+        if (!r.ok) throw new Error('儲存失敗');
+        toast('基金清單已儲存');
+    } catch (e) { toast(e.message, 1); }
+}
+
 async function deleteUser(email) {
     if (!confirm(`確定要刪除使用者 ${email} 嗎？\n該使用者的現有登入 Token 將會失效。`)) return;
     try {
@@ -1172,11 +1324,13 @@ function initProjectsPage(){
 
     const tabProject = document.getElementById('tab-project-mgmt');
     const tabUser = document.getElementById('tab-user-mgmt');
+    const tabFund = document.getElementById('tab-fund-mgmt');
     const tabConsol = document.getElementById('tab-consolidate');
     if (tabProject && tabUser) {
         tabProject.addEventListener('click', () => switchTab('project-mgmt'));
         tabUser.addEventListener('click', () => switchTab('user-mgmt'));
     }
+    if (tabFund) tabFund.addEventListener('click', () => switchTab('fund-mgmt'));
     if (tabConsol) tabConsol.addEventListener('click', () => switchTab('consolidate'));
 
     const btnAddUser = document.getElementById('btn-add-user');
@@ -1211,6 +1365,10 @@ function initProjectsPage(){
     document.getElementById('btn-batch-delete')?.addEventListener('click', batchDelete);
     document.getElementById('btn-fund-coverage')?.addEventListener('click', toggleFundCoverage);
     document.getElementById('fund-coverage-domain')?.addEventListener('change', renderFundCoverage);
+    document.getElementById('btn-fund-save')?.addEventListener('click', saveFundMgmt);
+    document.getElementById('btn-fund-add')?.addEventListener('click', addFund);
+    document.getElementById('btn-alias-add')?.addEventListener('click', addAlias);
+    document.getElementById('fund-mgmt-domain')?.addEventListener('change', renderFundMgmtList);
     document.getElementById('btn-batch-clear')?.addEventListener('click', ()=>{
         projSelected.clear();
         document.querySelectorAll('.proj-check').forEach(cb=>{ cb.checked=false; cb.closest('.project-card')?.classList.remove('selected'); });

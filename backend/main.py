@@ -712,6 +712,23 @@ async def consolidate(_admin=Depends(check_admin)):
     return {"groups": out_groups, "total_rows": total_rows}
 
 
+@app.get("/api/active-funds")
+async def get_active_funds_api(_admin=Depends(check_admin)):
+    """Return the active funds config. Admin only."""
+    return _load_active_funds()
+
+
+@app.post("/api/active-funds")
+async def save_active_funds_api(request: Request, _admin=Depends(check_admin)):
+    """Save updated active funds config. Admin only."""
+    global _active_funds_cache
+    payload = await request.json()
+    p = Path(__file__).parent / "active_funds.json"
+    p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    _active_funds_cache = payload
+    return {"success": True}
+
+
 @app.get("/api/fund-coverage")
 async def fund_coverage_api(_admin=Depends(check_admin)):
     """Compare uploaded response fund names against active funds list. Admin only."""
