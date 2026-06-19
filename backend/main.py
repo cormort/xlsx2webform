@@ -320,6 +320,8 @@ class TemplateData(BaseModel):
     name: str
     data: list
     metadata: Optional[dict] = None
+    supervisor_name: Optional[str] = ""
+    creator_email: Optional[str] = ""
 
 
 # ── Persistence ──────────────────────────────────────────
@@ -1113,12 +1115,42 @@ async def save_template(request: TemplateData, _admin=Depends(check_admin)):
         "name": request.name,
         "created_at": datetime.now().isoformat(),
         "data": request.data,
-        "metadata": request.metadata or {}
+        "metadata": request.metadata or {},
+        "supervisor_name": request.supervisor_name or "",
+        "creator_email": request.creator_email or "",
     }
 
     template_path.write_text(json.dumps(template_data, ensure_ascii=False, indent=2), encoding='utf-8')
 
     return {"success": True, "template_id": template_id}
+
+
+@app.post("/api/templates/save-from-session/{session_id}")
+async def save_template_from_session(session_id: str, _admin=Depends(check_admin)):
+    """Save an existing project as a reusable template."""
+    if session_id not in sessions:
+        raise HTTPException(status_code=404, detail="Session not found")
+    s = sessions[session_id]
+    email = s.email or ""
+    supervisor_name = ""
+    if email and email in users:
+        sup = users[email].get("supervisor")
+        if sup:
+            supervisor_name = sup.get("name", "")
+
+    template_id = str(uuid.uuid4())[:8]
+    template_path = TEMPLATE_DIR / f"template_{template_id}.json"
+    tpl = {
+        "id": template_id,
+        "name": s.name,
+        "created_at": datetime.now().isoformat(),
+        "data": s.current_data or s.original_json,
+        "metadata": s.metadata or {},
+        "supervisor_name": supervisor_name,
+        "creator_email": email,
+    }
+    template_path.write_text(json.dumps(tpl, ensure_ascii=False, indent=2), encoding='utf-8')
+    return {"success": True, "template_id": template_id, "name": s.name}
 
 
 @app.get("/api/templates")
@@ -1132,13 +1164,25 @@ async def list_templates(_admin=Depends(check_admin)):
                 "id": data.get('id'),
                 "name": data.get('name'),
                 "created_at": data.get('created_at'),
-                "row_count": len(data.get('data', []))
+                "row_count": len(data.get('data', [])),
+                "supervisor_name": data.get('supervisor_name', ''),
+                "creator_email": data.get('creator_email', ''),
             })
         except Exception as e:
             logger.warning("Failed to load template %s: %s", f.name, e)
             continue
 
     return {"templates": templates}
+
+
+@app.delete("/api/templates/{template_id}")
+async def delete_template(template_id: str, _admin=Depends(check_admin)):
+    """Delete a template. Requires admin auth."""
+    template_path = TEMPLATE_DIR / f"template_{template_id}.json"
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
+    template_path.unlink()
+    return {"success": True}
 
 
 @app.post("/api/templates/{template_id}/load")
@@ -1150,7 +1194,6 @@ async def load_template(template_id: str, _admin=Depends(check_admin)):
 
     template_data = json.loads(template_path.read_text(encoding='utf-8'))
 
-    # Create new session from template
     session_id = str(uuid.uuid4())[:8]
     session = SessionData(
         id=session_id,

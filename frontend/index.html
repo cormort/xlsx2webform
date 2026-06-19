@@ -229,6 +229,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
         <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">📁 專案管理</div>
         <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">👥 使用者管理</div>
         <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">📋 基金管理</div>
+        <div class="tab" id="tab-template-mgmt" data-tab="template-mgmt">📄 範本管理</div>
         <div class="tab" id="tab-consolidate" data-tab="consolidate">📊 總彙整</div>
     </div>
 
@@ -364,6 +365,24 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             </div>
             <div id="alias-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:300px;overflow-y:auto"></div>
         </details>
+    </div>
+
+    <!-- Template Management Section (visible to admin only) -->
+    <div id="template-management-view" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+            <h3 style="font-size:16px;color:#1e293b">📄 範本管理</h3>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+            <select id="tpl-filter-supervisor" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                <option value="">全部主管機關</option>
+            </select>
+            <select id="tpl-filter-email" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                <option value="">全部使用者</option>
+            </select>
+        </div>
+        <div id="template-list" style="display:flex;flex-direction:column;gap:8px">
+            <p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>
+        </div>
     </div>
 
     <!-- Consolidation Section (visible to admin only) -->
@@ -915,6 +934,7 @@ function switchTab(tabId) {
         'project-mgmt': ['tab-project-mgmt', 'project-management-view', loadProjects],
         'user-mgmt':    ['tab-user-mgmt', 'user-management-view', loadUsers],
         'fund-mgmt':    ['tab-fund-mgmt', 'fund-management-view', loadFundMgmt],
+        'template-mgmt':['tab-template-mgmt', 'template-management-view', loadTemplates],
         'consolidate':  ['tab-consolidate', 'consolidate-view', loadConsolidate],
     };
     if (!document.getElementById('tab-project-mgmt')) return;
@@ -1002,6 +1022,129 @@ window.editUser = async function(email) {
     document.getElementById('edit-user-agency').value = (u && u.agency_name) || '';
     document.getElementById('edit-user-dialog').classList.add('show');
 };
+
+// ── Template Management (範本管理) ──
+let _allTemplates = [];
+
+async function loadTemplates() {
+    const list = document.getElementById('template-list');
+    if (!list) return;
+    list.innerHTML = '<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
+    try {
+        const r = await fetch('/api/templates', { headers: getAuthHeaders() });
+        const res = await r.json();
+        _allTemplates = res.templates || [];
+    } catch(e) {
+        list.innerHTML = '<p style="padding:24px;color:#e74c3c;text-align:center">載入失敗</p>';
+        return;
+    }
+    const supSet = new Set(), emailSet = new Set();
+    _allTemplates.forEach(t => {
+        if (t.supervisor_name) supSet.add(t.supervisor_name);
+        if (t.creator_email) emailSet.add(t.creator_email);
+    });
+    const supSel = document.getElementById('tpl-filter-supervisor');
+    const emailSel = document.getElementById('tpl-filter-email');
+    if (supSel) {
+        const cur = supSel.value;
+        supSel.innerHTML = '<option value="">全部主管機關</option>' + [...supSet].sort().map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+        supSel.value = cur || '';
+        supSel.onchange = renderTemplateList;
+    }
+    if (emailSel) {
+        const cur = emailSel.value;
+        emailSel.innerHTML = '<option value="">全部使用者</option>' + [...emailSet].sort().map(e => `<option value="${escapeHtml(e)}">${escapeHtml(e)}</option>`).join('');
+        emailSel.value = cur || '';
+        emailSel.onchange = renderTemplateList;
+    }
+    renderTemplateList();
+}
+
+function renderTemplateList() {
+    const list = document.getElementById('template-list');
+    if (!list) return;
+    const fSup = document.getElementById('tpl-filter-supervisor')?.value || '';
+    const fEmail = document.getElementById('tpl-filter-email')?.value || '';
+    let rows = _allTemplates.filter(t => {
+        if (fSup && (t.supervisor_name || '') !== fSup) return false;
+        if (fEmail && (t.creator_email || '') !== fEmail) return false;
+        return true;
+    });
+    rows.sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')));
+    if (!rows.length) {
+        list.innerHTML = '<p style="padding:24px;color:#94a3b8;text-align:center">尚無範本</p>';
+        return;
+    }
+    list.innerHTML = rows.map(t => {
+        const dt = (t.created_at || '').replace('T', ' ').slice(0, 16);
+        const sup = t.supervisor_name ? `<span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-size:11px">${escapeHtml(t.supervisor_name)}</span>` : '';
+        const email = t.creator_email ? `<span style="color:#64748b;font-size:12px">${escapeHtml(t.creator_email)}</span>` : '';
+        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;flex-wrap:wrap">
+            <div style="flex:1;min-width:150px">
+                <div style="font-weight:600;font-size:14px;color:#1e293b;margin-bottom:2px">${escapeHtml(t.name)}</div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                    ${sup}${email}
+                    <span style="color:#94a3b8;font-size:11px">${t.row_count || 0} 列</span>
+                    <span style="color:#94a3b8;font-size:11px">🕒 ${dt}</span>
+                </div>
+            </div>
+            <div style="display:flex;gap:6px">
+                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')" style="padding:5px 12px;font-size:13px">📤 建立專案</button>
+                <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">🗑️</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function saveAsTemplate(sessionId) {
+    if (!confirm('將此專案存為範本？')) return;
+    try {
+        const r = await fetch(`/api/templates/save-from-session/${sessionId}`, { method: 'POST', headers: getAuthHeaders() });
+        const res = await r.json();
+        if (res.success) {
+            toast('已儲存為範本：' + (res.name || ''));
+        } else {
+            toast('儲存失敗：' + (res.detail || ''), true);
+        }
+    } catch(e) {
+        toast('儲存失敗', true);
+    }
+}
+window.saveAsTemplate = saveAsTemplate;
+
+async function createFromTemplate(templateId) {
+    if (!confirm('從此範本建立新專案？')) return;
+    try {
+        const r = await fetch(`/api/templates/${templateId}/load`, { method: 'POST', headers: getAuthHeaders() });
+        const res = await r.json();
+        if (res.success) {
+            toast('已建立專案');
+            location.href = `/editor/${res.session_id}`;
+        } else {
+            toast('建立失敗：' + (res.detail || ''), true);
+        }
+    } catch(e) {
+        toast('建立失敗', true);
+    }
+}
+window.createFromTemplate = createFromTemplate;
+
+async function deleteTemplate(templateId) {
+    if (!confirm('確定刪除此範本？')) return;
+    try {
+        const r = await fetch(`/api/templates/${templateId}`, { method: 'DELETE', headers: getAuthHeaders() });
+        const res = await r.json();
+        if (res.success) {
+            toast('已刪除範本');
+            loadTemplates();
+        } else {
+            toast('刪除失敗', true);
+        }
+    } catch(e) {
+        toast('刪除失敗', true);
+    }
+}
+window.deleteTemplate = deleteTemplate;
 
 // ── Consolidation (總彙整) ──
 let _consolData = null;
@@ -1331,6 +1474,8 @@ function initProjectsPage(){
         tabUser.addEventListener('click', () => switchTab('user-mgmt'));
     }
     if (tabFund) tabFund.addEventListener('click', () => switchTab('fund-mgmt'));
+    const tabTpl = document.getElementById('tab-template-mgmt');
+    if (tabTpl) tabTpl.addEventListener('click', () => switchTab('template-mgmt'));
     if (tabConsol) tabConsol.addEventListener('click', () => switchTab('consolidate'));
 
     const btnAddUser = document.getElementById('btn-add-user');
@@ -1549,6 +1694,7 @@ function renderProjects(){
             <div class="actions">
                 ${copyBtn}
                 ${viewRespBtn}
+                <button class="icon-btn" onclick="saveAsTemplate('${p.id}')" title="存為範本">📄</button>
                 <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
                 <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
             </div>
