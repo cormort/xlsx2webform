@@ -6,6 +6,7 @@ FastAPI application for XLSX upload, table editing, and JSON import/export.
 
 import os
 import io
+import re
 import csv
 import glob
 import uuid
@@ -1476,19 +1477,25 @@ async def export_xlsx_api(
                     font_kwargs['italic'] = True
                 color = c.get('color')
                 if color:
-                    hex_color = color.replace('#', '')
-                    if len(hex_color) == 6:
-                        hex_color = "FF" + hex_color
-                    font_kwargs['color'] = hex_color
+                    hex_color = color.replace('#', '').strip()
+                    if re.fullmatch(r'[0-9A-Fa-f]{6}', hex_color):
+                        font_kwargs['color'] = "FF" + hex_color.upper()
+                    elif re.fullmatch(r'[0-9A-Fa-f]{8}', hex_color):
+                        font_kwargs['color'] = hex_color.upper()
                 if font_kwargs:
                     cell.font = Font(**font_kwargs)
-                    
+
                 bg = c.get('bg')
                 if bg:
-                    hex_bg = bg.replace('#', '')
-                    if len(hex_bg) == 6:
-                        hex_bg = "FF" + hex_bg
-                    cell.fill = PatternFill(start_color=hex_bg, end_color=hex_bg, fill_type="solid")
+                    hex_bg = bg.replace('#', '').strip()
+                    if re.fullmatch(r'[0-9A-Fa-f]{6}', hex_bg):
+                        hex_bg = "FF" + hex_bg.upper()
+                    elif re.fullmatch(r'[0-9A-Fa-f]{8}', hex_bg):
+                        hex_bg = hex_bg.upper()
+                    else:
+                        hex_bg = None
+                    if hex_bg:
+                        cell.fill = PatternFill(start_color=hex_bg, end_color=hex_bg, fill_type="solid")
                 
                 cell.alignment = Alignment(vertical="center", wrap_text=True)
 

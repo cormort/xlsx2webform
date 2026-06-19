@@ -45,24 +45,33 @@ MARKERS = {
 COLOR_TO_MARKER = {k.upper(): v for k, v in MARKERS.items()}
 
 
+import re
+
+_HEX_COLOR_RE = re.compile(r'^[0-9A-Fa-f]{6}(?:[0-9A-Fa-f]{2})?$')
+
+
+def _sanitize_color(raw):
+    """Return a 6-char uppercase hex string, or None if invalid."""
+    if not raw:
+        return None
+    s = str(raw).strip()
+    if not _HEX_COLOR_RE.match(s):
+        return None
+    if len(s) == 8:
+        return s[2:].upper()
+    return s.upper()
+
+
 def hex_to_rgb(hex_color):
     """Convert openpyxl Color object or hex string to RGB hex string."""
     if hex_color is None:
         return None
 
     if isinstance(hex_color, str):
-        return hex_color.upper()
+        return _sanitize_color(hex_color)
 
-    # openpyxl Color object
     if hasattr(hex_color, 'rgb') and hex_color.rgb:
-        rgb_val = str(hex_color.rgb)
-        if len(rgb_val) == 8:  # ARGB format
-            return rgb_val[2:].upper()
-        return rgb_val.upper()
-
-    if hasattr(hex_color, 'theme') and hex_color.theme is not None:
-        # Theme colors - simplified handling
-        return None
+        return _sanitize_color(hex_color.rgb)
 
     return None
 
@@ -73,10 +82,7 @@ def get_fill_color(cell):
     if fill and fill.fgColor:
         color = fill.fgColor
         if color.rgb and str(color.rgb) != '00000000':
-            hex_val = str(color.rgb)
-            if len(hex_val) == 8:
-                return hex_val[2:].upper()
-            return hex_val.upper()
+            return _sanitize_color(color.rgb)
     return None
 
 
@@ -85,10 +91,7 @@ def get_font_color(cell):
     if cell.font and cell.font.color:
         color = cell.font.color
         if color.rgb:
-            hex_val = str(color.rgb)
-            if len(hex_val) == 8:
-                return hex_val[2:].upper()
-            return hex_val.upper()
+            return _sanitize_color(color.rgb)
     return None
 
 
