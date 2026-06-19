@@ -1250,6 +1250,8 @@ function renderFundMgmtList() {
             h += `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;background:#fff;border-radius:4px;border:1px solid #e2e8f0">
                 <span style="color:#94a3b8;font-size:11px">└</span>
                 <span style="flex:1;font-size:12px">${escapeHtml(child)}</span>
+                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:#64748b" onclick="moveSubFund(${i},${ci},-1)" title="上移">▲</button>
+                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:#64748b" onclick="moveSubFund(${i},${ci},1)" title="下移">▼</button>
                 <button style="padding:1px 5px;font-size:10px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:3px;cursor:pointer" onclick="removeSubFund(${i},${ci})">✕</button>
             </div>`;
         });
@@ -1348,6 +1350,19 @@ function removeSubFund(parentIdx, childIdx) {
     toast('已移除（記得儲存）');
 }
 window.removeSubFund = removeSubFund;
+
+function moveSubFund(parentIdx, childIdx, dir) {
+    if (!_fundMgmtData) return;
+    const dom = document.getElementById('fund-mgmt-domain').value;
+    const entry = _fundMgmtData[dom].funds[parentIdx];
+    if (!entry || !entry.children) return;
+    const arr = entry.children;
+    const newIdx = childIdx + dir;
+    if (newIdx < 0 || newIdx >= arr.length) return;
+    [arr[childIdx], arr[newIdx]] = [arr[newIdx], arr[childIdx]];
+    renderFundMgmtList();
+}
+window.moveSubFund = moveSubFund;
 
 function addAlias() {
     if (!_fundMgmtData) return;
