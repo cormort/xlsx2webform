@@ -183,6 +183,15 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 .icon-btn.danger:hover{background:#fef2f2;color:var(--danger-hover);border-color:var(--danger-soft)}
 .empty-projects.filtered .icon{font-size:32px}
 
+/* ── Consolidation (總彙整) ── */
+.consol-sup{margin-bottom:var(--sp-4);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
+.consol-sup-h{background:#1e293b;color:#fff;font-weight:700;font-size:var(--fs-md);padding:10px 14px}
+.consol-agency{border-top:1px solid var(--border)}
+.consol-agency-h{background:var(--primary-soft);color:var(--primary);font-weight:600;font-size:var(--fs-base);padding:8px 14px 8px 24px}
+.consol-fund{padding:8px 14px 12px 24px;border-top:1px dashed var(--border)}
+.consol-fund-h{font-weight:600;font-size:var(--fs-base);color:var(--text-strong);margin-bottom:6px}
+.consol-fund .resp-table-wrap{margin-left:8px}
+
 /* ── Responsive ── */
 @media(max-width:640px){
   header .inner{flex-wrap:wrap;gap:6px;padding:8px 12px}
@@ -219,6 +228,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:20px">
         <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">📁 專案管理</div>
         <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">👥 使用者管理</div>
+        <div class="tab" id="tab-consolidate" data-tab="consolidate">📊 總彙整</div>
     </div>
 
     <!-- Project Management Section -->
@@ -299,9 +309,11 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
                 <table class="resp-compare-table">
                     <thead>
                         <tr>
+                            <th>主管機關</th>
+                            <th>機關名稱</th>
                             <th>Email</th>
                             <th>建立時間</th>
-                            <th style="width:100px;text-align:center">操作</th>
+                            <th style="width:150px;text-align:center">操作</th>
                         </tr>
                     </thead>
                     <tbody id="users-list-body">
@@ -310,6 +322,19 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
                 </table>
             </div>
         </div>
+    </div>
+
+    <!-- Consolidation Section (visible to admin only) -->
+    <div id="consolidate-view" style="display:none">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+            <h3 style="font-size:16px;color:#1e293b">📊 跨專案總彙整（主管機關 → 機關 → 基金）</h3>
+            <div style="display:flex;gap:8px">
+                <button class="btn btn-outline" id="btn-consol-refresh" style="padding:6px 14px">🔄 重新整理</button>
+                <button class="btn btn-success" id="btn-consol-export" style="padding:6px 14px">📤 匯出 CSV</button>
+            </div>
+        </div>
+        <p style="font-size:12px;color:#94a3b8;margin-bottom:12px">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
+        <div id="consolidate-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
     </div>
 </div>
 
@@ -323,9 +348,11 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <div id="editor-tab" class="editor-tab">
 
         <!-- Project name edit section -->
-        <div class="project-info-edit" style="margin-bottom:12px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px">
+        <div class="project-info-edit" style="margin-bottom:12px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
             <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">📁 專案名稱：</label>
-            <textarea id="editor-project-name" rows="1" style="flex:1;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
+            <textarea id="editor-project-name" rows="1" style="flex:1;min-width:200px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
+            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap" title="總彙整時，此欄的值會對應到官方基金編號">💰 基金欄位：</label>
+            <select id="editor-fund-col" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff"></select>
         </div>
 
     <div class="toolbar">
@@ -483,11 +510,41 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">Email 帳號</label>
             <input type="email" id="new-user-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </div>
-        <div style="margin-bottom:16px">
+        <div style="margin-bottom:12px">
             <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">密碼</label>
             <input type="password" id="new-user-password" placeholder="請設定密碼" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </div>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">主管機關</label>
+            <select id="new-user-supervisor" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                <option value="">— 選擇主管機關 —</option>
+            </select>
+        </div>
+        <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">機關名稱</label>
+            <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </div>
         <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:10px;font-size:14px">建立使用者</button>
+    </div>
+</div>
+
+<!-- Edit user profile dialog (主管機關 / 機關名稱) -->
+<div class="modal-overlay" id="edit-user-dialog">
+    <div class="modal-box" style="max-width:400px">
+        <button class="close" id="close-edit-user">&times;</button>
+        <h2 style="font-size:16px;margin-bottom:12px;color:#1e293b">✏️ 編輯機關資料</h2>
+        <p id="edit-user-email" style="font-size:13px;color:#64748b;margin-bottom:12px"></p>
+        <div style="margin-bottom:12px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">主管機關</label>
+            <select id="edit-user-supervisor" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+                <option value="">— 選擇主管機關 —</option>
+            </select>
+        </div>
+        <div style="margin-bottom:16px">
+            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">機關名稱</label>
+            <input type="text" id="edit-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        </div>
+        <button class="btn btn-primary" id="btn-submit-edit-user" style="width:100%;justify-content:center;padding:10px;font-size:14px">儲存</button>
     </div>
 </div>
 
@@ -810,53 +867,158 @@ function autoFillUploadEmail() {
 }
 
 function switchTab(tabId) {
-    const tabProject = document.getElementById('tab-project-mgmt');
-    const tabUser = document.getElementById('tab-user-mgmt');
-    const projectView = document.getElementById('project-management-view');
-    const userView = document.getElementById('user-management-view');
-    if (!tabProject || !tabUser || !projectView || !userView) return;
-
-    if (tabId === 'project-mgmt') {
-        tabProject.classList.add('active');
-        tabUser.classList.remove('active');
-        projectView.style.display = 'block';
-        userView.style.display = 'none';
-        loadProjects();
-    } else if (tabId === 'user-mgmt') {
-        tabProject.classList.remove('active');
-        tabUser.classList.add('active');
-        projectView.style.display = 'none';
-        userView.style.display = 'block';
-        loadUsers();
-    }
+    const map = {
+        'project-mgmt': ['tab-project-mgmt', 'project-management-view', loadProjects],
+        'user-mgmt':    ['tab-user-mgmt', 'user-management-view', loadUsers],
+        'consolidate':  ['tab-consolidate', 'consolidate-view', loadConsolidate],
+    };
+    if (!document.getElementById('tab-project-mgmt')) return;
+    Object.entries(map).forEach(([k, [tabIdEl, viewId]]) => {
+        const tab = document.getElementById(tabIdEl);
+        const view = document.getElementById(viewId);
+        if (tab) tab.classList.toggle('active', k === tabId);
+        if (view) view.style.display = (k === tabId) ? 'block' : 'none';
+    });
+    const fn = map[tabId] && map[tabId][2];
+    if (fn) fn();
 }
 
+// ── Supervisor (主管機關) select helpers ──
+let _supervisors = null;
+async function loadSupervisors() {
+    if (_supervisors) return _supervisors;
+    try {
+        const r = await fetch('/api/supervisors', { headers: getAuthHeaders() });
+        const res = await r.json();
+        _supervisors = res.supervisors || [];
+    } catch (e) { _supervisors = []; }
+    return _supervisors;
+}
+function fillSupervisorSelect(sel, selectedVal) {
+    if (!sel || !_supervisors) return;
+    const byDom = {};
+    _supervisors.forEach(s => { (byDom[s.domain_label] = byDom[s.domain_label] || []).push(s); });
+    let h = '<option value="">— 選擇主管機關 —</option>';
+    Object.entries(byDom).forEach(([label, arr]) => {
+        h += `<optgroup label="${escapeHtml(label)}">`;
+        arr.sort((a, b) => a.code.localeCompare(b.code)).forEach(s => {
+            const v = `${s.domain}|${s.code}`;
+            h += `<option value="${v}"${v === selectedVal ? ' selected' : ''}>${s.code} ${escapeHtml(s.name)}</option>`;
+        });
+        h += '</optgroup>';
+    });
+    sel.innerHTML = h;
+}
+
+let _usersCache = [];
 async function loadUsers() {
     const listBody = document.getElementById('users-list-body');
     if (!listBody) return;
-    listBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8">載入中⋯</td></tr>';
+    listBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8">載入中⋯</td></tr>';
     try {
+        await loadSupervisors();
         const r = await fetch('/api/admin/users', { headers: getAuthHeaders() });
         const res = await r.json();
         if (!r.ok) throw new Error(res.detail || '載入失敗');
-        if (!res.users || !res.users.length) {
-            listBody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:20px;color:#94a3b8">尚無使用者</td></tr>';
+        _usersCache = res.users || [];
+        if (!_usersCache.length) {
+            listBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8">尚無使用者</td></tr>';
             return;
         }
+        const dash = '<span style="color:#cbd5e1">—</span>';
         let h = '';
-        res.users.forEach(u => {
+        _usersCache.forEach(u => {
+            const sup = u.supervisor ? `${u.supervisor.code} ${escapeHtml(u.supervisor.name)}` : dash;
+            const agency = u.agency_name ? escapeHtml(u.agency_name) : dash;
             h += `<tr>
+                <td style="padding:10px 14px">${sup}</td>
+                <td style="padding:10px 14px">${agency}</td>
                 <td style="padding:10px 14px;font-weight:600">${escapeHtml(u.email)}</td>
                 <td style="padding:10px 14px;color:#64748b">${u.created_at?.split('T')[0] || ''}</td>
-                <td style="text-align:center;padding:10px 14px">
-                    <button class="btn btn-outline-red" style="padding:3px 8px" onclick="deleteUser('${escapeHtml(u.email)}')">🗑️ 刪除</button>
+                <td style="text-align:center;padding:10px 14px;white-space:nowrap">
+                    <button class="btn btn-outline" style="padding:3px 8px" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">✏️</button>
+                    <button class="btn btn-outline-red" style="padding:3px 8px" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">🗑️</button>
                 </td>
             </tr>`;
         });
         listBody.innerHTML = h;
     } catch(e) {
-        listBody.innerHTML = `<tr><td colspan="3" style="text-align:center;padding:20px;color:#dc2626">${escapeHtml(e.message)}</td></tr>`;
+        listBody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:20px;color:#dc2626">${escapeHtml(e.message)}</td></tr>`;
     }
+}
+
+window.editUser = async function(email) {
+    await loadSupervisors();
+    const u = _usersCache.find(x => x.email === email);
+    document.getElementById('edit-user-email').textContent = email;
+    document.getElementById('btn-submit-edit-user').dataset.email = email;
+    const selVal = (u && u.supervisor) ? `${u.supervisor.domain}|${u.supervisor.code}` : '';
+    fillSupervisorSelect(document.getElementById('edit-user-supervisor'), selVal);
+    document.getElementById('edit-user-agency').value = (u && u.agency_name) || '';
+    document.getElementById('edit-user-dialog').classList.add('show');
+};
+
+// ── Consolidation (總彙整) ──
+let _consolData = null;
+async function loadConsolidate() {
+    const c = document.getElementById('consolidate-container');
+    if (!c) return;
+    c.innerHTML = '<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
+    try {
+        const r = await fetch('/api/consolidate', { headers: getAuthHeaders() });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.detail || '載入失敗');
+        _consolData = res;
+        renderConsolidate(res);
+    } catch(e) {
+        c.innerHTML = `<p style="padding:24px;color:#dc2626;text-align:center">${escapeHtml(e.message)}</p>`;
+    }
+}
+function renderConsolidate(res) {
+    const c = document.getElementById('consolidate-container');
+    if (!res.groups || !res.groups.length) {
+        c.innerHTML = '<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無可彙整的回應資料<br><span style="font-size:12px">發布表單並收到回應後，這裡會依主管機關 → 機關 → 基金分組彙整</span></p>';
+        return;
+    }
+    let h = `<p class="resp-stats" style="margin-bottom:8px">共 ${res.total_rows} 筆資料列</p>`;
+    res.groups.forEach(g => {
+        const supLabel = g.supervisor_code ? `${g.supervisor_code} ${escapeHtml(g.supervisor_name)}` : escapeHtml(g.supervisor_name);
+        h += `<div class="consol-sup"><div class="consol-sup-h">🏛️ ${supLabel}</div>`;
+        g.agencies.forEach(a => {
+            h += `<div class="consol-agency"><div class="consol-agency-h">🏢 ${escapeHtml(a.agency)}</div>`;
+            a.funds.forEach(f => {
+                const fundLabel = f.fund_code ? `${f.fund_code} ${escapeHtml(f.fund_name)}` : escapeHtml(f.fund_name);
+                const warn = f.matched ? '' : ' <span title="未對應到官方基金編號" style="color:#d97706;font-size:11px">⚠ 未匹配</span>';
+                h += `<div class="consol-fund"><div class="consol-fund-h">💰 ${fundLabel} <span style="color:#94a3b8;font-weight:400">(${f.rows.length} 筆)</span>${warn}</div>`;
+                const header = (f.rows[0] && f.rows[0].header) || [];
+                h += '<div class="resp-table-wrap"><table class="resp-compare-table"><thead><tr><th>填表機關</th><th>時間</th>';
+                header.forEach(hd => h += `<th>${escapeHtml(hd)}</th>`);
+                h += '</tr></thead><tbody>';
+                f.rows.forEach(row => {
+                    h += `<tr><td><strong>${escapeHtml(row.respondent || row.session_name || '')}</strong></td><td class="resp-row-label">${(row.submitted_at || '').replace('T', ' ').slice(0, 16)}</td>`;
+                    row.values.forEach(v => h += `<td>${escapeHtml(v)}</td>`);
+                    h += '</tr>';
+                });
+                h += '</tbody></table></div></div>';
+            });
+            h += '</div>';
+        });
+        h += '</div>';
+    });
+    c.innerHTML = h;
+}
+function exportConsolCSV() {
+    if (!_consolData || !_consolData.groups.length) { toast('無資料可匯出', 1); return; }
+    const out = [['主管機關碼', '主管機關', '機關名稱', '基金編號', '基金名稱', '是否匹配', '填表機關', '時間', '基金欄原值']];
+    _consolData.groups.forEach(g => g.agencies.forEach(a => a.funds.forEach(f => f.rows.forEach(row => {
+        out.push([g.supervisor_code, g.supervisor_name, a.agency, f.fund_code, f.fund_name,
+                  f.matched ? '是' : '否', row.respondent, row.submitted_at, row.fund_raw]);
+    }))));
+    const csv = out.map(r => r.map(x => `"${String(x == null ? '' : x).replace(/"/g, '""')}"`).join(',')).join('\r\n');
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'consolidation.csv';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
 async function deleteUser(email) {
@@ -940,11 +1102,14 @@ window.deleteUser = deleteUser;
             toast('Email 與密碼皆為必填項目', 1);
             return;
         }
+        const supVal = document.getElementById('new-user-supervisor').value;
+        const [dom, code] = supVal ? supVal.split('|') : ['', ''];
+        const agency = document.getElementById('new-user-agency').value.trim();
         try {
             const r = await fetch('/api/admin/users', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
-                body: JSON.stringify({ email, password })
+                body: JSON.stringify({ email, password, supervisor_domain: dom, supervisor_code: code, agency_name: agency })
             });
             const res = await r.json();
             if (!r.ok) throw new Error(res.detail || '建立失敗');
@@ -952,10 +1117,39 @@ window.deleteUser = deleteUser;
             dialog.classList.remove('show');
             document.getElementById('new-user-email').value = '';
             document.getElementById('new-user-password').value = '';
+            document.getElementById('new-user-supervisor').value = '';
+            document.getElementById('new-user-agency').value = '';
             loadUsers();
         } catch(e) {
             toast(e.message, 1);
         }
+    });
+})();
+
+(function bindEditUserEvents() {
+    const closeBtn = document.getElementById('close-edit-user');
+    const submitBtn = document.getElementById('btn-submit-edit-user');
+    const dialog = document.getElementById('edit-user-dialog');
+    if (!closeBtn || !submitBtn || !dialog) return;
+    closeBtn.addEventListener('click', () => dialog.classList.remove('show'));
+    dialog.addEventListener('click', e => { if (e.target === dialog) dialog.classList.remove('show'); });
+    submitBtn.addEventListener('click', async () => {
+        const email = submitBtn.dataset.email;
+        const supVal = document.getElementById('edit-user-supervisor').value;
+        const [dom, code] = supVal ? supVal.split('|') : ['', ''];
+        const agency = document.getElementById('edit-user-agency').value.trim();
+        try {
+            const r = await fetch(`/api/admin/users/${encodeURIComponent(email)}/profile`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ email, password: '', supervisor_domain: dom, supervisor_code: code, agency_name: agency })
+            });
+            const res = await r.json();
+            if (!r.ok) throw new Error(res.detail || '儲存失敗');
+            toast('已更新機關資料');
+            dialog.classList.remove('show');
+            loadUsers();
+        } catch(e) { toast(e.message, 1); }
     });
 })();
 
@@ -965,17 +1159,25 @@ function initProjectsPage(){
 
     const tabProject = document.getElementById('tab-project-mgmt');
     const tabUser = document.getElementById('tab-user-mgmt');
+    const tabConsol = document.getElementById('tab-consolidate');
     if (tabProject && tabUser) {
         tabProject.addEventListener('click', () => switchTab('project-mgmt'));
         tabUser.addEventListener('click', () => switchTab('user-mgmt'));
     }
+    if (tabConsol) tabConsol.addEventListener('click', () => switchTab('consolidate'));
 
     const btnAddUser = document.getElementById('btn-add-user');
     if (btnAddUser) {
-        btnAddUser.addEventListener('click', () => {
+        btnAddUser.addEventListener('click', async () => {
+            await loadSupervisors();
+            fillSupervisorSelect(document.getElementById('new-user-supervisor'), '');
             document.getElementById('add-user-dialog').classList.add('show');
         });
     }
+
+    // Consolidation controls
+    document.getElementById('btn-consol-refresh')?.addEventListener('click', loadConsolidate);
+    document.getElementById('btn-consol-export')?.addEventListener('click', exportConsolCSV);
 
     // Search / filter / sort
     document.getElementById('proj-search')?.addEventListener('input', renderProjects);
@@ -1358,12 +1560,26 @@ async function loadEditorSession(){
         }
         
         recalcAll();render();
+        populateFundColSelect(res.fund_col || 0);
         editor.style.display='block';
         if(window.location.hash==='#responses'){
             const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
             if(respTab)respTab.click();
         }
     }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escapeHtml(e.message)}</p>`;editor.style.display='block'}
+}
+
+function populateFundColSelect(selected){
+    const sel=document.getElementById('editor-fund-col');
+    if(!sel)return;
+    const hdrs=getHeaders();
+    const maxC=Math.max(...data.map(r=>r.length||0),1);
+    let h='';
+    for(let c=0;c<maxC;c++){
+        const label=hdrs[c]?`${alpha(c)}：${escapeHtml(hdrs[c])}`:`欄${alpha(c)}`;
+        h+=`<option value="${c}"${c===Number(selected)?' selected':''}>${label}</option>`;
+    }
+    sel.innerHTML=h;
 }
 
 function render(){
@@ -1469,10 +1685,12 @@ function updateFormulaCols(){
         if(!sessionId)return;
         try{
             const updatedName = (document.getElementById('editor-project-name')?.value || '').trim();
+            const fundColEl = document.getElementById('editor-fund-col');
+            const fundCol = fundColEl ? Number(fundColEl.value) : null;
             const r=await fetch(`/api/sessions/${sessionId}/save`,{
                 method:'POST',
                 headers:{'Content-Type':'application/json', ...getAuthHeaders()},
-                body:JSON.stringify({session_id:sessionId,data,name:updatedName})
+                body:JSON.stringify({session_id:sessionId,data,name:updatedName,fund_col:fundCol})
             });
             if(r.ok){
                 isDirty=false;

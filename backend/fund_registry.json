@@ -1,0 +1,2864 @@
+{
+  "version": "114",
+  "source": [
+    "國營事業機構名稱及編號(113)",
+    "中央政府非營業特種基金名稱及編號參考表(114年7月)"
+  ],
+  "domains": {
+    "enterprise": {
+      "label": "營業基金（國營事業）",
+      "supervisors": {
+        "01": "行政院主管",
+        "18": "財政部主管",
+        "21": "經濟部主管",
+        "22": "交通部主管",
+        "30": "行政院國軍退除役官兵輔導委員會主管",
+        "31": "金融監督管理委員會主管"
+      },
+      "funds": [
+        {
+          "code": "0105",
+          "name": "中央銀行",
+          "supervisor": "01",
+          "abbr": "CBC",
+          "aliases": [
+            "央行"
+          ]
+        },
+        {
+          "code": "1805",
+          "name": "中國輸出入銀行",
+          "supervisor": "18",
+          "abbr": "EIBOC",
+          "aliases": []
+        },
+        {
+          "code": "1830",
+          "name": "臺灣金融控股股份有限公司",
+          "supervisor": "18",
+          "abbr": "TFHC",
+          "aliases": [
+            "臺灣金融控股"
+          ]
+        },
+        {
+          "code": "1837",
+          "name": "臺灣土地銀行股份有限公司",
+          "supervisor": "18",
+          "abbr": "LBOTC",
+          "aliases": [
+            "臺灣土地銀行",
+            "土銀",
+            "土地銀行"
+          ]
+        },
+        {
+          "code": "1860",
+          "name": "臺灣菸酒股份有限公司",
+          "supervisor": "18",
+          "abbr": "TTWMB",
+          "aliases": [
+            "臺灣菸酒",
+            "台酒"
+          ]
+        },
+        {
+          "code": "1870",
+          "name": "財政部印刷廠",
+          "supervisor": "18",
+          "abbr": "PP, MOF",
+          "aliases": []
+        },
+        {
+          "code": "2106",
+          "name": "台灣糖業股份有限公司",
+          "supervisor": "21",
+          "abbr": "TSC",
+          "aliases": [
+            "台灣糖業",
+            "台糖"
+          ]
+        },
+        {
+          "code": "2108",
+          "name": "台灣中油股份有限公司",
+          "supervisor": "21",
+          "abbr": "CPC",
+          "aliases": [
+            "台灣中油",
+            "中油"
+          ]
+        },
+        {
+          "code": "2121",
+          "name": "漢翔航空工業股份有限公司",
+          "supervisor": "21",
+          "abbr": "AIDC",
+          "aliases": [
+            "漢翔航空工業"
+          ]
+        },
+        {
+          "code": "2130",
+          "name": "高雄硫酸錏股份有限公司",
+          "supervisor": "21",
+          "abbr": "KASCL",
+          "aliases": [
+            "高雄硫酸錏"
+          ],
+          "deprecated": true
+        },
+        {
+          "code": "2132",
+          "name": "臺灣中興紙股份有限公司",
+          "supervisor": "21",
+          "abbr": "TCHPC",
+          "aliases": [
+            "臺灣中興紙",
+            "中興紙業",
+            "臺灣中興紙業",
+            "台灣中興紙業"
+          ],
+          "deprecated": true
+        },
+        {
+          "code": "2134",
+          "name": "臺灣省農工企業股份有限公司",
+          "supervisor": "21",
+          "abbr": "TAIDCL",
+          "aliases": [
+            "臺灣省農工企業"
+          ],
+          "deprecated": true
+        },
+        {
+          "code": "2107",
+          "name": "台灣電力股份有限公司",
+          "supervisor": "21",
+          "abbr": "TPC",
+          "aliases": [
+            "台灣電力",
+            "台電"
+          ]
+        },
+        {
+          "code": "2135",
+          "name": "台灣自來水股份有限公司",
+          "supervisor": "21",
+          "abbr": "TWSC",
+          "aliases": [
+            "台灣自來水",
+            "台水"
+          ]
+        },
+        {
+          "code": "2201",
+          "name": "中華郵政股份有限公司",
+          "supervisor": "22",
+          "abbr": "CHP",
+          "aliases": [
+            "中華郵政",
+            "郵局"
+          ]
+        },
+        {
+          "code": "2231",
+          "name": "國營臺灣鐵路股份有限公司",
+          "supervisor": "22",
+          "abbr": "",
+          "aliases": [
+            "國營臺灣鐵路",
+            "台鐵",
+            "臺鐵"
+          ]
+        },
+        {
+          "code": "2215",
+          "name": "臺灣汽車客運股份有限公司",
+          "supervisor": "22",
+          "abbr": "TMTC",
+          "aliases": [
+            "臺灣汽車客運",
+            "台汽",
+            "臺汽"
+          ],
+          "deprecated": true
+        },
+        {
+          "code": "2221",
+          "name": "臺灣港務股份有限公司",
+          "supervisor": "22",
+          "abbr": "",
+          "aliases": [
+            "臺灣港務"
+          ]
+        },
+        {
+          "code": "2228",
+          "name": "桃園國際機場股份有限公司",
+          "supervisor": "22",
+          "abbr": "",
+          "aliases": [
+            "桃園國際機場"
+          ]
+        },
+        {
+          "code": "3001",
+          "name": "榮民工程股份有限公司",
+          "supervisor": "30",
+          "abbr": "RSEAEC",
+          "aliases": [
+            "榮民工程",
+            "榮工"
+          ],
+          "deprecated": true
+        },
+        {
+          "code": "3101",
+          "name": "中央存款保險股份有限公司",
+          "supervisor": "31",
+          "abbr": "CDIC",
+          "aliases": [
+            "中央存款保險"
+          ]
+        },
+        {
+          "code": "0106",
+          "name": "中央造幣廠",
+          "supervisor": "01",
+          "abbr": "TCMC",
+          "aliases": []
+        },
+        {
+          "code": "0107",
+          "name": "中央印製廠",
+          "supervisor": "01",
+          "abbr": "CEPW",
+          "aliases": []
+        },
+        {
+          "code": "1840",
+          "name": "臺灣銀行股份有限公司",
+          "supervisor": "18",
+          "abbr": "BOTC",
+          "aliases": [
+            "臺灣銀行",
+            "台銀",
+            "臺銀"
+          ]
+        },
+        {
+          "code": "1848",
+          "name": "臺銀人壽保險股份有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "臺銀人壽保險",
+            "台銀",
+            "臺銀",
+            "台銀人壽",
+            "臺銀人壽"
+          ]
+        },
+        {
+          "code": "1850",
+          "name": "臺銀綜合證券股份有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "臺銀綜合證券",
+            "台銀",
+            "臺銀",
+            "台銀證券",
+            "臺銀證券"
+          ]
+        },
+        {
+          "code": "1851",
+          "name": "臺灣證券投資信託股份有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "臺灣證券投資信託"
+          ]
+        },
+        {
+          "code": "1852",
+          "name": "土銀保險經紀人股份有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "土銀保險經紀人",
+            "土銀",
+            "土地銀行",
+            "土銀保經"
+          ]
+        },
+        {
+          "code": "1854",
+          "name": "土銀都市更新投資信託股份有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "土銀都市更新投資信託",
+            "土銀",
+            "土地銀行"
+          ]
+        },
+        {
+          "code": "1861",
+          "name": "台酒(廈門)商貿有限公司",
+          "supervisor": "18",
+          "abbr": "",
+          "aliases": [
+            "台酒(廈門)商貿",
+            "台酒"
+          ]
+        },
+        {
+          "code": "2222",
+          "name": "臺灣港務港勤股份有限公司",
+          "supervisor": "22",
+          "abbr": "",
+          "aliases": [
+            "臺灣港務港勤"
+          ]
+        },
+        {
+          "code": "2230",
+          "name": "高雄港區土地開發股份有限公司",
+          "supervisor": "22",
+          "abbr": "",
+          "aliases": [
+            "高雄港區土地開發"
+          ]
+        }
+      ]
+    },
+    "special": {
+      "label": "非營業特種基金",
+      "supervisors": {
+        "03": "行政院主管",
+        "08": "內政部主管",
+        "10": "國防部主管",
+        "11": "財政部主管",
+        "12": "教育部主管",
+        "13": "法務部主管",
+        "14": "經濟部主管",
+        "15": "交通部主管",
+        "18": "行政院國軍退除役官兵輔導委員會主管",
+        "19": "國家科學及技術委員會",
+        "21": "農業部主管",
+        "22": "勞動部主管",
+        "23": "衛生福利部主管",
+        "25": "文化部主管",
+        "32": "國立故宮博物院主管",
+        "34": "行政院原住民族委員會主管",
+        "70": "考試院考選部主管",
+        "01": "中央研究院主管",
+        "20": "行政院原子能委員會主管",
+        "24": "環境部主管",
+        "26": "運動部主管",
+        "45": "行政院大陸委員會主管",
+        "50": "新聞局主管",
+        "55": "金融監督管理委員會主管",
+        "56": "海洋委員會主管",
+        "60": "國家通訊傳播委員會主管",
+        "61": "公平交易委員會主管",
+        "66": "行政院體育委員會主管"
+      },
+      "funds": [
+        {
+          "code": "103001",
+          "name": "行政院國家發展基金",
+          "supervisor": "03",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "10300101",
+          "name": "中美經濟社會發展基金",
+          "supervisor": "03",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "10300102",
+          "name": "開發基金",
+          "supervisor": "03",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "108001",
+          "name": "營建建設基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "10800101",
+          "name": "住宅基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "10800102",
+          "name": "新市鎮開發基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "10800103",
+          "name": "中央都市更新基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "108002",
+          "name": "國民年金保險基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "108003",
+          "name": "中央都市更新基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "108004",
+          "name": "實施平均地權基金",
+          "supervisor": "08",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "110001",
+          "name": "國軍生產及服務作業基金",
+          "supervisor": "10",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "110003",
+          "name": "國軍老舊眷村改建基金",
+          "supervisor": "10",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "110004",
+          "name": "國防醫學大學軍事教育基金",
+          "supervisor": "10",
+          "category": "作業基金",
+          "aliases": [
+            "國防醫學院",
+            "國防醫學院軍事教育基金",
+            "國防醫學院基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "111002",
+          "name": "地方建設基金",
+          "supervisor": "11",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "111003",
+          "name": "國有財產開發基金",
+          "supervisor": "11",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112101",
+          "name": "國立臺灣大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大校務基金",
+            "台大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210101",
+          "name": "國立臺灣大學醫學院附設癌醫中心醫院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大癌醫中心醫院作業基金",
+            "台大癌醫中心醫院作業基金",
+            "臺大癌醫作業基金",
+            "台大癌醫作業基金",
+            "臺大醫學院附設癌醫中心醫院作業基金",
+            "台大醫學院附設癌醫中心醫院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210102",
+          "name": "國立臺灣大學重點科技研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大重點科技研究學院校務基金",
+            "台大重點科技研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210103",
+          "name": "國立臺灣大學國際政經學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大國際政經學院校務基金",
+            "台大國際政經學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112102",
+          "name": "國立政治大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "政大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210201",
+          "name": "國立政治大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "政大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210202",
+          "name": "國立政治大學國際金融學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "政大國際金融學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112103",
+          "name": "國立清華大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "清大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210301",
+          "name": "國立清華大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "清大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210302",
+          "name": "國立清華大學半導體研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "清大半導體研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112104",
+          "name": "國立中興大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11210401",
+          "name": "國立中興大學循環經濟研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "112105",
+          "name": "國立成功大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "成大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210501",
+          "name": "國立成功大學智慧半導體及永續製造學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "成大智慧半導體及永續製造學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112106",
+          "name": "國立交通大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "交大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112107",
+          "name": "國立中央大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中央校務基金",
+            "中央大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210701",
+          "name": "國立中央大學永續與綠能科技研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中央永續與綠能科技研究學院校務基金",
+            "中央大永續與綠能科技研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112108",
+          "name": "國立中山大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中山校務基金",
+            "中山大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210801",
+          "name": "國立中山大學半導體及重點科技研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中山半導體及重點科技研究學院校務基金",
+            "中山大半導體及重點科技研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11210802",
+          "name": "國立中山大學國際金融研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中山國際金融研究學院校務基金",
+            "中山大國際金融研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112109",
+          "name": "國立中正大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中正校務基金",
+            "中正大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112110",
+          "name": "國立臺灣海洋大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "海大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112111",
+          "name": "國立陽明大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "陽明校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112112",
+          "name": "國立東華大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "東華校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11211201",
+          "name": "國立東華大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "東華附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112113",
+          "name": "國立暨南國際大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "暨大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112114",
+          "name": "國立臺北大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112115",
+          "name": "國立嘉義大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "嘉大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11211501",
+          "name": "國立嘉義大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "嘉大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112116",
+          "name": "國立高雄大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112117",
+          "name": "國立臺東大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "東大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11211701",
+          "name": "國立臺東大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "東大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112118",
+          "name": "國立宜蘭大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "宜大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112119",
+          "name": "國立聯合大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "聯大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112120",
+          "name": "國立臺南大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "南大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11212001",
+          "name": "國立臺南大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "南大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112121",
+          "name": "國立金門大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "金大校務基金",
+            "國立金門技術學院",
+            "國立金門技術學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112122",
+          "name": "國立屏東大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏大校務基金",
+            "國立屏東教育大學",
+            "國立屏東教育大學校務基金",
+            "國立屏東商業技術學院",
+            "國立屏東商業技術學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11212201",
+          "name": "國立屏東大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏大附設實驗國民小學校務基金",
+            "國立屏東教育大學附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112123",
+          "name": "國立陽明交通大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "陽明交大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11212301",
+          "name": "國立陽明交通大學產學創新研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "陽明交大產學創新研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112170",
+          "name": "國立臺灣師範大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺師大校務基金",
+            "台師大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11217001",
+          "name": "國立臺灣師範大學跨域科技產業創新研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺師大跨域科技產業創新研究學院校務基金",
+            "台師大跨域科技產業創新研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112171",
+          "name": "國立彰化師範大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "彰師大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112172",
+          "name": "國立高雄師範大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高師大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112173",
+          "name": "國立臺北教育大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "國北教大校務基金",
+            "北教大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11217301",
+          "name": "國立臺北教育大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "國北教大附設實驗國民小學校務基金",
+            "北教大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112174",
+          "name": "國立新竹教育大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "竹教大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11217401",
+          "name": "國立新竹教育大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "竹教大附設實驗國民小學校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112175",
+          "name": "國立臺中教育大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中教大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11217501",
+          "name": "國立臺中教育大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中教大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112176",
+          "name": "國立屏東教育大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏教大校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11217601",
+          "name": "國立屏東教育大學附設實驗國民小學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏教大附設實驗國民小學校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112180",
+          "name": "國立臺北藝術大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北藝大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112181",
+          "name": "國立臺灣藝術大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "台藝大校務基金",
+            "臺藝大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112182",
+          "name": "國立臺南藝術大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "南藝大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112199",
+          "name": "國立空中大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "空大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112201",
+          "name": "國立臺灣科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺科大校務基金",
+            "台科大校務基金",
+            "臺科校務基金",
+            "台科校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11220101",
+          "name": "國立臺灣科技大學產學創新學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺科大產學創新學院校務基金",
+            "台科大產學創新學院校務基金",
+            "臺科產學創新學院校務基金",
+            "台科產學創新學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112202",
+          "name": "國立臺北科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北科大校務基金",
+            "北科校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11220201",
+          "name": "國立臺北科技大學創新前瞻科技研究學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北科大創新前瞻科技研究學院校務基金",
+            "北科創新前瞻科技研究學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112203",
+          "name": "國立雲林科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "雲科大校務基金",
+            "雲科校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112204",
+          "name": "國立虎尾科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "虎科大校務基金",
+            "虎科校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112205",
+          "name": "國立高雄第一科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高雄第一科大校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112206",
+          "name": "國立高雄應用科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高應大校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112207",
+          "name": "國立高雄海洋科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高海大校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112208",
+          "name": "國立屏東科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏科大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112209",
+          "name": "國立澎湖科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "澎科大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112210",
+          "name": "國立勤益科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "勤益科大校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112211",
+          "name": "國立臺北護理健康大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北護大校務基金",
+            "北護校務基金",
+            "國立臺北護理學院",
+            "國立臺北護理學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112212",
+          "name": "國立高雄餐旅大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高餐大校務基金",
+            "高餐校務基金",
+            "國立高雄餐旅學院",
+            "國立高雄餐旅學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112213",
+          "name": "國立臺中科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中科大校務基金",
+            "國立臺中科技學院",
+            "國立臺中科技學院校務基金",
+            "國立臺中護理專科學校",
+            "國立臺中護理專科學校校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112214",
+          "name": "國立臺北商業大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北商大校務基金",
+            "北商校務基金",
+            "國立臺北商業技術學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112215",
+          "name": "國立高雄科技大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高科大校務基金",
+            "高科校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112220",
+          "name": "國立體育大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "國體大校務基金",
+            "國體校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112221",
+          "name": "國立臺灣體育運動大學校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺體大校務基金",
+            "台體大校務基金",
+            "國立臺灣體育學院",
+            "國立臺灣體育學院校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112301",
+          "name": "國立臺北護理學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北護校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112304",
+          "name": "國立臺灣體育學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "台體校務基金",
+            "臺體校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112305",
+          "name": "國立臺北商業技術學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "北商校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112306",
+          "name": "國立臺中技術學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中技校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112308",
+          "name": "國立高雄餐旅學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "高餐校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112309",
+          "name": "國立屏東商業技術學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "屏商校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112311",
+          "name": "國立金門技術學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "金門技院校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112312",
+          "name": "國立臺灣戲曲學院校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "112401",
+          "name": "國立臺中護理專科學校校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "中護校務基金"
+          ],
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "112402",
+          "name": "國立臺南護理專科學校校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "南護校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112405",
+          "name": "國立臺東專科學校校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "東專校務基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112501",
+          "name": "國立臺灣大學附設醫院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院作業基金",
+            "台大醫院作業基金",
+            "臺大附設醫院作業基金",
+            "台大附設醫院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250101",
+          "name": "國立臺灣大學附設醫院北護分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院北護分院作業基金",
+            "台大醫院北護分院作業基金",
+            "臺大附設醫院北護分院作業基金",
+            "台大附設醫院北護分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250102",
+          "name": "國立臺灣大學附設醫院雲林分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院雲林分院作業基金",
+            "台大醫院雲林分院作業基金",
+            "臺大附設醫院雲林分院作業基金",
+            "台大附設醫院雲林分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250103",
+          "name": "國立臺灣大學附設醫院金山分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院金山分院作業基金",
+            "台大醫院金山分院作業基金",
+            "臺大附設醫院金山分院作業基金",
+            "台大附設醫院金山分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250104",
+          "name": "國立臺灣大學附設醫院新竹分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院新竹分院作業基金",
+            "台大醫院新竹分院作業基金",
+            "臺大附設醫院新竹分院作業基金",
+            "台大附設醫院新竹分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250105",
+          "name": "國立臺灣大學附設醫院竹東分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院竹東分院作業基金",
+            "台大醫院竹東分院作業基金",
+            "臺大附設醫院竹東分院作業基金",
+            "台大附設醫院竹東分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250106",
+          "name": "國立臺灣大學附設醫院新竹生醫園區分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院新竹生醫園區分院作業基金",
+            "台大醫院新竹生醫園區分院作業基金",
+            "臺大附設醫院新竹生醫園區分院作業基金",
+            "台大附設醫院新竹生醫園區分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250107",
+          "name": "國立臺灣大學附設醫院新竹臺大分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院新竹臺大分院作業基金",
+            "台大醫院新竹臺大分院作業基金",
+            "臺大附設醫院新竹臺大分院作業基金",
+            "台大附設醫院新竹臺大分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11250108",
+          "name": "國立臺灣大學附設醫院癌醫中心分院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "臺大醫院癌醫中心分院作業基金",
+            "台大醫院癌醫中心分院作業基金",
+            "臺大醫院癌醫分院作業基金",
+            "台大醫院癌醫分院作業基金",
+            "臺大癌醫作業基金",
+            "台大癌醫作業基金",
+            "臺大附設醫院癌醫中心分院作業基金",
+            "台大附設醫院癌醫中心分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112502",
+          "name": "國立成功大學附設醫院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "成大醫院作業基金",
+            "成大附設醫院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112503",
+          "name": "國立陽明交通大學附設醫院作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "陽明交大附設醫院作業基金",
+            "國立陽明大學附設醫院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "112601",
+          "name": "教育部所屬機構作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "國立社教機構作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11260101",
+          "name": "國立自然科學博物館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11260102",
+          "name": "國立科學工藝博物館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11260103",
+          "name": "國立海洋生物博物館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11260104",
+          "name": "國立歷史博物館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11260105",
+          "name": "國立臺灣科學教育館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11260106",
+          "name": "國立臺灣圖書館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "aliases": [
+            "國立中央圖書館臺灣分館作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11260107",
+          "name": "國立中正紀念堂管理處作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11260108",
+          "name": "國立國父紀念館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11260109",
+          "name": "國立海洋科技博物館作業基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "112701",
+          "name": "國立高級中等學校校務基金",
+          "supervisor": "12",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "113001",
+          "name": "法務部矯正機關作業基金",
+          "supervisor": "13",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "114001",
+          "name": "經濟作業基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11400101",
+          "name": "科技產業園區作業基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "aliases": [
+            "加工出口區作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11400102",
+          "name": "產業園區開發管理基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "aliases": [
+            "工業區開發管理基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11400103",
+          "name": "中小企業發展基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "114002",
+          "name": "水資源作業基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11400201",
+          "name": "溫泉事業發展基金",
+          "supervisor": "14",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "115001",
+          "name": "交通作業基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11500101",
+          "name": "民航事業作業基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11500102",
+          "name": "國道公路建設管理基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11500103",
+          "name": "鐵道發展基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "aliases": [
+            "高速鐵路相關建設基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "11500104",
+          "name": "觀光發展基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11500105",
+          "name": "臺鐵局撥入資產及債務管理基金",
+          "supervisor": "15",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "118001",
+          "name": "國軍退除役官兵安置基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800101",
+          "name": "森林保育事業管理處",
+          "supervisor": "18",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11800102",
+          "name": "清境農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800103",
+          "name": "福壽山農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800104",
+          "name": "武陵農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800105",
+          "name": "彰化農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800106",
+          "name": "嘉義農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800107",
+          "name": "屏東農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800108",
+          "name": "花蓮農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800109",
+          "name": "臺東農場",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800111",
+          "name": "龍崎工廠",
+          "supervisor": "18",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11800112",
+          "name": "臺北榮民技術勞務中心",
+          "supervisor": "18",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "118002",
+          "name": "榮民醫療作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800201",
+          "name": "臺北榮民總醫院作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800202",
+          "name": "臺中榮民總醫院作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800203",
+          "name": "高雄榮民總醫院作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "11800204",
+          "name": "榮民醫院醫療作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "11800205",
+          "name": "屏東榮民總醫院作業基金",
+          "supervisor": "18",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "119001",
+          "name": "科學園區管理局作業基金",
+          "supervisor": "19",
+          "category": "作業基金",
+          "aliases": [
+            "科學工業園區管理局作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "121001",
+          "name": "農業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100102",
+          "name": "種苗改良繁殖作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100103",
+          "name": "畜產改良作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100104",
+          "name": "農業科技園區作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "aliases": [
+            "農業生物科技園區作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "121002",
+          "name": "農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100201",
+          "name": "宜蘭農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100202",
+          "name": "北基農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100203",
+          "name": "桃園農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100204",
+          "name": "石門農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100205",
+          "name": "新竹農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100206",
+          "name": "苗栗農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100207",
+          "name": "臺中農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100208",
+          "name": "南投農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100209",
+          "name": "彰化農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100210",
+          "name": "雲林農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100211",
+          "name": "嘉南農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100212",
+          "name": "高雄農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100213",
+          "name": "屏東農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100214",
+          "name": "臺東農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100215",
+          "name": "花蓮農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100216",
+          "name": "七星農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12100217",
+          "name": "瑠公農田水利事業作業基金",
+          "supervisor": "21",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "122001",
+          "name": "勞工保險局作業基金",
+          "supervisor": "22",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "123001",
+          "name": "醫療藥品基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300101",
+          "name": "基隆醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300103",
+          "name": "臺北醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300104",
+          "name": "桃園醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300105",
+          "name": "新竹醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "12300106",
+          "name": "竹東醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "12300107",
+          "name": "苗栗醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300108",
+          "name": "豐原醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300109",
+          "name": "臺中醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300110",
+          "name": "彰化醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300111",
+          "name": "南投醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300113",
+          "name": "嘉義醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300114",
+          "name": "朴子醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300115",
+          "name": "新營醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300116",
+          "name": "臺南醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300117",
+          "name": "旗山醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300118",
+          "name": "澎湖醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300119",
+          "name": "屏東醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300120",
+          "name": "恆春旅遊醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "aliases": [
+            "屏東醫院恆春分院",
+            "屏東醫院恆春分院作業基金"
+          ],
+          "category_code": "1"
+        },
+        {
+          "code": "12300121",
+          "name": "臺東醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300122",
+          "name": "花蓮醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300123",
+          "name": "玉里醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300124",
+          "name": "桃園療養院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300125",
+          "name": "八里療養院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300126",
+          "name": "草屯療養院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300127",
+          "name": "嘉南療養院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300128",
+          "name": "樂生療養院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300129",
+          "name": "胸腔病院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12300130",
+          "name": "金門醫院作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "123002",
+          "name": "管制藥品製藥工廠作業基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "123003",
+          "name": "全民健康保險基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "123004",
+          "name": "國民年金保險基金",
+          "supervisor": "23",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "125001",
+          "name": "國立文化機構作業基金",
+          "supervisor": "25",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12500101",
+          "name": "國立歷史博物館作業基金",
+          "supervisor": "25",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12500102",
+          "name": "國立中正紀念堂管理處作業基金",
+          "supervisor": "25",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12500103",
+          "name": "國立國父紀念館作業基金",
+          "supervisor": "25",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "12500104",
+          "name": "傳統藝術發展作業基金",
+          "supervisor": "25",
+          "category": "作業基金",
+          "deprecated": true,
+          "category_code": "1"
+        },
+        {
+          "code": "132001",
+          "name": "故宮文物藝術發展基金",
+          "supervisor": "32",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "134001",
+          "name": "原住民族綜合發展基金",
+          "supervisor": "34",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "13400101",
+          "name": "原住民族就業基金",
+          "supervisor": "34",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "170001",
+          "name": "考選業務基金",
+          "supervisor": "70",
+          "category": "作業基金",
+          "category_code": "1"
+        },
+        {
+          "code": "211001",
+          "name": "中央政府債務基金",
+          "supervisor": "11",
+          "category": "債務基金",
+          "category_code": "2"
+        },
+        {
+          "code": "301001",
+          "name": "中央研究院科學研究基金",
+          "supervisor": "01",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "303001",
+          "name": "行政院國家科學技術發展基金",
+          "supervisor": "03",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "303003",
+          "name": "離島建設基金",
+          "supervisor": "03",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "303005",
+          "name": "行政院公營事業民營化基金",
+          "supervisor": "03",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "303006",
+          "name": "花東地區永續發展基金",
+          "supervisor": "03",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "303007",
+          "name": "促進轉型正義基金",
+          "supervisor": "03",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "308001",
+          "name": "社會福利基金",
+          "supervisor": "08",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "308002",
+          "name": "新住民發展基金",
+          "supervisor": "08",
+          "category": "特別收入基金",
+          "aliases": [
+            "外籍配偶照顧輔導基金"
+          ],
+          "category_code": "3"
+        },
+        {
+          "code": "308003",
+          "name": "研發及產業訓儲替代役基金",
+          "supervisor": "08",
+          "category": "特別收入基金",
+          "aliases": [
+            "研發替代役基金"
+          ],
+          "category_code": "3"
+        },
+        {
+          "code": "308004",
+          "name": "警察消防海巡移民空勤人員及協勤民力安全基金",
+          "supervisor": "08",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "308005",
+          "name": "國土永續發展基金",
+          "supervisor": "08",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "312001",
+          "name": "學產基金",
+          "supervisor": "12",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "312002",
+          "name": "運動發展基金",
+          "supervisor": "12",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "312003",
+          "name": "私立高級中等以上學校退場基金",
+          "supervisor": "12",
+          "category": "特別收入基金",
+          "aliases": [
+            "大專校院轉型及退場基金"
+          ],
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "313001",
+          "name": "毒品防制基金",
+          "supervisor": "13",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "314001",
+          "name": "經濟特別收入基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400101",
+          "name": "推廣貿易基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400102",
+          "name": "能源研究發展基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400103",
+          "name": "石油基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400104",
+          "name": "再生能源發展基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400105",
+          "name": "電價穩定基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "31400106",
+          "name": "中小企業發展基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "314002",
+          "name": "核能發電後端營運基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "314003",
+          "name": "地方產業發展基金",
+          "supervisor": "14",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "315001",
+          "name": "航港建設基金",
+          "supervisor": "15",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "320001",
+          "name": "核子事故緊急應變基金",
+          "supervisor": "20",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "321001",
+          "name": "農業特別收入基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100101",
+          "name": "農業發展基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100102",
+          "name": "漁業發展基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100103",
+          "name": "漁產平準基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "32100104",
+          "name": "林務發展及造林基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100105",
+          "name": "農業天然災害救助基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100106",
+          "name": "農產品受進口損害救助基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32100107",
+          "name": "農村再生基金",
+          "supervisor": "21",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "322001",
+          "name": "就業安定基金",
+          "supervisor": "22",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32200101",
+          "name": "勞工權益基金",
+          "supervisor": "22",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32200102",
+          "name": "因應貿易自由化就業發展及協助基金",
+          "supervisor": "22",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "323001",
+          "name": "衛生福利特別收入基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "aliases": [
+            "健康照護基金"
+          ],
+          "category_code": "3"
+        },
+        {
+          "code": "32300101",
+          "name": "醫療發展基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300102",
+          "name": "全民健康保險紓困基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300103",
+          "name": "藥害救濟基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300104",
+          "name": "菸害防制及衛生保健基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300105",
+          "name": "預防接種受害救濟基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300106",
+          "name": "疫苗基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300107",
+          "name": "食品安全保護基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300108",
+          "name": "社會福利基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300109",
+          "name": "家庭暴力及性侵害防治基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300110",
+          "name": "長照服務發展基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32300111",
+          "name": "生產事故救濟基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "323002",
+          "name": "社會福利基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "32300201",
+          "name": "家庭暴力及性侵害防治基金",
+          "supervisor": "23",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "324001",
+          "name": "環境保護基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400101",
+          "name": "空氣污染防制基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400102",
+          "name": "資源回收管理基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400103",
+          "name": "土壤及地下水污染整治基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400104",
+          "name": "水污染防治基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400105",
+          "name": "環境教育基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "32400106",
+          "name": "溫室氣體管理基金",
+          "supervisor": "24",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "325001",
+          "name": "文化發展基金",
+          "supervisor": "25",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "326001",
+          "name": "運動發展基金",
+          "supervisor": "26",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "345001",
+          "name": "中華發展基金",
+          "supervisor": "45",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "350001",
+          "name": "有線廣播電視事業發展基金",
+          "supervisor": "50",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "355001",
+          "name": "金融監督管理基金",
+          "supervisor": "55",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "355002",
+          "name": "行政院金融重建基金",
+          "supervisor": "55",
+          "category": "特別收入基金",
+          "deprecated": true,
+          "category_code": "3"
+        },
+        {
+          "code": "356001",
+          "name": "海洋污染防治基金",
+          "supervisor": "56",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "360001",
+          "name": "通訊傳播監督管理基金",
+          "supervisor": "60",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "360002",
+          "name": "有線廣播電視事業發展基金",
+          "supervisor": "60",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "361001",
+          "name": "反托拉斯基金",
+          "supervisor": "61",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "366001",
+          "name": "運動發展基金",
+          "supervisor": "66",
+          "category": "特別收入基金",
+          "category_code": "3"
+        },
+        {
+          "code": "410001",
+          "name": "國軍營舍及設施改建基金",
+          "supervisor": "10",
+          "category": "資本計畫基金",
+          "aliases": [
+            "國軍老舊營舍改建基金"
+          ],
+          "category_code": "4"
+        }
+      ]
+    }
+  }
+}

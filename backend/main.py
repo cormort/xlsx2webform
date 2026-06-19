@@ -32,6 +32,7 @@ from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 
 from backend.xlsx_parser import process_xlsx
+from backend import registry
 
 app = FastAPI(title="Budget Table Editor", version="1.0.0")
 
@@ -254,6 +255,7 @@ class SessionData(BaseModel):
     form_data: Optional[dict] = None
     email: Optional[str] = ""
     password_hash: Optional[str] = ""
+    fund_col: Optional[int] = 0          # which column holds the 基金名稱 (for 彙整)
 
 
 def _hash_password(pwd: str) -> str:
@@ -309,6 +311,7 @@ class SaveRequest(BaseModel):
     """Request to save edited data."""
     data: list
     name: Optional[str] = None
+    fund_col: Optional[int] = None
 
 
 class TemplateData(BaseModel):
@@ -397,6 +400,9 @@ class LoginRequest(BaseModel):
 class CreateUserRequest(BaseModel):
     email: str
     password: str
+    supervisor_domain: Optional[str] = ""   # registry domain: enterprise | special
+    supervisor_code: Optional[str] = ""      # 主管機關編號
+    agency_name: Optional[str] = ""          # 機關名稱
 
 
 @app.post("/api/admin/login")
@@ -524,7 +530,9 @@ async def list_users(_admin=Depends(check_admin)):
         "users": [
             {
                 "email": email,
-                "created_at": info.get("created_at", "")
+                "created_at": info.get("created_at", ""),
+                "supervisor": info.get("supervisor"),
+                "agency_name": info.get("agency_name", "")
             }
             for email, info in users.items()
         ]
@@ -547,10 +555,24 @@ async def create_user(payload: CreateUserRequest, _admin=Depends(check_admin)):
     pwd_hash = _hash_password(payload.password)
     users[email] = {
         "password_hash": pwd_hash,
-        "created_at": datetime.now().isoformat()
+        "created_at": datetime.now().isoformat(),
+        "supervisor": _resolve_supervisor(payload.supervisor_domain, payload.supervisor_code),
+        "agency_name": (payload.agency_name or "").strip()
     }
     _save_users()
     return {"success": True, "message": f"User {email} created successfully"}
+
+
+@app.put("/api/admin/users/{email}/profile")
+async def set_user_profile(email: str, payload: CreateUserRequest, _admin=Depends(check_admin)):
+    """Update a user's 主管機關 and 機關名稱. Admin only."""
+    email = email.strip().lower()
+    if email not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    users[email]["supervisor"] = _resolve_supervisor(payload.supervisor_domain, payload.supervisor_code)
+    users[email]["agency_name"] = (payload.agency_name or "").strip()
+    _save_users()
+    return {"success": True, "supervisor": users[email]["supervisor"], "agency_name": users[email]["agency_name"]}
 
 
 @app.delete("/api/admin/users/{email}")
@@ -571,6 +593,96 @@ async def delete_user(email: str, _admin=Depends(check_admin)):
         _save_user_tokens()
         
     return {"success": True, "message": f"User {email} deleted successfully"}
+
+
+# ── Fund / supervising-authority registry ────────────────
+def _resolve_supervisor(domain, code):
+    """Build a supervisor record {domain, code, name} from the registry, or None."""
+    domain = (domain or "").strip()
+    code = (code or "").strip()
+    if not domain or not code:
+        return None
+    dd = registry.get_registry().get("domains", {}).get(domain, {})
+    name = dd.get("supervisors", {}).get(code)
+    if not name:
+        return None
+    return {"domain": domain, "code": code, "name": name}
+
+
+@app.get("/api/registry")
+async def get_registry_api():
+    """Return the full fund/supervisor registry (official names, codes, aliases)."""
+    return registry.get_registry()
+
+
+@app.get("/api/supervisors")
+async def list_supervisors_api():
+    """Flat list of supervising authorities (主管機關) across both domains."""
+    return {"supervisors": registry.list_supervisors()}
+
+
+@app.get("/api/consolidate")
+async def consolidate(_admin=Depends(check_admin)):
+    """Cross-project consolidation grouped 主管機關 → 機關 → 基金. Admin only.
+
+    主管機關 / 機關名稱 come from the project owner's user profile; 基金 is taken
+    from each row's designated fund column and normalized against the official
+    registry (alias + fuzzy match) to obtain the canonical name and 基金編號.
+    """
+    UNSET = ("zzz", "（未設定主管機關）")
+    groups = {}   # (sup_code, sup_name) -> { agency -> { (fund_code, fund_name) -> node } }
+
+    for sid, session in sessions.items():
+        responses = response_store.get(sid, [])
+        if not responses:
+            continue
+        owner = (session.email or "").strip().lower()
+        uinfo = users.get(owner, {})
+        sup = uinfo.get("supervisor") or {}
+        sup_code = sup.get("code") or ""
+        sup_key = (sup_code, sup.get("name") or "") if sup_code else UNSET
+        agency = uinfo.get("agency_name") or session.email or "（未指定機關）"
+        fund_col = session.fund_col or 0
+
+        for r in responses:
+            rdata = r.get("data", []) or []
+            header = [c.get("value", "") for c in (rdata[0] if rdata else [])]
+            for ri in range(1, len(rdata)):
+                row = rdata[ri] or []
+                cell = row[fund_col] if fund_col < len(row) else None
+                fund_raw = (cell.get("value") or "").strip() if isinstance(cell, dict) else ""
+                if not fund_raw:
+                    continue
+                m = registry.match_fund(fund_raw)
+                fund_code = m["code"] if m else ""
+                fund_name = m["name"] if m else fund_raw
+                entry = {
+                    "session_id": sid, "session_name": session.name,
+                    "respondent": r.get("respondent", ""), "email": r.get("email", ""),
+                    "submitted_at": r.get("submitted_at", ""),
+                    "header": header,
+                    "values": [c.get("value", "") if isinstance(c, dict) else "" for c in row],
+                    "fund_raw": fund_raw,
+                }
+                fk = (fund_code or "zzz", fund_name)
+                node = groups.setdefault(sup_key, {}).setdefault(agency, {}).setdefault(
+                    fk, {"fund_code": fund_code, "fund_name": fund_name,
+                         "matched": bool(m), "rows": []})
+                node["rows"].append(entry)
+
+    out_groups = []
+    for sup_key in sorted(groups.keys(), key=lambda k: k[0]):
+        agencies = []
+        for agency in sorted(groups[sup_key].keys()):
+            funds = [groups[sup_key][agency][fk] for fk in sorted(groups[sup_key][agency].keys())]
+            agencies.append({"agency": agency, "funds": funds})
+        out_groups.append({
+            "supervisor_code": "" if sup_key[0] == "zzz" else sup_key[0],
+            "supervisor_name": sup_key[1],
+            "agencies": agencies,
+        })
+    total_rows = sum(len(f["rows"]) for g in out_groups for a in g["agencies"] for f in a["funds"])
+    return {"groups": out_groups, "total_rows": total_rows}
 
 
 @app.get("/")
@@ -762,6 +874,7 @@ async def get_session(
         "current_data": session.current_data or session.original_json,
         "metadata": session.metadata,
         "form": session.form_data,
+        "fund_col": session.fund_col or 0,
         "created_at": session.created_at,
         "updated_at": session.updated_at
     }
@@ -779,6 +892,8 @@ async def save_session(
     session.current_data = request.data
     if request.name:
         session.name = request.name
+    if request.fund_col is not None:
+        session.fund_col = request.fund_col
     session.updated_at = datetime.now().isoformat()
     _save_session(session_id)
 
