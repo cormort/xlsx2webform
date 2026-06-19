@@ -874,12 +874,12 @@ function renderIdentity(role, email){
 }
 
 function updateAdminLayout() {
-    const role = sessionStorage.getItem('auth_role');
+    const role = sessionStorage.getItem('auth_role') || (!adminRequired ? 'admin' : null);
     const email = sessionStorage.getItem('auth_email');
     const adminTabs = document.getElementById('admin-tabs');
     const userMgmtView = document.getElementById('user-management-view');
     const projectMgmtView = document.getElementById('project-management-view');
-    
+
     // Render identity bar (role + email + logout)
     renderIdentity(role, email);
 
