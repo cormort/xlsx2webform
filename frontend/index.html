@@ -1228,16 +1228,51 @@ function renderFundMgmtList() {
     const dd = _fundMgmtData[dom];
     if (!dd || !dd.funds) { document.getElementById('fund-mgmt-list').innerHTML = '<p style="color:#94a3b8">無資料</p>'; return; }
     const funds = dd.funds;
-    let h = `<div style="margin-bottom:8px;font-size:13px;color:#64748b">${escapeHtml(dd.label)} — 共 ${funds.length} 個基金</div>`;
+    const isSpecial = dom === 'special';
+    const totalCount = isSpecial
+        ? funds.reduce((n, e) => n + 1 + (e.children ? e.children.length : 0), 0)
+        : funds.length;
+    let h = `<div style="margin-bottom:8px;font-size:13px;color:#64748b">${escapeHtml(dd.label)} — 共 ${totalCount} 個基金</div>`;
     h += '<div style="display:flex;flex-direction:column;gap:4px">';
-    funds.forEach((name, i) => {
-        h += `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
-            <span style="flex:1;font-size:13px">${escapeHtml(name)}</span>
-            <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
-            <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
-            <button style="padding:2px 8px;font-size:12px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeFund('${dom}',${i})">✕</button>
-        </div>`;
-    });
+    if (isSpecial) {
+        funds.forEach((entry, i) => {
+            const name = typeof entry === 'string' ? entry : entry.name;
+            const kids = (typeof entry === 'object' && entry.children) ? entry.children : [];
+            h += `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:8px;padding:4px 8px">
+                    <span style="flex:1;font-size:13px;font-weight:600">${escapeHtml(name)}</span>
+                    ${kids.length ? `<span style="font-size:11px;color:#94a3b8">${kids.length} 分基金</span>` : ''}
+                    <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
+                    <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
+                    <button style="padding:2px 8px;font-size:12px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeFund('${dom}',${i})">✕</button>
+                </div>`;
+            if (kids.length || true) {
+                h += `<div style="padding:0 8px 6px 24px;display:flex;flex-direction:column;gap:2px">`;
+                kids.forEach((child, ci) => {
+                    h += `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;background:#fff;border-radius:4px;border:1px solid #e2e8f0">
+                        <span style="color:#94a3b8;font-size:11px">└</span>
+                        <span style="flex:1;font-size:12px">${escapeHtml(child)}</span>
+                        <button style="padding:1px 5px;font-size:10px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:3px;cursor:pointer" onclick="removeSubFund(${i},${ci})">✕</button>
+                    </div>`;
+                });
+                h += `<div style="display:flex;gap:4px;margin-top:2px">
+                    <input type="text" placeholder="新增分基金⋯" id="subfund-input-${i}" style="flex:1;padding:2px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:11px">
+                    <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="addSubFund(${i})">＋</button>
+                </div>`;
+                h += `</div>`;
+            }
+            h += `</div>`;
+        });
+    } else {
+        funds.forEach((name, i) => {
+            h += `<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;background:#f8fafc;border-radius:6px;border:1px solid #e2e8f0">
+                <span style="flex:1;font-size:13px">${escapeHtml(name)}</span>
+                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
+                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
+                <button style="padding:2px 8px;font-size:12px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeFund('${dom}',${i})">✕</button>
+            </div>`;
+        });
+    }
     h += '</div>';
     document.getElementById('fund-mgmt-list').innerHTML = h;
 }
@@ -1267,8 +1302,14 @@ function addFund() {
     const name = inp.value.trim();
     if (!name) { toast('請輸入基金名稱', 1); return; }
     if (!_fundMgmtData[dom]) _fundMgmtData[dom] = { label: dom, funds: [] };
-    if (_fundMgmtData[dom].funds.includes(name)) { toast('此基金已存在', 1); return; }
-    _fundMgmtData[dom].funds.push(name);
+    const funds = _fundMgmtData[dom].funds;
+    if (dom === 'special') {
+        if (funds.some(e => (typeof e === 'string' ? e : e.name) === name)) { toast('此彙編基金已存在', 1); return; }
+        funds.push({ name, children: [] });
+    } else {
+        if (funds.includes(name)) { toast('此基金已存在', 1); return; }
+        funds.push(name);
+    }
     inp.value = '';
     renderFundMgmtList();
     toast('已新增（記得儲存）');
@@ -1276,8 +1317,11 @@ function addFund() {
 
 function removeFund(dom, idx) {
     if (!_fundMgmtData || !_fundMgmtData[dom]) return;
-    const name = _fundMgmtData[dom].funds[idx];
-    if (!confirm(`確定移除「${name}」？`)) return;
+    const entry = _fundMgmtData[dom].funds[idx];
+    const name = typeof entry === 'string' ? entry : entry.name;
+    const kids = (typeof entry === 'object' && entry.children) ? entry.children.length : 0;
+    const msg = kids ? `確定移除「${name}」及其 ${kids} 個分基金？` : `確定移除「${name}」？`;
+    if (!confirm(msg)) return;
     _fundMgmtData[dom].funds.splice(idx, 1);
     renderFundMgmtList();
     toast('已移除（記得儲存）');
@@ -1293,6 +1337,33 @@ function moveFund(dom, idx, dir) {
     renderFundMgmtList();
 }
 window.moveFund = moveFund;
+
+function addSubFund(parentIdx) {
+    if (!_fundMgmtData) return;
+    const entry = _fundMgmtData.special.funds[parentIdx];
+    if (!entry || typeof entry !== 'object') return;
+    const inp = document.getElementById('subfund-input-' + parentIdx);
+    const name = inp ? inp.value.trim() : '';
+    if (!name) { toast('請輸入分基金名稱', 1); return; }
+    if (!entry.children) entry.children = [];
+    if (entry.children.includes(name)) { toast('此分基金已存在', 1); return; }
+    entry.children.push(name);
+    renderFundMgmtList();
+    toast('已新增分基金（記得儲存）');
+}
+window.addSubFund = addSubFund;
+
+function removeSubFund(parentIdx, childIdx) {
+    if (!_fundMgmtData) return;
+    const entry = _fundMgmtData.special.funds[parentIdx];
+    if (!entry || !entry.children) return;
+    const name = entry.children[childIdx];
+    if (!confirm(`確定移除分基金「${name}」？`)) return;
+    entry.children.splice(childIdx, 1);
+    renderFundMgmtList();
+    toast('已移除（記得儲存）');
+}
+window.removeSubFund = removeSubFund;
 
 function addAlias() {
     if (!_fundMgmtData) return;
@@ -1761,6 +1832,14 @@ async function toggleFundCoverage(){
     }catch(e){toast(e.message,1)}
 }
 
+function _coverageTag(f, isSub) {
+    const prefix = isSub ? '<span style="color:#94a3b8;margin-right:2px">└</span>' : '';
+    if (f.uploaded) {
+        return `<span style="display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px">${prefix}${escapeHtml(f.name)}</span>`;
+    }
+    return `<span style="display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px">${prefix}${escapeHtml(f.name)}</span>`;
+}
+
 function renderFundCoverage(){
     const dom = document.getElementById('fund-coverage-domain').value;
     const panel = document.getElementById('fund-coverage-panel');
@@ -1770,27 +1849,33 @@ function renderFundCoverage(){
         return;
     }
     const dd = fundCoverageData[dom];
-    const missing = dd.funds.filter(f=>!f.uploaded);
-    const uploaded = dd.funds.filter(f=>f.uploaded);
     let h=`<div style="margin-bottom:12px;font-size:14px;color:#334155">
         <strong>${escapeHtml(dd.label)}</strong>
         — 已繳交 <span style="color:#059669;font-weight:600">${dd.covered}</span>/${dd.total}
-        ，未繳交 <span style="color:#dc2626;font-weight:600">${missing.length}</span>
+        ，未繳交 <span style="color:#dc2626;font-weight:600">${dd.total - dd.covered}</span>
     </div>`;
+    // Flatten for grouping
+    const allFlat = [];
+    for (const f of dd.funds) {
+        allFlat.push({ name: f.name, uploaded: f.uploaded, isSub: false });
+        if (f.children) {
+            for (const c of f.children) {
+                allFlat.push({ name: c.name, uploaded: c.uploaded, isSub: true });
+            }
+        }
+    }
+    const missing = allFlat.filter(f=>!f.uploaded);
+    const uploaded = allFlat.filter(f=>f.uploaded);
     if(missing.length){
         h+=`<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:6px">❌ 未繳交（${missing.length}）</div>`;
         h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
-        for(const f of missing){
-            h+=`<span style="display:inline-block;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>`;
-        }
+        for(const f of missing) h+=_coverageTag(f, f.isSub);
         h+=`</div></div>`;
     }
     if(uploaded.length){
         h+=`<div><div style="font-size:13px;font-weight:600;color:#059669;margin-bottom:6px">✅ 已繳交（${uploaded.length}）</div>`;
         h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
-        for(const f of uploaded){
-            h+=`<span style="display:inline-block;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px" title="${escapeHtml(f.name)}">${escapeHtml(f.name)}</span>`;
-        }
+        for(const f of uploaded) h+=_coverageTag(f, f.isSub);
         h+=`</div></div>`;
     }
     content.innerHTML=h;

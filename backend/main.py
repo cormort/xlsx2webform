@@ -631,14 +631,26 @@ async def get_registry_api():
     return registry.get_registry()
 
 
+def _flatten_fund_names(af):
+    """Flatten active funds (handling special's hierarchical structure) to a set of names."""
+    names = set()
+    for n in af.get("enterprise", {}).get("funds", []):
+        names.add(n)
+    for entry in af.get("special", {}).get("funds", []):
+        if isinstance(entry, str):
+            names.add(entry)
+        elif isinstance(entry, dict):
+            names.add(entry["name"])
+            for child in entry.get("children", []):
+                names.add(child)
+    return names
+
+
 @app.get("/api/fund-names")
 async def fund_names_api():
     """Return a flat list of active fund names + aliases for autocomplete."""
     af = _load_active_funds()
-    names = set()
-    for dom in ("enterprise", "special"):
-        for n in af.get(dom, {}).get("funds", []):
-            names.add(n)
+    names = _flatten_fund_names(af)
     for alias in af.get("aliasMap", {}):
         names.add(alias)
     return {"names": sorted(names)}
@@ -756,20 +768,43 @@ async def fund_coverage_api(_admin=Depends(check_admin)):
                 uploaded.add(m["name"] if m else raw)
 
     result = {}
-    for dom in ("enterprise", "special"):
-        dd = af.get(dom, {})
-        fund_list = dd.get("funds", [])
-        funds = []
-        for name in fund_list:
-            funds.append({"name": name, "uploaded": name in uploaded})
-        total = len(funds)
-        covered = sum(1 for f in funds if f["uploaded"])
-        result[dom] = {
-            "label": dd.get("label", dom),
-            "total": total,
-            "covered": covered,
-            "funds": funds
-        }
+    # Enterprise: flat list
+    ent = af.get("enterprise", {})
+    ent_funds = []
+    for name in ent.get("funds", []):
+        ent_funds.append({"name": name, "uploaded": name in uploaded})
+    result["enterprise"] = {
+        "label": ent.get("label", "enterprise"),
+        "total": len(ent_funds),
+        "covered": sum(1 for f in ent_funds if f["uploaded"]),
+        "funds": ent_funds,
+    }
+    # Special: hierarchical (parent + children)
+    sp = af.get("special", {})
+    sp_funds = []
+    total_sp = 0
+    covered_sp = 0
+    for entry in sp.get("funds", []):
+        if isinstance(entry, str):
+            sp_funds.append({"name": entry, "uploaded": entry in uploaded})
+            total_sp += 1
+            if entry in uploaded:
+                covered_sp += 1
+        elif isinstance(entry, dict):
+            parent_name = entry["name"]
+            children = entry.get("children", [])
+            kids = [{"name": c, "uploaded": c in uploaded} for c in children]
+            sp_funds.append({"name": parent_name, "uploaded": parent_name in uploaded, "children": kids})
+            total_sp += 1 + len(kids)
+            if parent_name in uploaded:
+                covered_sp += 1
+            covered_sp += sum(1 for k in kids if k["uploaded"])
+    result["special"] = {
+        "label": sp.get("label", "special"),
+        "total": total_sp,
+        "covered": covered_sp,
+        "funds": sp_funds,
+    }
     return result
 
 
