@@ -282,6 +282,17 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             </select>
         </div>
 
+        <!-- Fund coverage panel -->
+        <div id="fund-coverage-bar" style="display:none;margin-bottom:8px">
+            <button class="btn btn-outline" id="btn-fund-coverage" style="padding:5px 14px;font-size:13px">📊 基金繳交狀態</button>
+            <select id="fund-coverage-domain" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff;display:none">
+                <option value="">-- 選擇基金類型 --</option>
+            </select>
+        </div>
+        <div id="fund-coverage-panel" style="display:none;margin-bottom:16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;max-height:400px;overflow-y:auto">
+            <div id="fund-coverage-content"></div>
+        </div>
+
         <!-- Batch action bar -->
         <div class="batch-bar" id="batch-bar">
             <label><input type="checkbox" id="batch-select-all"> 全選</label>
@@ -561,6 +572,8 @@ let sessionId = null;
 let data = [];
 let original = [];
 let isDirty = false;
+let fundNames = [];
+let fillFundCol = 0;
 let selectedCell = null;
 
 // ===== Admin Auth Helpers =====
@@ -1196,6 +1209,8 @@ function initProjectsPage(){
     });
     document.getElementById('btn-batch-publish')?.addEventListener('click', batchPublish);
     document.getElementById('btn-batch-delete')?.addEventListener('click', batchDelete);
+    document.getElementById('btn-fund-coverage')?.addEventListener('click', toggleFundCoverage);
+    document.getElementById('fund-coverage-domain')?.addEventListener('change', renderFundCoverage);
     document.getElementById('btn-batch-clear')?.addEventListener('click', ()=>{
         projSelected.clear();
         document.querySelectorAll('.proj-check').forEach(cb=>{ cb.checked=false; cb.closest('.project-card')?.classList.remove('selected'); });
@@ -1313,6 +1328,8 @@ async function loadProjects(){
         projSelected.clear();
         const tb=document.getElementById('projects-toolbar');
         if(tb) tb.style.display=allProjects.length?'flex':'none';
+        const fcb=document.getElementById('fund-coverage-bar');
+        if(fcb) fcb.style.display=allProjects.length?'flex':'none';
         renderProjects();
         updateBatchBar();
     }catch(e){toast(e.message,1)}
@@ -1413,6 +1430,67 @@ function updateBatchBar(){
         const visible=document.querySelectorAll('.proj-check').length;
         all.checked = n>0 && n===visible;
     }
+}
+
+let fundCoverageData = null;
+
+async function toggleFundCoverage(){
+    const domSel = document.getElementById('fund-coverage-domain');
+    const panel = document.getElementById('fund-coverage-panel');
+    if(domSel.style.display !== 'none'){
+        domSel.style.display='none';
+        panel.style.display='none';
+        fundCoverageData=null;
+        return;
+    }
+    try{
+        toast('載入基金覆蓋率⋯');
+        const r = await fetch('/api/fund-coverage',{headers:getAuthHeaders()});
+        if(!r.ok) throw new Error('載入失敗');
+        fundCoverageData = await r.json();
+        domSel.innerHTML='<option value="">-- 選擇基金類型 --</option>';
+        for(const [dom, dd] of Object.entries(fundCoverageData)){
+            domSel.innerHTML+=`<option value="${dom}">${escapeHtml(dd.label)}（${dd.covered}/${dd.total}）</option>`;
+        }
+        domSel.style.display='';
+        panel.style.display='none';
+    }catch(e){toast(e.message,1)}
+}
+
+function renderFundCoverage(){
+    const dom = document.getElementById('fund-coverage-domain').value;
+    const panel = document.getElementById('fund-coverage-panel');
+    const content = document.getElementById('fund-coverage-content');
+    if(!dom || !fundCoverageData || !fundCoverageData[dom]){
+        panel.style.display='none';
+        return;
+    }
+    const dd = fundCoverageData[dom];
+    const missing = dd.funds.filter(f=>!f.uploaded);
+    const uploaded = dd.funds.filter(f=>f.uploaded);
+    let h=`<div style="margin-bottom:12px;font-size:14px;color:#334155">
+        <strong>${escapeHtml(dd.label)}</strong>
+        — 已繳交 <span style="color:#059669;font-weight:600">${dd.covered}</span>/${dd.total}
+        ，未繳交 <span style="color:#dc2626;font-weight:600">${missing.length}</span>
+    </div>`;
+    if(missing.length){
+        h+=`<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:6px">❌ 未繳交（${missing.length}）</div>`;
+        h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
+        for(const f of missing){
+            h+=`<span style="display:inline-block;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px" title="${escapeHtml(f.code)} ${escapeHtml(f.supervisor)}">${escapeHtml(f.name)}</span>`;
+        }
+        h+=`</div></div>`;
+    }
+    if(uploaded.length){
+        h+=`<div><div style="font-size:13px;font-weight:600;color:#059669;margin-bottom:6px">✅ 已繳交（${uploaded.length}）</div>`;
+        h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
+        for(const f of uploaded){
+            h+=`<span style="display:inline-block;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px" title="${escapeHtml(f.code)} ${escapeHtml(f.supervisor)}">${escapeHtml(f.name)}</span>`;
+        }
+        h+=`</div></div>`;
+    }
+    content.innerHTML=h;
+    panel.style.display='block';
 }
 
 async function batchPublish(){
@@ -1901,11 +1979,16 @@ function updateFormulaCols(){
 // ===== Fill Mode =====
 async function initFillMode(){
     try{
-        const r=await fetch(`/api/fill/${fillToken}/data`);
+        const [r, fnr]=await Promise.all([
+            fetch(`/api/fill/${fillToken}/data`),
+            fetch('/api/fund-names')
+        ]);
         if(!r.ok)throw new Error('表單不存在或已取消發布');
         const res=await r.json();
         sessionId=res.session_id;
+        fillFundCol=res.fund_col||0;
         data=res.data||[];
+        if(fnr.ok){const fnj=await fnr.json();fundNames=fnj.names||[]}
         if(data.length<2){
             const maxC=data[0]?data[0].length:1;
             const nr=[];
@@ -1914,6 +1997,7 @@ async function initFillMode(){
         }
         original=JSON.parse(JSON.stringify(data));
         document.getElementById('file-name').textContent=res.name||'';
+        buildFundDatalist();
         renderFillTable();
         bindFillImportEvents();
         bindFillHistoryLoad();
@@ -2011,6 +2095,16 @@ function bindFillHistoryLoad(){
     });
 }
 
+function buildFundDatalist(){
+    let dl=document.getElementById('fund-names-list');
+    if(dl)dl.remove();
+    if(!fundNames.length)return;
+    dl=document.createElement('datalist');
+    dl.id='fund-names-list';
+    fundNames.forEach(n=>{const o=document.createElement('option');o.value=n;dl.appendChild(o)});
+    document.body.appendChild(dl);
+}
+
 function renderFillTable(){
     if(!data.length){document.getElementById('fill-table-container').innerHTML='';return}
     const maxC=Math.max(...data.map(r=>r.length||0),1);
@@ -2031,7 +2125,8 @@ function renderFillTable(){
                 h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
             } else {
                 const cls=`${isNum?'num':'txt'}`;
-                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}" placeholder="${c===0?'名稱':'0'}"></td>`;
+                const dl=(c===fillFundCol&&fundNames.length)?' list="fund-names-list"':'';
+                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}"${dl} placeholder="${c===0?'名稱':'0'}"></td>`;
             }
         }
         h+='</tr>';

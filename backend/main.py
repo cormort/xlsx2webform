@@ -616,6 +616,20 @@ async def get_registry_api():
     return registry.get_registry()
 
 
+@app.get("/api/fund-names")
+async def fund_names_api():
+    """Return a flat list of all fund names + aliases for autocomplete."""
+    reg = registry.get_registry()
+    names = []
+    for dd in reg.get("domains", {}).values():
+        for f in dd.get("funds", []):
+            names.append(f["name"])
+            for a in f.get("aliases") or []:
+                if a and a != f["name"]:
+                    names.append(a)
+    return {"names": sorted(set(names))}
+
+
 @app.get("/api/supervisors")
 async def list_supervisors_api():
     """Flat list of supervising authorities (主管機關) across both domains."""
@@ -684,6 +698,46 @@ async def consolidate(_admin=Depends(check_admin)):
         })
     total_rows = sum(len(f["rows"]) for g in out_groups for a in g["agencies"] for f in a["funds"])
     return {"groups": out_groups, "total_rows": total_rows}
+
+
+@app.get("/api/fund-coverage")
+async def fund_coverage_api(_admin=Depends(check_admin)):
+    """Compare uploaded response fund names against registry. Admin only."""
+    uploaded = set()
+    for sid, session in sessions.items():
+        responses = response_store.get(sid, [])
+        fund_col = session.fund_col or 0
+        for r in responses:
+            rdata = r.get("data", []) or []
+            for ri in range(1, len(rdata)):
+                row = rdata[ri] or []
+                cell = row[fund_col] if fund_col < len(row) else None
+                raw = (cell.get("value") or "").strip() if isinstance(cell, dict) else ""
+                if not raw:
+                    continue
+                m = registry.match_fund(raw)
+                uploaded.add(m["name"] if m else raw)
+
+    reg = registry.get_registry()
+    result = {}
+    for dom, dd in reg.get("domains", {}).items():
+        funds = []
+        for f in dd.get("funds", []):
+            funds.append({
+                "code": f["code"],
+                "name": f["name"],
+                "supervisor": dd.get("supervisors", {}).get(f.get("supervisor", ""), ""),
+                "uploaded": f["name"] in uploaded
+            })
+        total = len(funds)
+        covered = sum(1 for f in funds if f["uploaded"])
+        result[dom] = {
+            "label": dd.get("label", dom),
+            "total": total,
+            "covered": covered,
+            "funds": funds
+        }
+    return result
 
 
 @app.get("/")
@@ -1197,7 +1251,8 @@ async def get_fill_data(token: str, request: Request):
         "session_id": session_id,
         "name": session.name,
         "data": data,
-        "metadata": session.metadata
+        "metadata": session.metadata,
+        "fund_col": session.fund_col if session.fund_col is not None else 0
     }
 
 @app.post("/api/fill/{token}/submit")
