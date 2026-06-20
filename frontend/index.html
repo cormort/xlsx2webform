@@ -7,218 +7,245 @@
 <style>
 *,::before,::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f1f5f9;--surface:#fff;--surface-alt:#f8fafc;--border:#e2e8f0;--border-strong:#cbd5e1;
-  --text:#334155;--text-strong:#1e293b;--text-soft:#64748b;--text-muted:#94a3b8;
-  --primary:#2563eb;--primary-hover:#1d4ed8;--primary-soft:#eff6ff;
-  --success:#059669;--success-hover:#047857;--success-soft:#dcfce7;
-  --danger:#ef4444;--danger-hover:#dc2626;--danger-soft:#fca5a5;
-  --warn:#b45309;--warn-soft:#fef3c7;--excel:#107c41;
-  --radius-sm:6px;--radius:8px;--radius-lg:12px;
-  --shadow:0 1px 3px rgba(0,0,0,.06);--shadow-md:0 4px 12px rgba(0,0,0,.08);
-  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;
-  --fs-sm:12px;--fs-base:13px;--fs-md:14px;--fs-lg:16px;--fs-xl:20px;
+  --bg:#eef1f6;--surface:#fff;--surface-alt:#f7f8fb;--border:#dde1e8;--border-strong:#bcc3d0;
+  --text:#2d3748;--text-strong:#1a202c;--text-soft:#5a6577;--text-muted:#8b95a5;
+  --primary:#1a3a5c;--primary-hover:#14304d;--primary-soft:#e8eef5;--primary-light:#2c5282;
+  --accent:#2b6cb0;--accent-hover:#2256a0;--accent-soft:#ebf4ff;
+  --success:#276749;--success-hover:#1e5438;--success-soft:#e6f4ed;
+  --danger:#c53030;--danger-hover:#a12828;--danger-soft:#fde8e8;
+  --warn:#975a16;--warn-soft:#fefcbf;--excel:#107c41;
+  --radius-sm:4px;--radius:6px;--radius-lg:10px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 16px rgba(0,0,0,.1),0 2px 4px rgba(0,0,0,.06);
+  --shadow-lg:0 8px 30px rgba(0,0,0,.12);
+  --sp-1:4px;--sp-2:8px;--sp-3:12px;--sp-4:16px;--sp-5:24px;--sp-6:32px;
+  --fs-xs:11px;--fs-sm:12px;--fs-base:13.5px;--fs-md:14.5px;--fs-lg:16px;--fs-xl:20px;--fs-2xl:24px;
+  --font-sans:'Microsoft JhengHei','PingFang TC','Noto Sans TC',-apple-system,BlinkMacSystemFont,sans-serif;
 }
-body{font-family:'Microsoft JhengHei','PingFang TC','Noto Sans TC',sans-serif;background:var(--bg);color:var(--text)}
-header{background:#fff;border-bottom:1px solid #e2e8f0;position:sticky;top:0;z-index:50}
-header .inner{max-width:100%;margin:0 auto;padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px}
-header h1{font-size:17px;font-weight:700;color:#1e293b}
-header .file{font-size:13px;color:#94a3b8}
-main{padding:12px 16px;max-width:100%}
-.drop-zone{border:3px dashed #cbd5e1;border-radius:12px;padding:36px 24px;text-align:center;cursor:pointer;transition:.3s;margin-top:40px}
-.drop-zone:hover,.drop-zone.drag-over{border-color:#3b82f6;background:#eff6ff}
-.drop-zone .icon{font-size:40px;margin-bottom:8px}
-.drop-zone h2{font-size:18px;color:#475569;margin-bottom:6px}
-.drop-zone p{color:#94a3b8;font-size:13px}
-.loading{text-align:center;padding:40px;display:none}
-.loading .spinner{width:28px;height:28px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
-.loading p{margin-top:8px;color:#64748b;font-size:14px}
+body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-height:1.5;-webkit-font-smoothing:antialiased}
+
+/* ── Header ── */
+header{background:linear-gradient(135deg,#1a2332 0%,#243447 100%);border-bottom:3px solid #2b6cb0;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+header .inner{max-width:100%;margin:0 auto;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
+header h1{font-size:18px;font-weight:700;color:#fff;letter-spacing:.3px}
+header .file{font-size:var(--fs-sm);color:rgba(255,255,255,.55)}
+main{padding:20px 24px;max-width:100%}
+
+/* ── Upload zone ── */
+.drop-zone{border:2px dashed var(--border-strong);border-radius:var(--radius-lg);padding:48px 32px;text-align:center;cursor:pointer;transition:.25s;margin-top:40px;background:var(--surface)}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.drop-zone .icon{font-size:36px;margin-bottom:10px;opacity:.7}
+.drop-zone h2{font-size:18px;color:var(--text-strong);margin-bottom:6px;font-weight:600}
+.drop-zone p{color:var(--text-muted);font-size:var(--fs-base)}
+.loading{text-align:center;padding:48px;display:none}
+.loading .spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto}
+.loading p{margin-top:10px;color:var(--text-soft);font-size:var(--fs-md)}
 @keyframes spin{to{transform:rotate(360deg)}}
-.toolbar{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;padding:10px 14px;background:#fff;border-radius:10px;border:1px solid #e2e8f0}
-.toolbar .sep{width:1px;height:24px;background:#e2e8f0;margin:0 4px}
-.btn{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:6px;font-size:12px;font-weight:500;border:1px solid transparent;cursor:pointer;transition:.15s}
+
+/* ── Toolbar ── */
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px;padding:12px 16px;background:var(--surface);border-radius:var(--radius-lg);border:1px solid var(--border);box-shadow:var(--shadow)}
+.toolbar .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
+
+/* ── Buttons ── */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--radius);font-size:var(--fs-sm);font-weight:600;border:1px solid transparent;cursor:pointer;transition:all .15s ease;letter-spacing:.2px;line-height:1.4}
 .btn svg{width:14px;height:14px;fill:currentColor}
-.btn-primary{background:#2563eb;color:#fff}.btn-primary:hover{background:#1d4ed8}
-.btn-success{background:#059669;color:#fff}.btn-success:hover{background:#047857}
-.btn-danger{background:#ef4444;color:#fff}.btn-danger:hover{background:#dc2626}
-.btn-outline{background:#fff;color:#475569;border-color:#cbd5e1}.btn-outline:hover{background:#f8fafc}
-.btn-outline-red{background:#fff;color:#dc2626;border-color:#fca5a5}.btn-outline-red:hover{background:#fef2f2}
-.formula-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:6px;padding:6px 12px;background:#fff;border-radius:8px;border:1px solid #e2e8f0;font-size:12px}
-.formula-bar label{color:#64748b;font-weight:500;white-space:nowrap}
-.formula-bar select{padding:3px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;background:#fff}
-.formula-bar input{flex:1;padding:4px 8px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;font-family:monospace}
-.formula-bar .hint{color:#94a3b8;font-size:11px}
-.formula-bar .btn{padding:3px 10px;font-size:12px}
-.table-wrap{background:#fff;border-radius:10px;overflow:hidden;border:1px solid #e2e8f0}
+.btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}.btn-primary:hover{background:var(--primary-hover);box-shadow:0 2px 4px rgba(0,0,0,.18)}
+.btn-success{background:var(--success);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}.btn-success:hover{background:var(--success-hover)}
+.btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:var(--danger-hover)}
+.btn-outline{background:var(--surface);color:var(--text-soft);border-color:var(--border-strong)}.btn-outline:hover{background:var(--surface-alt);color:var(--text-strong);border-color:var(--text-muted)}
+.btn-outline-red{background:var(--surface);color:var(--danger);border-color:var(--danger-soft)}.btn-outline-red:hover{background:#fef2f2;border-color:var(--danger)}
+
+/* ── Formula bar ── */
+.formula-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;padding:8px 14px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);font-size:var(--fs-sm)}
+.formula-bar label{color:var(--text-soft);font-weight:600;white-space:nowrap}
+.formula-bar select{padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:var(--fs-sm);background:var(--surface)}
+.formula-bar input{flex:1;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-family:'SF Mono','Menlo','Consolas',monospace}
+.formula-bar .hint{color:var(--text-muted);font-size:var(--fs-xs)}
+.formula-bar .btn{padding:4px 12px;font-size:var(--fs-sm)}
+
+/* ── Table ── */
+.table-wrap{background:var(--surface);border-radius:var(--radius-lg);overflow:hidden;border:1px solid var(--border);box-shadow:var(--shadow)}
 .table-wrap .scroll{overflow:auto;max-height:calc(100vh - 240px)}
-table{width:100%;border-collapse:collapse;font-size:13px;table-layout:auto;min-width:100%}
-thead th{background:#f8fafc;font-weight:600;color:#475569;text-align:center;position:sticky;top:0;z-index:2;border-bottom:2px solid #cbd5e1;padding:0}
-thead th input{border:none;background:transparent;text-align:center;font-weight:600;width:100%;font-size:12px;color:#475569;padding:5px 6px}
-thead th input:focus{outline:2px solid #3b82f6;background:#fff;border-radius:2px}
-th,td{border:1px solid #e2e8f0}
+table{width:100%;border-collapse:collapse;font-size:var(--fs-base);table-layout:auto;min-width:100%}
+thead th{background:var(--primary);font-weight:600;color:#fff;text-align:center;position:sticky;top:0;z-index:2;border-bottom:none;padding:0;letter-spacing:.3px}
+thead th input{border:none;background:transparent;text-align:center;font-weight:600;width:100%;font-size:var(--fs-sm);color:#fff;padding:8px 8px}
+thead th input::placeholder{color:rgba(255,255,255,.5)}
+thead th input:focus{outline:2px solid #4299e1;background:rgba(255,255,255,.12);border-radius:2px}
+th,td{border:1px solid var(--border)}
+th{border-color:rgba(255,255,255,.15)}
 td{padding:0;min-width:60px;position:relative}
-td.focused::before{content:'';position:absolute;inset:0;border:2px solid #2563eb;pointer-events:none;z-index:1;background:rgba(37,99,235,.04)}
-td.formula::after{content:'ƒ';position:absolute;top:0;right:2px;font-size:9px;color:#d97706;pointer-events:none}
-td input{border:none;width:100%;font-size:12px;padding:4px 6px;background:transparent;color:#334155;min-height:26px}
-td input:focus{outline:none}
-td input.num{text-align:right}
+td.focused::before{content:'';position:absolute;inset:0;border:2px solid var(--accent);pointer-events:none;z-index:1;background:rgba(43,108,176,.06)}
+td.formula::after{content:'f';position:absolute;top:1px;right:3px;font-size:9px;color:var(--warn);pointer-events:none;font-style:italic;font-weight:700}
+td input{border:none;width:100%;font-size:var(--fs-sm);padding:6px 8px;background:transparent;color:var(--text);min-height:30px}
+td input:focus{outline:none;background:var(--accent-soft)}
+td input.num{text-align:right;font-variant-numeric:tabular-nums}
 td input.txt{text-align:left}
-td input.auto-sum{background:#fef3c7;color:#92400e;font-weight:600}
+td input.auto-sum{background:#fef3c7;color:#92400e;font-weight:700}
 td input.auto-sum:focus{background:#fef9c3}
-td input.formula-cell{color:#d97706;font-style:italic}
-.lv-1 td:first-child input{padding-left:20px}
-.lv-2 td:first-child input{padding-left:36px}
-.lv-3 td:first-child input{padding-left:52px}
-.lv-4 td:first-child input{padding-left:68px}
-tbody tr:hover td{background:#f8fafc}
-tbody tr:hover td input{background:#f8fafc}
-tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
-.toast{position:fixed;bottom:20px;right:20px;background:#1e293b;color:#fff;padding:8px 16px;border-radius:8px;font-size:13px;z-index:100;opacity:0;transition:.3s;pointer-events:none}
+td input.formula-cell{color:var(--warn);font-style:italic}
+.lv-1 td:first-child input{padding-left:22px}
+.lv-2 td:first-child input{padding-left:38px}
+.lv-3 td:first-child input{padding-left:54px}
+.lv-4 td:first-child input{padding-left:70px}
+tbody tr:nth-child(even) td{background:var(--surface-alt)}
+tbody tr:nth-child(even) td input{background:var(--surface-alt)}
+tbody tr:hover td{background:#e8eef5}
+tbody tr:hover td input{background:#e8eef5}
+tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
+
+/* ── Toast ── */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--primary);color:#fff;padding:10px 20px;border-radius:var(--radius);font-size:var(--fs-base);z-index:100;opacity:0;transition:.3s;pointer-events:none;box-shadow:var(--shadow-md);font-weight:500}
 .toast.show{opacity:1}
-.toast.err{background:#dc2626}
+.toast.err{background:var(--danger)}
 
-/* Fill mode banner */
-.fill-banner{background:#059669;color:#fff;text-align:center;padding:8px 16px;font-size:13px;font-weight:500}
+/* ── Fill mode ── */
+.fill-banner{background:linear-gradient(135deg,#276749 0%,#2f855a 100%);color:#fff;text-align:center;padding:10px 20px;font-size:var(--fs-md);font-weight:600;letter-spacing:.3px}
+.submit-bar{display:flex;justify-content:space-between;align-items:center;padding:16px 0;gap:10px}
+.submit-bar .btn{padding:10px 24px;font-size:var(--fs-md)}
+.submit-bar input{padding:8px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);flex:1;max-width:300px;transition:border-color .15s}
+.submit-bar input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,108,176,.12)}
+.submit-msg{padding:60px 24px;text-align:center}
+.submit-msg .icon{font-size:48px;margin-bottom:16px}
+.submit-msg h2{color:var(--success);font-size:var(--fs-xl);margin-bottom:10px;font-weight:700}
+.submit-msg p{color:var(--text-soft);font-size:var(--fs-md)}
 
-/* Fill mode submit bar */
-.submit-bar{display:flex;justify-content:space-between;align-items:center;padding:12px 0;gap:8px}
-.submit-bar .btn{padding:8px 20px;font-size:14px}
-.submit-bar input{padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;flex:1;max-width:300px}
-.submit-msg{padding:40px;text-align:center}
-.submit-msg .icon{font-size:48px;margin-bottom:12px}
-.submit-msg h2{color:#059669;font-size:20px;margin-bottom:8px}
-.submit-msg p{color:#64748b;font-size:14px}
-
-/* Modal overlay */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;align-items:center;justify-content:center}
+/* ── Modal ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(26,35,50,.55);backdrop-filter:blur(4px);z-index:200;align-items:center;justify-content:center}
 .modal-overlay.show{display:flex}
-.modal-box{background:#fff;border-radius:12px;padding:20px;max-width:640px;width:90%;max-height:80vh;overflow:auto}
-.modal-box h2{font-size:16px;margin-bottom:12px;color:#1e293b}
-.modal-box .close{float:right;background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8}
-.modal-box .close:hover{color:#475569}
-.share-url{display:flex;gap:8px;margin:12px 0}
-.share-url input{flex:1;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#f8fafc}
-.share-url .btn{padding:8px 14px;white-space:nowrap}
-.resp-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid #e2e8f0;border-radius:6px;margin-bottom:6px}
-.resp-item:hover{background:#f8fafc}
-.resp-item .info{font-size:13px}
-.resp-item .info strong{color:#1e293b}
-.resp-item .info span{color:#94a3b8;margin-left:8px}
+.modal-box{background:var(--surface);border-radius:var(--radius-lg);padding:28px;max-width:640px;width:90%;max-height:80vh;overflow:auto;box-shadow:var(--shadow-lg)}
+.modal-box h2{font-size:var(--fs-lg);margin-bottom:14px;color:var(--text-strong);font-weight:700}
+.modal-box .close{float:right;background:none;border:none;font-size:22px;cursor:pointer;color:var(--text-muted);width:32px;height:32px;display:flex;align-items:center;justify-content:center;border-radius:var(--radius-sm);transition:.15s}
+.modal-box .close:hover{color:var(--text-strong);background:var(--surface-alt)}
+.share-url{display:flex;gap:8px;margin:14px 0}
+.share-url input{flex:1;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface-alt)}
+.share-url .btn{padding:10px 16px;white-space:nowrap}
+.resp-item{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);margin-bottom:8px;transition:.15s}
+.resp-item:hover{background:var(--surface-alt);border-color:var(--border-strong)}
+.resp-item .info{font-size:var(--fs-base)}
+.resp-item .info strong{color:var(--text-strong)}
+.resp-item .info span{color:var(--text-muted);margin-left:8px}
 .resp-item .actions{display:flex;gap:4px}
 .resp-table-wrap{overflow:auto;margin-top:8px}
-.resp-table-wrap table{font-size:12px;min-width:100%}
-.resp-table-wrap td{padding:4px 8px;white-space:nowrap}
-.resp-table-wrap td:first-child{font-weight:500;color:#475569}
+.resp-table-wrap table{font-size:var(--fs-sm);min-width:100%}
+.resp-table-wrap td{padding:5px 10px;white-space:nowrap}
+.resp-table-wrap td:first-child{font-weight:600;color:var(--text-soft)}
 
-/* Tab bar */
-.tab-bar{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid #e2e8f0}
-.tab-bar .tab{padding:8px 20px;font-size:13px;font-weight:500;color:#94a3b8;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:.15s}
-.tab-bar .tab:hover{color:#475569}
-.tab-bar .tab.active{color:#2563eb;border-bottom-color:#2563eb}
+/* ── Tab bar ── */
+.tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:0 8px}
+.tab-bar .tab{padding:12px 22px;font-size:var(--fs-base);font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;letter-spacing:.2px}
+.tab-bar .tab:hover{color:var(--text-soft);background:var(--surface-alt)}
+.tab-bar .tab.active{color:var(--primary);border-bottom-color:var(--accent)}
 
-/* Responses dashboard */
-.resp-stats{font-size:13px;color:#64748b;margin-bottom:12px}
-.resp-compare-table{font-size:12px;min-width:100%}
-.resp-compare-table thead th{background:#f8fafc;font-weight:600;color:#475569;position:sticky;top:0;z-index:2;padding:6px 10px;border:1px solid #e2e8f0;white-space:nowrap}
-.resp-compare-table td{padding:5px 10px;border:1px solid #e2e8f0;white-space:nowrap}
-.resp-compare-table tbody tr:hover{background:#f8fafc}
-.resp-compare-table .resp-row-label{color:#64748b;font-size:11px}
-.resp-compare-table .resp-delete{color:#dc2626;cursor:pointer;font-size:12px;padding:2px 6px;border:none;background:none;border-radius:4px}
-.resp-compare-table .resp-delete:hover{background:#fef2f2}
+/* ── Responses dashboard ── */
+.resp-stats{font-size:var(--fs-base);color:var(--text-soft);margin-bottom:14px;font-weight:500}
+.resp-compare-table{font-size:var(--fs-sm);min-width:100%}
+.resp-compare-table thead th{background:var(--primary);font-weight:600;color:#fff;position:sticky;top:0;z-index:2;padding:8px 12px;border:1px solid rgba(255,255,255,.15);white-space:nowrap}
+.resp-compare-table td{padding:7px 12px;border:1px solid var(--border);white-space:nowrap}
+.resp-compare-table tbody tr:nth-child(even){background:var(--surface-alt)}
+.resp-compare-table tbody tr:hover{background:var(--primary-soft)}
+.resp-compare-table .resp-row-label{color:var(--text-muted);font-size:var(--fs-xs)}
+.resp-compare-table .resp-delete{color:var(--danger);cursor:pointer;font-size:var(--fs-sm);padding:3px 8px;border:none;background:none;border-radius:var(--radius-sm)}
+.resp-compare-table .resp-delete:hover{background:var(--danger-soft)}
 
-/* Projects page */
-.projects-section{padding:24px 0;max-width:960px;margin:0 auto}
-.projects-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
-.projects-header h2{font-size:20px;color:#1e293b;font-weight:700}
-.project-grid{display:flex;flex-direction:column;gap:8px}
-.project-card{display:flex;align-items:center;justify-content:space-between;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;transition:.15s}
-.project-card:hover{box-shadow:0 2px 8px rgba(0,0,0,.06);border-color:#cbd5e1}
+/* ── Projects page ── */
+.projects-section{padding:28px 0;max-width:1000px;margin:0 auto}
+.projects-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}
+.projects-header h2{font-size:var(--fs-2xl);color:var(--text-strong);font-weight:700;letter-spacing:.3px}
+.project-grid{display:flex;flex-direction:column;gap:10px}
+.project-card{display:flex;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;transition:.2s;box-shadow:var(--shadow)}
+.project-card:hover{box-shadow:var(--shadow-md);border-color:var(--border-strong);transform:translateY(-1px)}
 .project-card .info{flex:1;min-width:0}
-.project-card .info .name{font-size:14px;font-weight:600;color:#1e293b;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.project-card .info .meta{font-size:12px;color:#94a3b8}
-.project-card .info .meta span{margin-right:12px}
-.project-card .badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
-.project-card .badge.published{background:#dcfce7;color:#166534}
-.project-card .badge.unpublished{background:#f1f5f9;color:#94a3b8}
-.project-card .actions{display:flex;gap:6px;flex-shrink:0;margin-left:12px}
-.project-card .actions .btn{padding:5px 12px;font-size:12px}
-.empty-projects{text-align:center;padding:48px 24px;color:#94a3b8}
-.empty-projects .icon{font-size:48px;margin-bottom:12px}
-.empty-projects p{font-size:14px;margin-bottom:16px}
-.upload-area{border:2px dashed #cbd5e1;border-radius:10px;padding:32px 20px;text-align:center;cursor:pointer;transition:.2s;margin-bottom:24px}
-.upload-area:hover,.upload-area.drag-over{border-color:#3b82f6;background:#eff6ff}
-.upload-area .icon{font-size:32px;margin-bottom:4px}
-.upload-area h3{font-size:15px;color:#475569;margin-bottom:2px}
-.upload-area p{font-size:12px;color:#94a3b8}
+.project-card .info .name{font-size:var(--fs-md);font-weight:700;color:var(--text-strong);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.project-card .info .meta{font-size:var(--fs-sm);color:var(--text-muted)}
+.project-card .info .meta span{margin-right:14px}
+.project-card .badge{display:inline-block;padding:3px 10px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.project-card .badge.published{background:var(--success-soft);color:var(--success)}
+.project-card .badge.unpublished{background:var(--surface-alt);color:var(--text-muted)}
+.project-card .actions{display:flex;gap:8px;flex-shrink:0;margin-left:14px}
+.project-card .actions .btn{padding:6px 14px;font-size:var(--fs-sm)}
+.empty-projects{text-align:center;padding:64px 24px;color:var(--text-muted)}
+.empty-projects .icon{font-size:48px;margin-bottom:14px;opacity:.6}
+.empty-projects p{font-size:var(--fs-md);margin-bottom:20px}
+.upload-area{border:2px dashed var(--border-strong);border-radius:var(--radius-lg);padding:36px 24px;text-align:center;cursor:pointer;transition:.25s;margin-bottom:28px;background:var(--surface)}
+.upload-area:hover,.upload-area.drag-over{border-color:var(--accent);background:var(--accent-soft)}
+.upload-area .icon{font-size:32px;margin-bottom:6px;opacity:.7}
+.upload-area h3{font-size:var(--fs-lg);color:var(--text-strong);margin-bottom:4px;font-weight:600}
+.upload-area p{font-size:var(--fs-sm);color:var(--text-muted)}
 
 /* ── Identity bar (header) ── */
-.identity{display:flex;align-items:center;gap:var(--sp-2);margin-left:auto;font-size:var(--fs-base)}
-.identity .who{display:flex;align-items:center;gap:6px;color:var(--text-soft);max-width:220px}
+.identity{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:var(--fs-base)}
+.identity .who{display:flex;align-items:center;gap:6px;color:rgba(255,255,255,.7);max-width:220px}
 .identity .who .email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.identity .badge-role{padding:2px 9px;border-radius:10px;font-size:11px;font-weight:600;background:var(--primary-soft);color:var(--primary)}
-.identity .badge-role.admin{background:var(--warn-soft);color:var(--warn)}
+.identity .badge-role{padding:3px 10px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:rgba(255,255,255,.15);color:#fff;letter-spacing:.5px;text-transform:uppercase}
+.identity .badge-role.admin{background:rgba(237,137,54,.2);color:#fbd38d}
 
 /* ── Projects toolbar: search / filter / sort ── */
-.projects-toolbar{display:flex;flex-wrap:wrap;gap:var(--sp-2);align-items:center;margin-bottom:var(--sp-3)}
+.projects-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--sp-4)}
 .projects-toolbar .search{position:relative;flex:1;min-width:200px}
-.projects-toolbar .search input{width:100%;padding:8px 12px 8px 32px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text)}
-.projects-toolbar .search input:focus{outline:2px solid var(--primary);border-color:transparent}
-.projects-toolbar .search .ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none}
-.projects-toolbar select{padding:8px 10px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
+.projects-toolbar .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);transition:border-color .15s}
+.projects-toolbar .search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,108,176,.12)}
+.projects-toolbar .search .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
+.projects-toolbar select{padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
 
 /* ── Batch action bar ── */
-.batch-bar{display:none;align-items:center;gap:var(--sp-3);padding:10px 14px;background:var(--primary-soft);border:1px solid #bfdbfe;border-radius:var(--radius);margin-bottom:var(--sp-3)}
+.batch-bar{display:none;align-items:center;gap:var(--sp-4);padding:12px 16px;background:var(--primary-soft);border:1px solid #bdd4ec;border-radius:var(--radius);margin-bottom:var(--sp-4)}
 .batch-bar.show{display:flex;flex-wrap:wrap}
-.batch-bar .count{font-size:var(--fs-base);font-weight:600;color:var(--primary)}
-.batch-bar label{display:inline-flex;align-items:center;gap:5px;font-size:var(--fs-base);color:var(--text-soft);cursor:pointer}
+.batch-bar .count{font-size:var(--fs-base);font-weight:700;color:var(--primary)}
+.batch-bar label{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-base);color:var(--text-soft);cursor:pointer}
 .batch-bar .spacer{flex:1}
 
 /* ── Richer project card ── */
 .project-card .check{flex-shrink:0;margin-right:var(--sp-3);display:flex;align-items:center}
-.project-card .check input{width:16px;height:16px;cursor:pointer;accent-color:var(--primary)}
-.project-card.selected{border-color:var(--primary);background:#f5f9ff}
-.project-card .meta .resp{color:var(--success);font-weight:500}
+.project-card .check input{width:16px;height:16px;cursor:pointer;accent-color:var(--accent)}
+.project-card.selected{border-color:var(--accent);background:var(--accent-soft)}
+.project-card .meta .resp{color:var(--success);font-weight:600}
 .project-card .meta .updated{color:var(--text-muted)}
-.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-size:13px;color:var(--text-soft);transition:.15s}
+.icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-size:14px;color:var(--text-soft);transition:.15s}
 .icon-btn:hover{background:var(--surface-alt);color:var(--text-strong)}
-.icon-btn.danger:hover{background:#fef2f2;color:var(--danger-hover);border-color:var(--danger-soft)}
+.icon-btn.danger:hover{background:var(--danger-soft);color:var(--danger-hover);border-color:var(--danger)}
 .empty-projects.filtered .icon{font-size:32px}
 
 /* ── Consolidation (總彙整) ── */
-.consol-sup{margin-bottom:var(--sp-4);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;background:var(--surface)}
-.consol-sup-h{background:#1e293b;color:#fff;font-weight:700;font-size:var(--fs-md);padding:10px 14px}
+.consol-sup{margin-bottom:var(--sp-4);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;background:var(--surface);box-shadow:var(--shadow)}
+.consol-sup-h{background:var(--primary);color:#fff;font-weight:700;font-size:var(--fs-md);padding:12px 16px;letter-spacing:.3px}
 .consol-agency{border-top:1px solid var(--border)}
-.consol-agency-h{background:var(--primary-soft);color:var(--primary);font-weight:600;font-size:var(--fs-base);padding:8px 14px 8px 24px}
-.consol-fund{padding:8px 14px 12px 24px;border-top:1px dashed var(--border)}
-.consol-fund-h{font-weight:600;font-size:var(--fs-base);color:var(--text-strong);margin-bottom:6px}
+.consol-agency-h{background:var(--primary-soft);color:var(--primary);font-weight:700;font-size:var(--fs-base);padding:10px 16px 10px 28px}
+.consol-fund{padding:10px 16px 14px 28px;border-top:1px dashed var(--border)}
+.consol-fund-h{font-weight:700;font-size:var(--fs-base);color:var(--text-strong);margin-bottom:8px}
 .consol-fund .resp-table-wrap{margin-left:8px}
+
+/* ── Global form inputs ── */
+input[type="text"],input[type="email"],input[type="password"],textarea,select{font-family:var(--font-sans)}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(43,108,176,.1)}
 
 /* ── Responsive ── */
 @media(max-width:640px){
-  header .inner{flex-wrap:wrap;gap:6px;padding:8px 12px}
-  header h1{font-size:15px}
+  header .inner{flex-wrap:wrap;gap:8px;padding:12px 16px}
+  header h1{font-size:16px}
   .identity .who{max-width:130px}
-  main{padding:10px 12px}
-  .projects-section{padding:16px 0}
-  .projects-header h2{font-size:var(--fs-lg)}
-  .project-card{flex-wrap:wrap}
+  main{padding:14px 16px}
+  .projects-section{padding:20px 0}
+  .projects-header h2{font-size:var(--fs-xl)}
+  .project-card{flex-wrap:wrap;padding:14px 16px}
   .project-card .actions{margin-left:0;margin-top:var(--sp-2);width:100%;justify-content:flex-end}
-  .toolbar{gap:var(--sp-1)}
+  .toolbar{gap:6px;padding:10px 14px}
   .submit-bar{flex-direction:column;align-items:stretch}
   .submit-bar input{max-width:none}
-  .modal-box{width:94%;padding:16px}
+  .modal-box{width:94%;padding:20px}
+  .tab-bar .tab{padding:10px 16px;font-size:var(--fs-sm)}
 }
 </style>
 </head>
 <body>
 
 <header><div class="inner">
-    <h1 id="app-title" style="cursor:pointer">預算表單編輯器</h1>
+    <h1 id="app-title" style="cursor:pointer">預算表單編輯系統</h1>
     <span class="file" id="file-name"></span>
-    <a id="back-link" href="/" style="display:none;font-size:13px;color:var(--primary);text-decoration:none;margin-left:auto">← 專案列表</a>
+    <a id="back-link" href="/" style="display:none;font-size:13px;color:rgba(255,255,255,.7);text-decoration:none;margin-left:auto">&#8592; 專案列表</a>
     <div class="identity" id="identity" style="display:none"></div>
 </div></header>
 
-<div id="fill-banner" class="fill-banner">📋 填寫模式 — 請在下方填入資料後提交</div>
+<div id="fill-banner" class="fill-banner">填寫模式 — 請在下方填入資料後提交</div>
 
 <main>
 
@@ -226,36 +253,36 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <div id="projects-section" class="projects-section">
     <!-- Admin Tabs (visible to admin only) -->
     <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:20px">
-        <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">📁 專案管理</div>
-        <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">👥 使用者管理</div>
-        <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">📋 基金管理</div>
-        <div class="tab" id="tab-template-mgmt" data-tab="template-mgmt">📄 範本管理</div>
-        <div class="tab" id="tab-consolidate" data-tab="consolidate">📊 總彙整</div>
+        <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">專案管理</div>
+        <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">使用者管理</div>
+        <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">基金管理</div>
+        <div class="tab" id="tab-template-mgmt" data-tab="template-mgmt">範本管理</div>
+        <div class="tab" id="tab-consolidate" data-tab="consolidate">總彙整</div>
     </div>
 
     <!-- Project Management Section -->
     <div id="project-management-view">
         <div class="projects-header">
-            <h2>📁 我的專案</h2>
-            <button class="btn btn-primary" id="btn-new-project" style="padding:8px 18px;font-size:14px">📤 新增專案</button>
+            <h2>我的專案</h2>
+            <button class="btn btn-primary" id="btn-new-project" style="padding:10px 22px;font-size:var(--fs-md)">＋ 新增專案</button>
         </div>
         <!-- Upload area (shown when clicking 新增專案) -->
         <div id="project-upload-area" class="upload-area" style="display:none">
             <div id="upload-fields" style="max-width:320px;margin:0 auto 20px;text-align:left">
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📧 專案發起人 Email</label>
-                    <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">專案發起人 Email</label>
+                    <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)" required>
                 </div>
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">🔑 設定專案編輯密碼</label>
-                    <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px" required>
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">設定專案編輯密碼</label>
+                    <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)" required>
                 </div>
-                <div style="margin-bottom:12px">
-                    <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">📁 專案名稱 (選填，預設為 Excel 檔名)</label>
-                    <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+                <div style="margin-bottom:14px">
+                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">專案名稱（選填，預設為 Excel 檔名）</label>
+                    <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);font-family:inherit;resize:none;box-sizing:border-box"></textarea>
                 </div>
             </div>
-            <div class="icon">📄</div>
+            <div class="icon" style="font-size:28px;color:var(--accent);opacity:.8">&#9650;</div>
             <h3>上傳 XLSX 檔案</h3>
             <p>拖放 Excel 到此處，或點擊選擇 — 自動轉為可編輯表單</p>
             <input type="file" id="project-file-input" hidden accept=".xlsx,.xls">
@@ -286,7 +313,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 
         <!-- Fund coverage panel -->
         <div id="fund-coverage-bar" style="display:none;margin-bottom:8px">
-            <button class="btn btn-outline" id="btn-fund-coverage" style="padding:5px 14px;font-size:13px">📊 基金繳交狀態</button>
+            <button class="btn btn-outline" id="btn-fund-coverage" style="padding:7px 16px;font-size:var(--fs-sm)">基金繳交狀態</button>
             <select id="fund-coverage-domain" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff;display:none">
                 <option value="">-- 選擇基金類型 --</option>
             </select>
@@ -300,13 +327,13 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <label><input type="checkbox" id="batch-select-all"> 全選</label>
             <span class="count" id="batch-count">已選 0 項</span>
             <span class="spacer"></span>
-            <button class="btn btn-primary" id="btn-batch-publish" style="padding:5px 12px">🔗 批次發布</button>
-            <button class="btn btn-outline-red" id="btn-batch-delete" style="padding:5px 12px">🗑️ 批次刪除</button>
-            <button class="btn btn-outline" id="btn-batch-clear" style="padding:5px 12px">取消選取</button>
+            <button class="btn btn-primary" id="btn-batch-publish" style="padding:7px 14px">批次發布</button>
+            <button class="btn btn-outline-red" id="btn-batch-delete" style="padding:7px 14px">批次刪除</button>
+            <button class="btn btn-outline" id="btn-batch-clear" style="padding:7px 14px">取消選取</button>
         </div>
 
         <div id="project-list"><div class="empty-projects" id="empty-projects">
-            <div class="icon">📋</div>
+            <div class="icon">—</div>
             <p>尚無專案，請上傳 Excel 檔案開始使用</p>
         </div></div>
     </div>
@@ -314,8 +341,8 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <!-- User Management Section (visible to admin only) -->
     <div id="user-management-view" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 style="font-size:16px;color:#1e293b">👥 系統使用者管理</h3>
-            <button class="btn btn-primary" id="btn-add-user" style="padding:8px 18px;font-size:14px">＋ 新增使用者</button>
+            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">系統使用者管理</h3>
+            <button class="btn btn-primary" id="btn-add-user" style="padding:10px 22px;font-size:var(--fs-md)">＋ 新增使用者</button>
         </div>
         <div class="table-wrap">
             <div class="scroll">
@@ -340,9 +367,9 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <!-- Fund Management Section (visible to admin only) -->
     <div id="fund-management-view" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:16px;color:#1e293b">📋 現行基金清單管理</h3>
+            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">現行基金清單管理</h3>
             <div style="display:flex;gap:8px">
-                <button class="btn btn-primary" id="btn-fund-save" style="padding:6px 14px">💾 儲存變更</button>
+                <button class="btn btn-primary" id="btn-fund-save" style="padding:8px 16px">儲存變更</button>
             </div>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px">
@@ -357,7 +384,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
         </div>
         <div id="fund-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:450px;overflow-y:auto"></div>
         <details style="margin-top:16px">
-            <summary style="cursor:pointer;font-size:13px;font-weight:600;color:#475569;padding:8px 0">📝 別名對照表（aliasMap）</summary>
+            <summary style="cursor:pointer;font-size:var(--fs-base);font-weight:700;color:var(--text-soft);padding:10px 0">別名對照表（aliasMap）</summary>
             <div style="margin-top:8px;display:flex;gap:6px;margin-bottom:8px">
                 <input type="text" id="alias-add-key" placeholder="簡稱（如：央行）" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
                 <input type="text" id="alias-add-val" placeholder="對應全名（如：中央銀行）" style="flex:2;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
@@ -370,7 +397,7 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <!-- Template Management Section (visible to admin only) -->
     <div id="template-management-view" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:16px;color:#1e293b">📄 範本管理</h3>
+            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">範本管理</h3>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
             <select id="tpl-filter-supervisor" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
@@ -388,10 +415,10 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
     <!-- Consolidation Section (visible to admin only) -->
     <div id="consolidate-view" style="display:none">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:16px;color:#1e293b">📊 跨專案總彙整（主管機關 → 機關 → 基金）</h3>
+            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">跨專案總彙整（主管機關 → 機關 → 基金）</h3>
             <div style="display:flex;gap:8px">
-                <button class="btn btn-outline" id="btn-consol-refresh" style="padding:6px 14px">🔄 重新整理</button>
-                <button class="btn btn-success" id="btn-consol-export" style="padding:6px 14px">📤 匯出 CSV</button>
+                <button class="btn btn-outline" id="btn-consol-refresh" style="padding:8px 16px">重新整理</button>
+                <button class="btn btn-success" id="btn-consol-export" style="padding:8px 16px">匯出 CSV</button>
             </div>
         </div>
         <p style="font-size:12px;color:#94a3b8;margin-bottom:12px">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
@@ -402,34 +429,34 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <!-- Editor -->
 <div id="editor">
     <div class="tab-bar">
-        <div class="tab active" data-tab="edit">✏️ 編輯</div>
-        <div class="tab" data-tab="responses">📋 回應結果</div>
+        <div class="tab active" data-tab="edit">編輯</div>
+        <div class="tab" data-tab="responses">回應結果</div>
     </div>
 
     <div id="editor-tab" class="editor-tab">
 
         <!-- Project name edit section -->
-        <div class="project-info-edit" style="margin-bottom:12px;background:#f8fafc;padding:12px;border-radius:8px;border:1px solid #e2e8f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
-            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap">📁 專案名稱：</label>
-            <textarea id="editor-project-name" rows="1" style="flex:1;min-width:200px;padding:6px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
-            <label style="font-size:13px;font-weight:600;color:#475569;white-space:nowrap" title="總彙整時，此欄的值會對應到官方基金編號">💰 基金欄位：</label>
-            <select id="editor-fund-col" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff"></select>
+        <div class="project-info-edit" style="margin-bottom:14px;background:var(--surface-alt);padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+            <label style="font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);white-space:nowrap">專案名稱：</label>
+            <textarea id="editor-project-name" rows="1" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
+            <label style="font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);white-space:nowrap" title="總彙整時，此欄的值會對應到官方基金編號">基金欄位：</label>
+            <select id="editor-fund-col" style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)"></select>
         </div>
 
     <div class="toolbar">
-        <button class="btn btn-success" id="btn-save">💾 儲存</button>
-        <button class="btn btn-primary" id="btn-export">📤 匯出 JSON</button>
-        <button class="btn btn-outline" id="btn-import">📥 匯入</button>
-        <button class="btn btn-primary" id="btn-export-xlsx" style="background:#107c41;border-color:#107c41">🟩 匯出 XLSX</button>
+        <button class="btn btn-success" id="btn-save">儲存</button>
+        <button class="btn btn-primary" id="btn-export">匯出 JSON</button>
+        <button class="btn btn-outline" id="btn-import">匯入</button>
+        <button class="btn btn-primary" id="btn-export-xlsx" style="background:var(--excel);border-color:var(--excel)">匯出 XLSX</button>
         <div class="sep"></div>
-        <button class="btn btn-outline" id="btn-add-row">＋列</button>
-        <button class="btn btn-outline-red" id="btn-del-row">−列</button>
+        <button class="btn btn-outline" id="btn-add-row">＋ 列</button>
+        <button class="btn btn-outline-red" id="btn-del-row">－ 列</button>
         <div class="sep"></div>
-        <button class="btn btn-outline" id="btn-reset">🔄 重置</button>
-        <button class="btn btn-outline-red" id="btn-clear">✕ 清除值</button>
+        <button class="btn btn-outline" id="btn-reset">重置</button>
+        <button class="btn btn-outline-red" id="btn-clear">清除值</button>
         <div class="sep"></div>
-        <button class="btn btn-primary" id="btn-publish" style="margin-left:auto">🔗 發布表單</button>
-        <button class="btn btn-outline" id="btn-new-upload">📂 新檔案</button>
+        <button class="btn btn-primary" id="btn-publish" style="margin-left:auto">發布表單</button>
+        <button class="btn btn-outline" id="btn-new-upload">新檔案</button>
     </div>
 
     <div class="formula-bar">
@@ -451,8 +478,8 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <!-- Responses tab -->
 <div id="responses-tab" style="display:none">
     <div class="toolbar">
-        <button class="btn btn-success" id="btn-export-csv">📤 匯出 CSV</button>
-        <button class="btn btn-outline" id="btn-refresh-responses">🔄 重新整理</button>
+        <button class="btn btn-success" id="btn-export-csv">匯出 CSV</button>
+        <button class="btn btn-outline" id="btn-refresh-responses">重新整理</button>
         <span class="resp-stats" id="resp-stats" style="margin-left:auto"></span>
     </div>
     <div class="table-wrap">
@@ -481,18 +508,20 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
             <input id="fill-password" type="password" placeholder="設定填表密碼（修正用）" style="flex:1;min-width:150px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
         </div>
         <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
-            <button class="btn btn-outline" id="btn-fill-import-xlsx" style="font-size:12px;padding:4px 10px">📥 匯入 Excel</button>
-            <span style="color:#cbd5e1">|</span>
-            <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:12px;padding:4px 10px">＋列</button>
-            <button class="btn btn-outline-red" id="btn-fill-del-row" style="font-size:12px;padding:4px 10px">−列</button>
-            <span style="color:#cbd5e1">|</span>
-            <button class="btn btn-primary" id="btn-fill-submit" style="font-size:14px">📤 送出</button>
-            <button class="btn btn-outline" id="btn-fill-reset">🔄 重填</button>
+            <button class="btn btn-outline" id="btn-fill-import-xlsx" style="font-size:var(--fs-sm);padding:5px 12px">匯入 Excel</button>
+            <span style="color:var(--border)">|</span>
+            <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:var(--fs-sm);padding:5px 12px">＋ 列</button>
+            <button class="btn btn-outline-red" id="btn-fill-del-row" style="font-size:var(--fs-sm);padding:5px 12px">－ 列</button>
+            <span style="color:var(--border)">|</span>
+            <button class="btn btn-primary" id="btn-fill-submit" style="font-size:var(--fs-md);padding:10px 24px">送出</button>
+            <button class="btn btn-outline" id="btn-fill-reset">重填</button>
         </div>
     </div>
     <input type="file" id="fill-file-input" hidden accept=".xlsx,.xls">
     <div id="fill-success" class="submit-msg" style="display:none">
-        <div class="icon">✅</div>
+        <div style="width:64px;height:64px;margin:0 auto 16px;background:var(--success-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
         <h2>已成功送出</h2>
         <p>感謝您的填寫！</p>
         <button class="btn btn-primary" id="btn-fill-another" style="margin-top:16px">再填一筆</button>
@@ -508,57 +537,61 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <div class="modal-overlay" id="publish-dialog">
     <div class="modal-box">
         <button class="close" id="close-publish">&times;</button>
-        <h2 id="publish-title">🔗 發布表單</h2>
+        <h2 id="publish-title">發布表單</h2>
         <div id="publish-step1">
-            <p style="font-size:13px;color:#64748b;margin-bottom:12px">點擊下方按鈕產生分享連結，填表人即可在連結中填寫資料。</p>
-            <button class="btn btn-primary" id="btn-publish-generate" style="padding:10px 24px;font-size:14px">✅ 產生連結並發布</button>
+            <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:14px">點擊下方按鈕產生分享連結，填表人即可在連結中填寫資料。</p>
+            <button class="btn btn-primary" id="btn-publish-generate" style="padding:12px 28px;font-size:var(--fs-md)">產生連結並發布</button>
         </div>
         <div id="publish-step2" style="display:none">
-            <p style="font-size:13px;color:#059669;margin-bottom:6px;font-weight:500">✅ 已發布</p>
-            <p style="font-size:13px;color:#64748b;margin-bottom:6px">分享此連結給填表人：</p>
+            <p style="font-size:var(--fs-base);color:var(--success);margin-bottom:8px;font-weight:700">已發布</p>
+            <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:8px">分享此連結給填表人：</p>
             <div class="share-url">
                 <input id="share-url-input" readonly value="">
-                <button class="btn btn-primary" id="btn-copy-url">📋 複製</button>
+                <button class="btn btn-primary" id="btn-copy-url">複製</button>
             </div>
             <p id="publish-stats" style="font-size:12px;color:#94a3b8;margin-top:6px"></p>
             <div style="display:flex;gap:8px;margin-top:12px">
-                <button class="btn btn-outline-red" id="btn-unpublish">🗑️ 取消發布</button>
+                <button class="btn btn-outline-red" id="btn-unpublish">取消發布</button>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Password auth overlay -->
-<div class="modal-overlay" id="password-overlay" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:200;align-items:center;justify-content:center">
-    <div class="modal-box" style="max-width:400px;text-align:center">
-        <div style="font-size:48px;margin-bottom:12px">🔒</div>
-        <h2 id="password-overlay-title" style="font-size:18px;margin-bottom:8px;color:#1e293b">此專案受密碼保護</h2>
-        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入專案編輯密碼以解鎖內容。</p>
-        <div style="margin-bottom:16px">
-            <input type="password" id="overlay-password-input" placeholder="請輸入密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px;text-align:center">
+<div class="modal-overlay" id="password-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:420px;text-align:center">
+        <div style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         </div>
-        <div style="display:flex;gap:8px">
-            <button class="btn btn-outline" onclick="location.href='/'" style="flex:1;justify-content:center;padding:10px;font-size:14px">← 返回列表</button>
-            <button class="btn btn-primary" id="btn-submit-password" style="flex:1;justify-content:center;padding:10px;font-size:14px">解鎖專案</button>
+        <h2 id="password-overlay-title" style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong);font-weight:700">此專案受密碼保護</h2>
+        <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:20px">請輸入專案編輯密碼以解鎖內容。</p>
+        <div style="margin-bottom:20px">
+            <input type="password" id="overlay-password-input" placeholder="請輸入密碼" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md);text-align:center">
+        </div>
+        <div style="display:flex;gap:10px">
+            <button class="btn btn-outline" onclick="location.href='/'" style="flex:1;justify-content:center;padding:12px;font-size:var(--fs-md)">&#8592; 返回列表</button>
+            <button class="btn btn-primary" id="btn-submit-password" style="flex:1;justify-content:center;padding:12px;font-size:var(--fs-md)">解鎖專案</button>
         </div>
     </div>
 </div>
 
 <!-- Unified login overlay -->
-<div class="modal-overlay" id="admin-overlay" style="display:none;position:fixed;inset:0;background:#f1f5f9;z-index:250;align-items:center;justify-content:center">
-    <div class="modal-box" style="max-width:400px;text-align:center">
-        <div style="font-size:48px;margin-bottom:12px">🔑</div>
-        <h2 style="font-size:18px;margin-bottom:8px;color:#1e293b">系統登入</h2>
-        <p style="font-size:13px;color:#64748b;margin-bottom:16px">請輸入 Email 帳號與密碼。<br>管理員免填 Email 直接輸入密碼登入。</p>
-        <div style="margin-bottom:12px;text-align:left">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">Email / 帳號</label>
-            <input type="email" id="admin-email-input" placeholder="example@email.com (管理員免填)" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px">
+<div class="modal-overlay" id="admin-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:250;align-items:center;justify-content:center">
+    <div class="modal-box" style="max-width:420px;text-align:center">
+        <div style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
         </div>
-        <div style="margin-bottom:16px;text-align:left">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">密碼</label>
-            <input type="password" id="admin-password-input" placeholder="請輸入密碼" style="width:100%;padding:10px 14px;border:1px solid #cbd5e1;border-radius:8px;font-size:14px">
+        <h2 style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong);font-weight:700">系統登入</h2>
+        <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:20px">請輸入 Email 帳號與密碼。<br>管理員免填 Email 直接輸入密碼登入。</p>
+        <div style="margin-bottom:14px;text-align:left">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">Email / 帳號</label>
+            <input type="email" id="admin-email-input" placeholder="example@email.com（管理員免填）" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md)">
         </div>
-        <button class="btn btn-primary" id="btn-admin-login" style="width:100%;justify-content:center;padding:10px;font-size:14px">🔓 登入</button>
+        <div style="margin-bottom:20px;text-align:left">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">密碼</label>
+            <input type="password" id="admin-password-input" placeholder="請輸入密碼" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md)">
+        </div>
+        <button class="btn btn-primary" id="btn-admin-login" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">登入</button>
     </div>
 </div>
 
@@ -566,26 +599,26 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <div class="modal-overlay" id="add-user-dialog">
     <div class="modal-box" style="max-width:400px">
         <button class="close" id="close-add-user">&times;</button>
-        <h2 style="font-size:16px;margin-bottom:12px;color:#1e293b">👥 新增使用者</h2>
-        <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">Email 帳號</label>
-            <input type="email" id="new-user-email" placeholder="example@email.com" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        <h2 style="font-size:var(--fs-lg);margin-bottom:14px;color:var(--text-strong);font-weight:700">新增使用者</h2>
+        <div style="margin-bottom:14px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">Email 帳號</label>
+            <input type="email" id="new-user-email" placeholder="example@email.com" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
         </div>
-        <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">密碼</label>
-            <input type="password" id="new-user-password" placeholder="請設定密碼" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        <div style="margin-bottom:14px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">密碼</label>
+            <input type="password" id="new-user-password" placeholder="請設定密碼" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
         </div>
-        <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">主管機關</label>
-            <select id="new-user-supervisor" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+        <div style="margin-bottom:14px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">主管機關</label>
+            <select id="new-user-supervisor" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)">
                 <option value="">— 選擇主管機關 —</option>
             </select>
         </div>
-        <div style="margin-bottom:16px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">機關名稱</label>
-            <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        <div style="margin-bottom:20px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">機關名稱</label>
+            <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
         </div>
-        <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:10px;font-size:14px">建立使用者</button>
+        <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">建立使用者</button>
     </div>
 </div>
 
@@ -593,19 +626,19 @@ tbody tr:last-child td{border-bottom:2px solid #cbd5e1}
 <div class="modal-overlay" id="edit-user-dialog">
     <div class="modal-box" style="max-width:400px">
         <button class="close" id="close-edit-user">&times;</button>
-        <h2 style="font-size:16px;margin-bottom:12px;color:#1e293b">✏️ 編輯機關資料</h2>
-        <p id="edit-user-email" style="font-size:13px;color:#64748b;margin-bottom:12px"></p>
-        <div style="margin-bottom:12px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">主管機關</label>
-            <select id="edit-user-supervisor" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+        <h2 style="font-size:var(--fs-lg);margin-bottom:14px;color:var(--text-strong);font-weight:700">編輯機關資料</h2>
+        <p id="edit-user-email" style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:14px"></p>
+        <div style="margin-bottom:14px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">主管機關</label>
+            <select id="edit-user-supervisor" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)">
                 <option value="">— 選擇主管機關 —</option>
             </select>
         </div>
-        <div style="margin-bottom:16px">
-            <label style="display:block;font-size:12px;font-weight:600;color:#475569;margin-bottom:4px">機關名稱</label>
-            <input type="text" id="edit-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:8px 12px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        <div style="margin-bottom:20px">
+            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">機關名稱</label>
+            <input type="text" id="edit-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
         </div>
-        <button class="btn btn-primary" id="btn-submit-edit-user" style="width:100%;justify-content:center;padding:10px;font-size:14px">儲存</button>
+        <button class="btn btn-primary" id="btn-submit-edit-user" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">儲存</button>
     </div>
 </div>
 
@@ -855,7 +888,7 @@ if(isFillMode){
     document.getElementById('projects-section').style.display='none';
     document.getElementById('editor').style.display='none';
     document.getElementById('fill-banner').style.display='block';
-    document.getElementById('app-title').textContent='📋 填寫表單';
+    document.getElementById('app-title').textContent='填寫表單';
     initFillMode();
 } else if(isEditorMode){
     document.getElementById('projects-section').style.display='none';
@@ -888,7 +921,7 @@ function renderIdentity(role, email){
     const who = email
         ? `<span class="who"><span class="${roleClass}">${roleLabel}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></span>`
         : `<span class="who"><span class="${roleClass}">${roleLabel}</span></span>`;
-    box.innerHTML = `${who}<button class="btn btn-outline" onclick="authLogout()" style="padding:5px 12px">🚪 登出</button>`;
+    box.innerHTML = `${who}<button class="btn btn-outline" onclick="authLogout()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">登出</button>`;
     box.style.display = 'flex';
 }
 
@@ -1001,8 +1034,8 @@ async function loadUsers() {
                 <td style="padding:10px 14px;font-weight:600">${escapeHtml(u.email)}</td>
                 <td style="padding:10px 14px;color:#64748b">${u.created_at?.split('T')[0] || ''}</td>
                 <td style="text-align:center;padding:10px 14px;white-space:nowrap">
-                    <button class="btn btn-outline" style="padding:3px 8px" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">✏️</button>
-                    <button class="btn btn-outline-red" style="padding:3px 8px" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">🗑️</button>
+                    <button class="btn btn-outline" style="padding:4px 10px;font-size:var(--fs-sm)" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
+                    <button class="btn btn-outline-red" style="padding:4px 10px;font-size:var(--fs-sm)" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>
                 </td>
             </tr>`;
         });
@@ -1089,8 +1122,8 @@ function renderTemplateList() {
                 </div>
             </div>
             <div style="display:flex;gap:6px">
-                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')" style="padding:5px 12px;font-size:13px">📤 建立專案</button>
-                <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">🗑️</button>
+                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')" style="padding:6px 14px;font-size:var(--fs-sm)">建立專案</button>
+                <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">&times;</button>
             </div>
         </div>`;
     }).join('');
@@ -1165,7 +1198,7 @@ async function loadConsolidate() {
 function renderConsolidate(res) {
     const c = document.getElementById('consolidate-container');
     if (!res.groups || !res.groups.length) {
-        c.innerHTML = '<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無可彙整的回應資料<br><span style="font-size:12px">發布表單並收到回應後，這裡會依主管機關 → 機關 → 基金分組彙整</span></p>';
+        c.innerHTML = '<p style="padding:48px;color:var(--text-muted);text-align:center">尚無可彙整的回應資料<br><span style="font-size:var(--fs-sm)">發布表單並收到回應後，這裡會依主管機關 → 機關 → 基金分組彙整</span></p>';
         return;
     }
     let h = `<p class="resp-stats" style="margin-bottom:8px">共 ${res.total_rows} 筆資料列</p>`;
@@ -1177,7 +1210,7 @@ function renderConsolidate(res) {
             a.funds.forEach(f => {
                 const fundLabel = f.fund_code ? `${f.fund_code} ${escapeHtml(f.fund_name)}` : escapeHtml(f.fund_name);
                 const warn = f.matched ? '' : ' <span title="未對應到官方基金編號" style="color:#d97706;font-size:11px">⚠ 未匹配</span>';
-                h += `<div class="consol-fund"><div class="consol-fund-h">💰 ${fundLabel} <span style="color:#94a3b8;font-weight:400">(${f.rows.length} 筆)</span>${warn}</div>`;
+                h += `<div class="consol-fund"><div class="consol-fund-h">${fundLabel} <span style="color:var(--text-muted);font-weight:400">(${f.rows.length} 筆)</span>${warn}</div>`;
                 const header = (f.rows[0] && f.rows[0].header) || [];
                 h += '<div class="resp-table-wrap"><table class="resp-compare-table"><thead><tr><th>填表機關</th><th>時間</th>';
                 header.forEach(hd => h += `<th>${escapeHtml(hd)}</th>`);
@@ -1598,7 +1631,7 @@ function initProjectsPage(){
         
         // Update header/title to make it clear for the user
         const headerTitle = document.querySelector('.projects-header h2');
-        if (headerTitle) headerTitle.textContent = '📤 上傳 XLSX 並建立新專案';
+        if (headerTitle) headerTitle.textContent = '上傳 XLSX 並建立新專案';
 
         if (adminRequired) {
             checkAuthForCreation();
@@ -1712,7 +1745,7 @@ function renderProjects(){
     const list=document.getElementById('project-list');
     if(!list) return;
     if(!allProjects.length){
-        list.innerHTML='<div class="empty-projects"><div class="icon">📋</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
+        list.innerHTML='<div class="empty-projects"><div class="icon">—</div><p>尚無專案，請上傳 Excel 檔案開始使用</p></div>';
         return;
     }
     const q=(document.getElementById('proj-search')?.value||'').trim().toLowerCase();
@@ -1740,13 +1773,13 @@ function renderProjects(){
     let h='<div class="project-grid">';
     for(const p of rows){
         const badge=p.published
-            ? `<span class="badge published">✅ 已發布 (${p.response_count||0})</span>`
-            : '<span class="badge unpublished">📋 未發布</span>';
+            ? `<span class="badge published">已發布 (${p.response_count||0})</span>`
+            : '<span class="badge unpublished">未發布</span>';
         const viewRespBtn = p.published
-            ? `<button class="btn btn-success" onclick="location.href='/editor/${p.id}#responses'">📊 彙整</button>`
+            ? `<button class="btn btn-success" onclick="location.href='/editor/${p.id}#responses'" style="font-size:var(--fs-sm)">彙整</button>`
             : '';
         const copyBtn = p.published
-            ? `<button class="icon-btn" onclick="copyShareLink('${p.share_token}')" title="複製分享連結">🔗</button>`
+            ? `<button class="icon-btn" onclick="copyShareLink('${p.share_token}')" title="複製分享連結" style="font-size:var(--fs-sm)">&#128279;</button>`
             : '';
         const updated = (p.updated_at||p.created_at||'').replace('T',' ').slice(0,16);
         const checked = projSelected.has(p.id)?'checked':'';
@@ -1755,18 +1788,18 @@ function renderProjects(){
             <div class="info">
                 <div class="name">${escapeHtml(p.name)}</div>
                 <div class="meta">
-                    <span>${p.row_count||0} 列 × ${p.col_count||0} 欄</span>
-                    ${p.published?`<span class="resp">📥 ${p.response_count||0} 筆回應</span>`:''}
-                    <span class="updated">🕒 ${updated}</span>
+                    <span>${p.row_count||0} 列 &times; ${p.col_count||0} 欄</span>
+                    ${p.published?`<span class="resp">${p.response_count||0} 筆回應</span>`:''}
+                    <span class="updated">${updated}</span>
                     ${badge}
                 </div>
             </div>
             <div class="actions">
                 ${copyBtn}
                 ${viewRespBtn}
-                <button class="icon-btn" onclick="saveAsTemplate('${p.id}')" title="存為範本">📄</button>
-                <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'">✏️ 編輯</button>
-                <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">🗑️</button>
+                <button class="icon-btn" onclick="saveAsTemplate('${p.id}')" title="存為範本" style="font-size:var(--fs-sm)">T</button>
+                <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'" style="font-size:var(--fs-sm)">編輯</button>
+                <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">&times;</button>
             </div>
         </div>`;
     }
@@ -1872,7 +1905,7 @@ function renderFundCoverage(){
         h+=`</div></div>`;
     }
     if(uploaded.length){
-        h+=`<div><div style="font-size:13px;font-weight:600;color:#059669;margin-bottom:6px">✅ 已繳交（${uploaded.length}）</div>`;
+        h+=`<div><div style="font-size:var(--fs-base);font-weight:700;color:var(--success);margin-bottom:8px">已繳交（${uploaded.length}）</div>`;
         h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
         for(const f of uploaded) h+=_coverageTag(f, f.isSub);
         h+=`</div></div>`;
@@ -2018,7 +2051,7 @@ async function loadEditorSession(){
         data=res.current_data||res.json||[];
         original=JSON.parse(JSON.stringify(data));
         fileName.textContent=res.name||'';
-        document.getElementById('app-title').textContent='✏️ '+res.name?.replace(/\.xlsx?$/i,'')||'預算表單編輯器';
+        document.getElementById('app-title').textContent=res.name?.replace(/\.xlsx?$/i,'')||'預算表單編輯系統';
         
         const editorProjName = document.getElementById('editor-project-name');
         if (editorProjName) {
@@ -2162,7 +2195,7 @@ function updateFormulaCols(){
                 isDirty=false;
                 if(updatedName) {
                     document.getElementById('file-name').textContent = updatedName;
-                    document.getElementById('app-title').textContent = '✏️ ' + updatedName.replace(/\.xlsx?$/i, '');
+                    document.getElementById('app-title').textContent = updatedName.replace(/\.xlsx?$/i, '');
                 }
                 toast('已儲存');
             } else throw new Error('失敗');
@@ -2214,7 +2247,7 @@ function updateFormulaCols(){
         if(!sessionId){toast('請先上傳檔案',1);return}
         document.getElementById('publish-step1').style.display='block';
         document.getElementById('publish-step2').style.display='none';
-        document.getElementById('publish-title').textContent='🔗 發布表單';
+        document.getElementById('publish-title').textContent='發布表單';
         document.getElementById('publish-dialog').classList.add('show');
         try{
             const r=await fetch(`/api/sessions/${sessionId}/publish`,{headers:getAuthHeaders()});
@@ -2273,7 +2306,7 @@ function updateFormulaCols(){
             const container=document.getElementById('responses-container');
             document.getElementById('resp-stats').textContent=res.count?`共 ${res.count} 筆回應`:'尚無回應';
             if(!res.responses||!res.responses.length){
-                container.innerHTML='<p style="padding:40px;color:#94a3b8;text-align:center">📋 尚無回應<br><span style="font-size:12px">發布表單後，填表人提交的資料會顯示在這裡</span></p>';
+                container.innerHTML='<p style="padding:48px;color:var(--text-muted);text-align:center">尚無回應<br><span style="font-size:var(--fs-sm)">發布表單後，填表人提交的資料會顯示在這裡</span></p>';
                 return;
             }
             const headers=(data[0]||[]).map(c=>c.value||'');
