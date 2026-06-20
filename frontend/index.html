@@ -8,7 +8,7 @@
 *,::before,::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#eef1f6;--surface:#fff;--surface-alt:#f7f8fb;--border:#dde1e8;--border-strong:#bcc3d0;
-  --text:#2d3748;--text-strong:#1a202c;--text-soft:#5a6577;--text-muted:#8b95a5;
+  --text:#2d3748;--text-strong:#1a202c;--text-soft:#5a6577;--text-muted:#6b7a8f;
   --primary:#1a3a5c;--primary-hover:#14304d;--primary-soft:#e8eef5;--primary-light:#2c5282;
   --accent:#2b6cb0;--accent-hover:#2256a0;--accent-soft:#ebf4ff;
   --success:#276749;--success-hover:#1e5438;--success-soft:#e6f4ed;
@@ -53,7 +53,7 @@ main{padding:20px 24px;max-width:100%}
 .btn-success{background:var(--success);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}.btn-success:hover{background:var(--success-hover)}
 .btn-danger{background:var(--danger);color:#fff}.btn-danger:hover{background:var(--danger-hover)}
 .btn-outline{background:var(--surface);color:var(--text-soft);border-color:var(--border-strong)}.btn-outline:hover{background:var(--surface-alt);color:var(--text-strong);border-color:var(--text-muted)}
-.btn-outline-red{background:var(--surface);color:var(--danger);border-color:var(--danger-soft)}.btn-outline-red:hover{background:#fef2f2;border-color:var(--danger)}
+.btn-outline-red{background:var(--surface);color:var(--danger);border-color:var(--danger-soft)}.btn-outline-red:hover{background:var(--danger-soft);border-color:var(--danger)}
 
 /* ── Formula bar ── */
 .formula-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;padding:8px 14px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);font-size:var(--fs-sm)}
@@ -70,7 +70,7 @@ table{width:100%;border-collapse:collapse;font-size:var(--fs-base);table-layout:
 thead th{background:var(--primary);font-weight:600;color:#fff;text-align:center;position:sticky;top:0;z-index:2;border-bottom:none;padding:0;letter-spacing:.3px}
 thead th input{border:none;background:transparent;text-align:center;font-weight:600;width:100%;font-size:var(--fs-sm);color:#fff;padding:8px 8px}
 thead th input::placeholder{color:rgba(255,255,255,.5)}
-thead th input:focus{outline:2px solid #4299e1;background:rgba(255,255,255,.12);border-radius:2px}
+thead th input:focus{outline:2px solid var(--accent-soft);background:rgba(255,255,255,.12);border-radius:2px}
 th,td{border:1px solid var(--border)}
 th{border-color:rgba(255,255,255,.15)}
 td{padding:0;min-width:60px;position:relative}
@@ -89,8 +89,8 @@ td input.formula-cell{color:var(--warn);font-style:italic}
 .lv-4 td:first-child input{padding-left:70px}
 tbody tr:nth-child(even) td{background:var(--surface-alt)}
 tbody tr:nth-child(even) td input{background:var(--surface-alt)}
-tbody tr:hover td{background:#e8eef5}
-tbody tr:hover td input{background:#e8eef5}
+tbody tr:hover td{background:var(--primary-soft)}
+tbody tr:hover td input{background:var(--primary-soft)}
 tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 
 /* ── Toast ── */
@@ -132,8 +132,8 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 
 /* ── Tab bar ── */
 .tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:0 8px}
-.tab-bar .tab{padding:12px 22px;font-size:var(--fs-base);font-weight:600;color:var(--text-muted);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;letter-spacing:.2px}
-.tab-bar .tab:hover{color:var(--text-soft);background:var(--surface-alt)}
+.tab-bar .tab{padding:12px 22px;font-size:var(--fs-base);font-weight:600;color:var(--text-soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;letter-spacing:.2px}
+.tab-bar .tab:hover{color:var(--text-strong);background:var(--surface-alt)}
 .tab-bar .tab.active{color:var(--primary);border-bottom-color:var(--accent)}
 
 /* ── Responses dashboard ── */
@@ -156,11 +156,11 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 .project-card:hover{box-shadow:var(--shadow-md);border-color:var(--border-strong);transform:translateY(-1px)}
 .project-card .info{flex:1;min-width:0}
 .project-card .info .name{font-size:var(--fs-md);font-weight:700;color:var(--text-strong);margin-bottom:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.project-card .info .meta{font-size:var(--fs-sm);color:var(--text-muted)}
+.project-card .info .meta{font-size:var(--fs-sm);color:var(--text-soft)}
 .project-card .info .meta span{margin-right:14px}
 .project-card .badge{display:inline-block;padding:3px 10px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .project-card .badge.published{background:var(--success-soft);color:var(--success)}
-.project-card .badge.unpublished{background:var(--surface-alt);color:var(--text-muted)}
+.project-card .badge.unpublished{background:var(--surface-alt);color:var(--text-soft);border:1px solid var(--border)}
 .project-card .actions{display:flex;gap:8px;flex-shrink:0;margin-left:14px}
 .project-card .actions .btn{padding:6px 14px;font-size:var(--fs-sm)}
 .empty-projects{text-align:center;padding:64px 24px;color:var(--text-muted)}
@@ -178,6 +178,8 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 .identity .who .email{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .identity .badge-role{padding:3px 10px;border-radius:var(--radius-sm);font-size:var(--fs-xs);font-weight:700;background:rgba(255,255,255,.15);color:#fff;letter-spacing:.5px;text-transform:uppercase}
 .identity .badge-role.admin{background:rgba(237,137,54,.2);color:#fbd38d}
+.pointer{cursor:pointer}
+.back-link{display:none;font-size:13px;color:rgba(255,255,255,.7);text-decoration:none;margin-left:auto}
 
 /* ── Projects toolbar: search / filter / sort ── */
 .projects-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--sp-4)}
@@ -185,10 +187,10 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 .projects-toolbar .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);transition:border-color .15s}
 .projects-toolbar .search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,108,176,.12)}
 .projects-toolbar .search .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
-.projects-toolbar select{padding:10px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
+.projects-toolbar select{padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
 
 /* ── Batch action bar ── */
-.batch-bar{display:none;align-items:center;gap:var(--sp-4);padding:12px 16px;background:var(--primary-soft);border:1px solid #bdd4ec;border-radius:var(--radius);margin-bottom:var(--sp-4)}
+.batch-bar{display:none;align-items:center;gap:var(--sp-4);padding:12px 16px;background:var(--primary-soft);border:1px solid #a3c2e8;border-radius:var(--radius);margin-bottom:var(--sp-4)}
 .batch-bar.show{display:flex;flex-wrap:wrap}
 .batch-bar .count{font-size:var(--fs-base);font-weight:700;color:var(--primary)}
 .batch-bar label{display:inline-flex;align-items:center;gap:6px;font-size:var(--fs-base);color:var(--text-soft);cursor:pointer}
@@ -203,6 +205,8 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 .icon-btn{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border-strong);background:var(--surface);cursor:pointer;font-size:14px;color:var(--text-soft);transition:.15s}
 .icon-btn:hover{background:var(--surface-alt);color:var(--text-strong)}
 .icon-btn.danger:hover{background:var(--danger-soft);color:var(--danger-hover);border-color:var(--danger)}
+.ico-btn-sm{display:inline-flex;align-items:center;justify-content:center;padding:2px 8px;font-size:12px;color:var(--danger);background:none;border:1px solid var(--danger-soft);border-radius:var(--radius-sm);cursor:pointer;transition:.15s}
+.ico-btn-sm:hover{background:var(--danger-soft);border-color:var(--danger)}
 .empty-projects.filtered .icon{font-size:32px}
 
 /* ── Consolidation (總彙整) ── */
@@ -218,6 +222,27 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 input[type="text"],input[type="email"],input[type="password"],textarea,select{font-family:var(--font-sans)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(43,108,176,.1)}
 
+/* ── Utility classes ── */
+.flex{display:flex}.flex-wrap{flex-wrap:wrap}.flex-col{flex-direction:column}
+.items-center{align-items:center}.justify-between{justify-content:space-between}
+.gap-2{gap:var(--sp-2)}.gap-3{gap:var(--sp-3)}.gap-4{gap:var(--sp-4)}
+.mb-2{margin-bottom:var(--sp-2)}.mb-3{margin-bottom:var(--sp-3)}.mb-4{margin-bottom:var(--sp-4)}
+.mt-2{margin-top:var(--sp-2)}.mt-3{margin-top:var(--sp-3)}.mt-4{margin-top:var(--sp-4)}
+.p-3{padding:var(--sp-3)}.p-4{padding:var(--sp-4)}
+.text-sm{font-size:var(--fs-sm)}.text-base{font-size:var(--fs-base)}
+.text-soft{color:var(--text-soft)}.text-muted{color:var(--text-muted)}
+.text-center{text-align:center}.fw-6{font-weight:600}.fw-7{font-weight:700}
+.w-full{width:100%}.flex-1{flex:1}.flex-shrink-0{flex-shrink:0}
+.nowrap{white-space:nowrap}
+.card-inset{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:var(--sp-3) var(--sp-4)}
+.badge-pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px}
+.field-label{display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px}
+.field-input{width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);font-family:var(--font-sans);transition:border-color .15s;box-sizing:border-box}
+.field-input:focus{outline:none;border-color:var(--accent)!important;box-shadow:0 0 0 3px rgba(43,108,176,.1)}
+.field-inline{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font-sans)}
+.tag-red{display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px}
+.tag-green{display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px}
+
 /* ── Responsive ── */
 @media(max-width:640px){
   header .inner{flex-wrap:wrap;gap:8px;padding:12px 16px}
@@ -228,20 +253,38 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
   .projects-header h2{font-size:var(--fs-xl)}
   .project-card{flex-wrap:wrap;padding:14px 16px}
   .project-card .actions{margin-left:0;margin-top:var(--sp-2);width:100%;justify-content:flex-end}
+  .project-card .actions .btn,.project-card .actions .icon-btn{font-size:var(--fs-sm);padding:5px 10px}
   .toolbar{gap:6px;padding:10px 14px}
   .submit-bar{flex-direction:column;align-items:stretch}
   .submit-bar input{max-width:none}
   .modal-box{width:94%;padding:20px}
   .tab-bar .tab{padding:10px 16px;font-size:var(--fs-sm)}
+  .batch-bar.show{flex-direction:column;align-items:stretch;gap:8px}
+  .batch-bar .spacer{display:none}
+  .projects-toolbar{gap:8px}
+  .projects-toolbar .search{min-width:100%}
+  .projects-toolbar select{flex:1}
+  .project-info-edit{flex-direction:column;align-items:stretch!important}
+  .project-info-edit textarea{min-width:auto!important}
+  .projects-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .formula-bar{gap:6px}
+  .formula-bar .hint{display:none}
+  .resp-compare-table td,.resp-compare-table th{padding:5px 8px;font-size:var(--fs-xs)}
+  .consol-fund{padding-left:16px}
+  .consol-agency-h{padding-left:16px}
+  #fund-coverage-bar{flex-wrap:wrap}
+  #fund-coverage-bar select{flex:1;min-width:140px}
+  .table-wrap .scroll{max-height:calc(100vh - 300px)}
+  #resp-scroll{max-height:calc(100vh - 250px)}
 }
 </style>
 </head>
 <body>
 
 <header><div class="inner">
-    <h1 id="app-title" style="cursor:pointer">預算表單編輯系統</h1>
+    <h1 id="app-title" class="pointer">預算表單編輯系統</h1>
     <span class="file" id="file-name"></span>
-    <a id="back-link" href="/" style="display:none;font-size:13px;color:rgba(255,255,255,.7);text-decoration:none;margin-left:auto">&#8592; 專案列表</a>
+    <a id="back-link" href="/" class="back-link">&#8592; 專案列表</a>
     <div class="identity" id="identity" style="display:none"></div>
 </div></header>
 
@@ -252,7 +295,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 <!-- Projects page -->
 <div id="projects-section" class="projects-section">
     <!-- Admin Tabs (visible to admin only) -->
-    <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:20px">
+    <div class="tab-bar" id="admin-tabs" style="display:none;margin-bottom:var(--sp-5)">
         <div class="tab active" id="tab-project-mgmt" data-tab="project-mgmt">專案管理</div>
         <div class="tab" id="tab-user-mgmt" data-tab="user-mgmt">使用者管理</div>
         <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">基金管理</div>
@@ -269,17 +312,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
         <!-- Upload area (shown when clicking 新增專案) -->
         <div id="project-upload-area" class="upload-area" style="display:none">
             <div id="upload-fields" style="max-width:320px;margin:0 auto 20px;text-align:left">
-                <div style="margin-bottom:14px">
-                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">專案發起人 Email</label>
-                    <input type="email" id="project-email" placeholder="example@email.com" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)" required>
+                <div class="mb-3">
+                    <label class="field-label">專案發起人 Email</label>
+                    <input type="email" id="project-email" placeholder="example@email.com" class="field-input" required>
                 </div>
-                <div style="margin-bottom:14px">
-                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">設定專案編輯密碼</label>
-                    <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)" required>
+                <div class="mb-3">
+                    <label class="field-label">設定專案編輯密碼</label>
+                    <input type="password" id="project-password" placeholder="請輸入密碼（用於日後編輯）" class="field-input" required>
                 </div>
-                <div style="margin-bottom:14px">
-                    <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px;letter-spacing:.3px">專案名稱（選填，預設為 Excel 檔名）</label>
-                    <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);font-family:inherit;resize:none;box-sizing:border-box"></textarea>
+                <div class="mb-3">
+                    <label class="field-label">專案名稱（選填，預設為 Excel 檔名）</label>
+                    <textarea id="project-name-input" placeholder="請輸入專案名稱" rows="2" class="field-input" style="resize:none"></textarea>
                 </div>
             </div>
             <div class="icon" style="font-size:28px;color:var(--accent);opacity:.8">&#9650;</div>
@@ -313,12 +356,12 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 
         <!-- Fund coverage panel -->
         <div id="fund-coverage-bar" style="display:none;margin-bottom:8px">
-            <button class="btn btn-outline" id="btn-fund-coverage" style="padding:7px 16px;font-size:var(--fs-sm)">基金繳交狀態</button>
-            <select id="fund-coverage-domain" style="padding:5px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff;display:none">
+            <button class="btn btn-outline" id="btn-fund-coverage">基金繳交狀態</button>
+            <select id="fund-coverage-domain" class="field-inline" style="display:none">
                 <option value="">-- 選擇基金類型 --</option>
             </select>
         </div>
-        <div id="fund-coverage-panel" style="display:none;margin-bottom:16px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px;max-height:400px;overflow-y:auto">
+        <div id="fund-coverage-panel" style="display:none;margin-bottom:16px;background:#fff;border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-4);max-height:400px;overflow-y:auto">
             <div id="fund-coverage-content"></div>
         </div>
 
@@ -340,9 +383,9 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 
     <!-- User Management Section (visible to admin only) -->
     <div id="user-management-view" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">系統使用者管理</h3>
-            <button class="btn btn-primary" id="btn-add-user" style="padding:10px 22px;font-size:var(--fs-md)">＋ 新增使用者</button>
+        <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">系統使用者管理</h3>
+            <button class="btn btn-primary" id="btn-add-user">＋ 新增使用者</button>
         </div>
         <div class="table-wrap">
             <div class="scroll">
@@ -366,63 +409,63 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 
     <!-- Fund Management Section (visible to admin only) -->
     <div id="fund-management-view" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">現行基金清單管理</h3>
-            <div style="display:flex;gap:8px">
-                <button class="btn btn-primary" id="btn-fund-save" style="padding:8px 16px">儲存變更</button>
+        <div class="flex justify-between items-center flex-wrap mb-4" style="gap:8px">
+            <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">現行基金清單管理</h3>
+            <div class="flex gap-2">
+                <button class="btn btn-primary" id="btn-fund-save">儲存變更</button>
             </div>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px">
-            <select id="fund-mgmt-domain" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+        <div class="flex gap-2 mb-3">
+            <select id="fund-mgmt-domain" class="field-inline">
                 <option value="enterprise">營業基金（國營事業）</option>
                 <option value="special">非營業特種基金</option>
             </select>
-            <div style="flex:1;display:flex;gap:6px">
-                <input type="text" id="fund-mgmt-add-input" placeholder="新增基金名稱⋯" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
-                <button class="btn btn-outline" id="btn-fund-add" style="padding:6px 14px;font-size:13px">＋ 新增</button>
+            <div class="flex gap-2" style="flex:1">
+                <input type="text" id="fund-mgmt-add-input" placeholder="新增基金名稱⋯" class="field-inline" style="flex:1">
+                <button class="btn btn-outline" id="btn-fund-add">＋ 新增</button>
             </div>
         </div>
-        <div id="fund-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:450px;overflow-y:auto"></div>
-        <details style="margin-top:16px">
+        <div id="fund-mgmt-list" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-3);max-height:450px;overflow-y:auto"></div>
+        <details style="margin-top:var(--sp-4)">
             <summary style="cursor:pointer;font-size:var(--fs-base);font-weight:700;color:var(--text-soft);padding:10px 0">別名對照表（aliasMap）</summary>
-            <div style="margin-top:8px;display:flex;gap:6px;margin-bottom:8px">
-                <input type="text" id="alias-add-key" placeholder="簡稱（如：央行）" style="flex:1;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
-                <input type="text" id="alias-add-val" placeholder="對應全名（如：中央銀行）" style="flex:2;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
-                <button class="btn btn-outline" id="btn-alias-add" style="padding:6px 14px;font-size:13px">＋</button>
+            <div class="flex gap-2 mt-2 mb-2">
+                <input type="text" id="alias-add-key" placeholder="簡稱（如：央行）" class="field-inline" style="flex:1">
+                <input type="text" id="alias-add-val" placeholder="對應全名（如：中央銀行）" class="field-inline" style="flex:2">
+                <button class="btn btn-outline" id="btn-alias-add">＋</button>
             </div>
-            <div id="alias-mgmt-list" style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;max-height:300px;overflow-y:auto"></div>
+            <div id="alias-mgmt-list" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-3);max-height:300px;overflow-y:auto"></div>
         </details>
     </div>
 
     <!-- Template Management Section (visible to admin only) -->
     <div id="template-management-view" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">範本管理</h3>
+        <div class="flex justify-between items-center flex-wrap mb-4" style="gap:8px">
+            <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">範本管理</h3>
         </div>
-        <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-            <select id="tpl-filter-supervisor" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+        <div class="flex gap-2 mb-3 flex-wrap">
+            <select id="tpl-filter-supervisor" class="field-inline">
                 <option value="">全部主管機關</option>
             </select>
-            <select id="tpl-filter-email" style="padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px;background:#fff">
+            <select id="tpl-filter-email" class="field-inline">
                 <option value="">全部使用者</option>
             </select>
         </div>
-        <div id="template-list" style="display:flex;flex-direction:column;gap:8px">
-            <p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>
+        <div id="template-list" class="flex flex-col" style="gap:8px">
+            <p style="padding:24px;color:var(--text-muted);text-align:center">載入中⋯</p>
         </div>
     </div>
 
     <!-- Consolidation Section (visible to admin only) -->
     <div id="consolidate-view" style="display:none">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
-            <h3 style="font-size:var(--fs-lg);color:var(--text-strong);font-weight:700">跨專案總彙整（主管機關 → 機關 → 基金）</h3>
-            <div style="display:flex;gap:8px">
-                <button class="btn btn-outline" id="btn-consol-refresh" style="padding:8px 16px">重新整理</button>
-                <button class="btn btn-success" id="btn-consol-export" style="padding:8px 16px">匯出 CSV</button>
+        <div class="flex justify-between items-center flex-wrap mb-4" style="gap:8px">
+            <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">跨專案總彙整</h3>
+            <div class="flex gap-2">
+                <button class="btn btn-outline" id="btn-consol-refresh">重新整理</button>
+                <button class="btn btn-success" id="btn-consol-export">匯出 CSV</button>
             </div>
         </div>
-        <p style="font-size:12px;color:#94a3b8;margin-bottom:12px">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
-        <div id="consolidate-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
+        <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
+        <div id="consolidate-container"><p style="padding:24px;color:var(--text-muted);text-align:center">載入中⋯</p></div>
     </div>
 </div>
 
@@ -436,10 +479,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
     <div id="editor-tab" class="editor-tab">
 
         <!-- Project name edit section -->
-        <div class="project-info-edit" style="margin-bottom:14px;background:var(--surface-alt);padding:14px 16px;border-radius:var(--radius);border:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-            <label style="font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);white-space:nowrap">專案名稱：</label>
-            <textarea id="editor-project-name" rows="1" style="flex:1;min-width:200px;padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);font-family:inherit;resize:none;line-height:20px;box-sizing:border-box" placeholder="請輸入專案名稱"></textarea>
-            <label style="font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);white-space:nowrap" title="總彙整時，此欄的值會對應到官方基金編號">基金欄位：</label>
+        <div class="card-inset flex items-center flex-wrap" style="gap:14px;margin-bottom:var(--sp-3);background:var(--surface-alt)">
+            <label class="text-sm fw-7 text-soft nowrap">專案名稱：</label>
+            <textarea id="editor-project-name" rows="1" class="field-input" style="flex:1;min-width:200px;resize:none;line-height:20px;padding:8px 12px;font-family:inherit" placeholder="請輸入專案名稱"></textarea>
+            <label class="text-sm fw-7 text-soft nowrap" title="總彙整時，此欄的值會對應到官方基金編號">基金欄位：</label>
             <select id="editor-fund-col" style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)"></select>
         </div>
 
@@ -497,29 +540,29 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
             <div id="fill-table-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
         </div>
     </div>
-    <div id="fill-submit-area" class="submit-bar" style="flex-wrap:wrap;row-gap:12px">
-        <div style="display:flex;justify-content:space-between;width:100%;margin-bottom:4px;flex-basis:100%">
-            <span style="font-size:12px;color:#64748b;font-weight:600">填表人身分（若日後需修正，請務必填寫 Email 與密碼）</span>
-            <a href="javascript:void(0)" id="link-fill-load-old" style="font-size:12px;color:#2563eb;text-decoration:none">🔍 載入我之前填過的資料</a>
+    <div id="fill-submit-area" class="submit-bar" style="flex-wrap:wrap;row-gap:var(--sp-3)">
+        <div class="flex justify-between w-full mb-2" style="flex-basis:100%">
+            <span class="text-sm fw-6" style="color:var(--text-soft)">填表人身分（若日後需修正，請務必填寫 Email 與密碼）</span>
+            <a href="javascript:void(0)" id="link-fill-load-old" class="text-sm" style="color:var(--accent);text-decoration:none">🔍 載入我之前填過的資料</a>
         </div>
-        <div style="display:flex;gap:8px;flex:1;min-width:300px;flex-wrap:wrap">
-            <input id="fill-respondent" placeholder="你的姓名（選填）" style="max-width:130px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
-            <input id="fill-email" type="email" placeholder="你的 Email（修正用）" style="flex:1;min-width:180px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
-            <input id="fill-password" type="password" placeholder="設定填表密碼（修正用）" style="flex:1;min-width:150px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:6px;font-size:13px">
+        <div class="flex gap-2 flex-1 flex-wrap" style="min-width:300px">
+            <input id="fill-respondent" placeholder="你的姓名（選填）" class="field-inline" style="max-width:130px">
+            <input id="fill-email" type="email" placeholder="你的 Email（修正用）" class="field-inline" style="flex:1;min-width:180px">
+            <input id="fill-password" type="password" placeholder="設定填表密碼（修正用）" class="field-inline" style="flex:1;min-width:150px">
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-left:auto">
-            <button class="btn btn-outline" id="btn-fill-import-xlsx" style="font-size:var(--fs-sm);padding:5px 12px">匯入 Excel</button>
+        <div class="flex gap-2 items-center" style="margin-left:auto">
+            <button class="btn btn-outline" id="btn-fill-import-xlsx">匯入 Excel</button>
             <span style="color:var(--border)">|</span>
-            <button class="btn btn-outline" id="btn-fill-add-row" style="font-size:var(--fs-sm);padding:5px 12px">＋ 列</button>
-            <button class="btn btn-outline-red" id="btn-fill-del-row" style="font-size:var(--fs-sm);padding:5px 12px">－ 列</button>
+            <button class="btn btn-outline" id="btn-fill-add-row">＋ 列</button>
+            <button class="btn btn-outline-red" id="btn-fill-del-row">－ 列</button>
             <span style="color:var(--border)">|</span>
-            <button class="btn btn-primary" id="btn-fill-submit" style="font-size:var(--fs-md);padding:10px 24px">送出</button>
+            <button class="btn btn-primary" id="btn-fill-submit">送出</button>
             <button class="btn btn-outline" id="btn-fill-reset">重填</button>
         </div>
     </div>
     <input type="file" id="fill-file-input" hidden accept=".xlsx,.xls">
     <div id="fill-success" class="submit-msg" style="display:none">
-        <div style="width:64px;height:64px;margin:0 auto 16px;background:var(--success-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+        <div class="flex items-center justify-center" style="width:64px;height:64px;margin:0 auto 16px;background:var(--success-soft);border-radius:50%">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
         <h2>已成功送出</h2>
@@ -559,16 +602,16 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 
 <!-- Password auth overlay -->
 <div class="modal-overlay" id="password-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:200;align-items:center;justify-content:center">
-    <div class="modal-box" style="max-width:420px;text-align:center">
-        <div style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+    <div class="modal-box text-center" style="max-width:420px">
+        <div class="flex items-center justify-center" style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
         </div>
-        <h2 id="password-overlay-title" style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong);font-weight:700">此專案受密碼保護</h2>
+        <h2 id="password-overlay-title" class="fw-7" style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong)">此專案受密碼保護</h2>
         <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:20px">請輸入專案編輯密碼以解鎖內容。</p>
-        <div style="margin-bottom:20px">
+        <div class="mb-4">
             <input type="password" id="overlay-password-input" placeholder="請輸入密碼" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md);text-align:center">
         </div>
-        <div style="display:flex;gap:10px">
+        <div class="flex" style="gap:10px">
             <button class="btn btn-outline" onclick="location.href='/'" style="flex:1;justify-content:center;padding:12px;font-size:var(--fs-md)">&#8592; 返回列表</button>
             <button class="btn btn-primary" id="btn-submit-password" style="flex:1;justify-content:center;padding:12px;font-size:var(--fs-md)">解鎖專案</button>
         </div>
@@ -577,18 +620,18 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 
 <!-- Unified login overlay -->
 <div class="modal-overlay" id="admin-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:250;align-items:center;justify-content:center">
-    <div class="modal-box" style="max-width:420px;text-align:center">
-        <div style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%;display:flex;align-items:center;justify-content:center">
+    <div class="modal-box text-center" style="max-width:420px">
+        <div class="flex items-center justify-center" style="width:56px;height:56px;margin:0 auto 16px;background:var(--primary-soft);border-radius:50%">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
         </div>
-        <h2 style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong);font-weight:700">系統登入</h2>
+        <h2 class="fw-7" style="font-size:var(--fs-xl);margin-bottom:8px;color:var(--text-strong)">系統登入</h2>
         <p style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:20px">請輸入 Email 帳號與密碼。<br>管理員免填 Email 直接輸入密碼登入。</p>
         <div style="margin-bottom:14px;text-align:left">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">Email / 帳號</label>
+            <label class="field-label">Email / 帳號</label>
             <input type="email" id="admin-email-input" placeholder="example@email.com（管理員免填）" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md)">
         </div>
         <div style="margin-bottom:20px;text-align:left">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">密碼</label>
+            <label class="field-label">密碼</label>
             <input type="password" id="admin-password-input" placeholder="請輸入密碼" style="width:100%;padding:12px 16px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md)">
         </div>
         <button class="btn btn-primary" id="btn-admin-login" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">登入</button>
@@ -599,24 +642,24 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 <div class="modal-overlay" id="add-user-dialog">
     <div class="modal-box" style="max-width:400px">
         <button class="close" id="close-add-user">&times;</button>
-        <h2 style="font-size:var(--fs-lg);margin-bottom:14px;color:var(--text-strong);font-weight:700">新增使用者</h2>
-        <div style="margin-bottom:14px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">Email 帳號</label>
-            <input type="email" id="new-user-email" placeholder="example@email.com" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
+        <h2 class="fw-7" style="font-size:var(--fs-lg);margin-bottom:var(--sp-3);color:var(--text-strong)">新增使用者</h2>
+        <div class="mb-3">
+            <label class="field-label">Email 帳號</label>
+            <input type="email" id="new-user-email" placeholder="example@email.com" class="field-input">
         </div>
-        <div style="margin-bottom:14px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">密碼</label>
-            <input type="password" id="new-user-password" placeholder="請設定密碼" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
+        <div class="mb-3">
+            <label class="field-label">密碼</label>
+            <input type="password" id="new-user-password" placeholder="請設定密碼" class="field-input">
         </div>
-        <div style="margin-bottom:14px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">主管機關</label>
-            <select id="new-user-supervisor" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)">
+        <div class="mb-3">
+            <label class="field-label">主管機關</label>
+            <select id="new-user-supervisor" class="field-input">
                 <option value="">— 選擇主管機關 —</option>
             </select>
         </div>
-        <div style="margin-bottom:20px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">機關名稱</label>
-            <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
+        <div class="mb-4">
+            <label class="field-label">機關名稱</label>
+            <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" class="field-input">
         </div>
         <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">建立使用者</button>
     </div>
@@ -626,17 +669,17 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 <div class="modal-overlay" id="edit-user-dialog">
     <div class="modal-box" style="max-width:400px">
         <button class="close" id="close-edit-user">&times;</button>
-        <h2 style="font-size:var(--fs-lg);margin-bottom:14px;color:var(--text-strong);font-weight:700">編輯機關資料</h2>
-        <p id="edit-user-email" style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:14px"></p>
-        <div style="margin-bottom:14px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">主管機關</label>
-            <select id="edit-user-supervisor" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)">
+        <h2 class="fw-7" style="font-size:var(--fs-lg);margin-bottom:var(--sp-3);color:var(--text-strong)">編輯機關資料</h2>
+        <p id="edit-user-email" style="font-size:var(--fs-base);color:var(--text-soft);margin-bottom:var(--sp-3)"></p>
+        <div class="mb-3">
+            <label class="field-label">主管機關</label>
+            <select id="edit-user-supervisor" class="field-input">
                 <option value="">— 選擇主管機關 —</option>
             </select>
         </div>
-        <div style="margin-bottom:20px">
-            <label style="display:block;font-size:var(--fs-sm);font-weight:700;color:var(--text-soft);margin-bottom:5px">機關名稱</label>
-            <input type="text" id="edit-user-agency" placeholder="例：經濟部、國立臺灣大學" style="width:100%;padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base)">
+        <div class="mb-4">
+            <label class="field-label">機關名稱</label>
+            <input type="text" id="edit-user-agency" placeholder="例：經濟部、國立臺灣大學" class="field-input">
         </div>
         <button class="btn btn-primary" id="btn-submit-edit-user" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">儲存</button>
     </div>
@@ -1023,7 +1066,7 @@ async function loadUsers() {
             listBody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:20px;color:#94a3b8">尚無使用者</td></tr>';
             return;
         }
-        const dash = '<span style="color:#cbd5e1">—</span>';
+        const dash = '<span style="color:var(--border)">—</span>';
         let h = '';
         _usersCache.forEach(u => {
             const sup = u.supervisor ? `${u.supervisor.code} ${escapeHtml(u.supervisor.name)}` : dash;
@@ -1032,10 +1075,10 @@ async function loadUsers() {
                 <td style="padding:10px 14px">${sup}</td>
                 <td style="padding:10px 14px">${agency}</td>
                 <td style="padding:10px 14px;font-weight:600">${escapeHtml(u.email)}</td>
-                <td style="padding:10px 14px;color:#64748b">${u.created_at?.split('T')[0] || ''}</td>
-                <td style="text-align:center;padding:10px 14px;white-space:nowrap">
-                    <button class="btn btn-outline" style="padding:4px 10px;font-size:var(--fs-sm)" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
-                    <button class="btn btn-outline-red" style="padding:4px 10px;font-size:var(--fs-sm)" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>
+                <td style="padding:10px 14px;color:var(--text-soft)">${u.created_at?.split('T')[0] || ''}</td>
+                <td class="text-center nowrap" style="padding:10px 14px">
+                    <button class="btn btn-outline" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
+                    <button class="btn btn-outline-red" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>
                 </td>
             </tr>`;
         });
@@ -1110,19 +1153,19 @@ function renderTemplateList() {
     }
     list.innerHTML = rows.map(t => {
         const dt = (t.created_at || '').replace('T', ' ').slice(0, 16);
-        const sup = t.supervisor_name ? `<span style="background:#e0f2fe;color:#0369a1;padding:2px 8px;border-radius:10px;font-size:11px">${escapeHtml(t.supervisor_name)}</span>` : '';
-        const email = t.creator_email ? `<span style="color:#64748b;font-size:12px">${escapeHtml(t.creator_email)}</span>` : '';
-        return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;flex-wrap:wrap">
+        const sup = t.supervisor_name ? `<span class="badge-pill" style="background:#e0f2fe;color:#0369a1">${escapeHtml(t.supervisor_name)}</span>` : '';
+        const email = t.creator_email ? `<span style="color:var(--text-soft);font-size:12px">${escapeHtml(t.creator_email)}</span>` : '';
+        return `<div class="flex items-center" style="gap:12px;padding:10px 14px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);flex-wrap:wrap">
             <div style="flex:1;min-width:150px">
-                <div style="font-weight:600;font-size:14px;color:#1e293b;margin-bottom:2px">${escapeHtml(t.name)}</div>
-                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <div style="font-weight:600;font-size:14px;color:var(--text-strong);margin-bottom:2px">${escapeHtml(t.name)}</div>
+                <div class="flex items-center flex-wrap" style="gap:8px">
                     ${sup}${email}
-                    <span style="color:#94a3b8;font-size:11px">${t.row_count || 0} 列</span>
-                    <span style="color:#94a3b8;font-size:11px">🕒 ${dt}</span>
+                    <span style="color:var(--text-muted);font-size:11px">${t.row_count || 0} 列</span>
+                    <span style="color:var(--text-muted);font-size:11px">🕒 ${dt}</span>
                 </div>
             </div>
-            <div style="display:flex;gap:6px">
-                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')" style="padding:6px 14px;font-size:var(--fs-sm)">建立專案</button>
+            <div class="flex" style="gap:6px">
+                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')">建立專案</button>
                 <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">&times;</button>
             </div>
         </div>`;
@@ -1265,31 +1308,31 @@ function renderFundMgmtList() {
         const kids = (typeof e === 'object' && e.children) ? e.children.length : 0;
         return n + 1 + kids;
     }, 0);
-    let h = `<div style="margin-bottom:8px;font-size:13px;color:#64748b">${escapeHtml(dd.label)} — 共 ${totalCount} 個基金</div>`;
-    h += '<div style="display:flex;flex-direction:column;gap:4px">';
+    let h = `<div class="mb-2 text-sm" style="color:var(--text-soft)">${escapeHtml(dd.label)} — 共 ${totalCount} 個基金</div>`;
+    h += '<div class="flex flex-col" style="gap:4px">';
     funds.forEach((entry, i) => {
         const name = typeof entry === 'string' ? entry : entry.name;
         const kids = (typeof entry === 'object' && entry.children) ? entry.children : [];
-        h += `<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;overflow:hidden">
-            <div style="display:flex;align-items:center;gap:8px;padding:4px 8px">
+        h += `<div style="background:var(--surface-alt);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden">
+            <div class="flex items-center" style="gap:8px;padding:4px 8px">
                 <span style="flex:1;font-size:13px;font-weight:600">${escapeHtml(name)}</span>
-                ${kids.length ? `<span style="font-size:11px;color:#94a3b8">${kids.length} 分基金</span>` : ''}
-                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
-                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:#64748b" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
-                <button style="padding:2px 8px;font-size:12px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeFund('${dom}',${i})">✕</button>
+                ${kids.length ? `<span style="font-size:11px;color:var(--text-muted)">${kids.length} 分基金</span>` : ''}
+                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:var(--text-soft)" onclick="moveFund('${dom}',${i},-1)" title="上移">▲</button>
+                <button class="btn btn-outline" style="padding:2px 6px;font-size:11px;color:var(--text-soft)" onclick="moveFund('${dom}',${i},1)" title="下移">▼</button>
+                <button class="ico-btn-sm danger" onclick="removeFund('${dom}',${i})">✕</button>
             </div>
             <div style="padding:0 8px 6px 24px;display:flex;flex-direction:column;gap:2px">`;
         kids.forEach((child, ci) => {
-            h += `<div style="display:flex;align-items:center;gap:6px;padding:2px 6px;background:#fff;border-radius:4px;border:1px solid #e2e8f0">
-                <span style="color:#94a3b8;font-size:11px">└</span>
+            h += `<div class="flex items-center" style="gap:6px;padding:2px 6px;background:var(--surface);border-radius:var(--radius-sm);border:1px solid var(--border)">
+                <span style="color:var(--text-muted);font-size:11px">└</span>
                 <span style="flex:1;font-size:12px">${escapeHtml(child)}</span>
-                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:#64748b" onclick="moveSubFund(${i},${ci},-1)" title="上移">▲</button>
-                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:#64748b" onclick="moveSubFund(${i},${ci},1)" title="下移">▼</button>
-                <button style="padding:1px 5px;font-size:10px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:3px;cursor:pointer" onclick="removeSubFund(${i},${ci})">✕</button>
+                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:var(--text-soft)" onclick="moveSubFund(${i},${ci},-1)" title="上移">▲</button>
+                <button class="btn btn-outline" style="padding:1px 4px;font-size:9px;color:var(--text-soft)" onclick="moveSubFund(${i},${ci},1)" title="下移">▼</button>
+                <button class="ico-btn-sm danger" onclick="removeSubFund(${i},${ci})">✕</button>
             </div>`;
         });
-        h += `<div style="display:flex;gap:4px;margin-top:2px">
-                <input type="text" placeholder="新增分基金⋯" id="subfund-input-${i}" style="flex:1;padding:2px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:11px">
+        h += `<div class="flex" style="gap:4px;margin-top:2px">
+                <input type="text" placeholder="新增分基金⋯" id="subfund-input-${i}" class="field-inline" style="flex:1;padding:2px 6px;font-size:11px">
                 <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="addSubFund(${i})">＋</button>
             </div>
             </div>
@@ -1303,14 +1346,14 @@ function renderAliasList() {
     if (!_fundMgmtData) return;
     const aliases = _fundMgmtData.aliasMap || {};
     const keys = Object.keys(aliases).sort((a, b) => a.localeCompare(b, 'zh-Hant'));
-    if (!keys.length) { document.getElementById('alias-mgmt-list').innerHTML = '<p style="color:#94a3b8">無別名</p>'; return; }
-    let h = '<div style="display:flex;flex-direction:column;gap:3px">';
+    if (!keys.length) { document.getElementById('alias-mgmt-list').innerHTML = '<p style="color:var(--text-muted)">無別名</p>'; return; }
+    let h = '<div class="flex flex-col" style="gap:3px">';
     keys.forEach(k => {
-        h += `<div style="display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:12px;background:#f8fafc;border-radius:4px;border:1px solid #e2e8f0">
+        h += `<div class="flex items-center" style="gap:8px;padding:3px 8px;font-size:12px;background:var(--surface-alt);border-radius:var(--radius-sm);border:1px solid var(--border)">
             <span style="font-weight:600;min-width:80px">${escapeHtml(k)}</span>
-            <span style="color:#64748b">→</span>
+            <span style="color:var(--text-soft)">→</span>
             <span style="flex:1">${escapeHtml(aliases[k])}</span>
-            <button style="padding:1px 6px;font-size:11px;color:#dc2626;background:none;border:1px solid #fecaca;border-radius:4px;cursor:pointer" onclick="removeAlias('${escapeHtml(k)}')">✕</button>
+            <button class="ico-btn-sm" onclick="removeAlias('${escapeHtml(k)}')">✕</button>
         </div>`;
     });
     h += '</div>';
@@ -1865,11 +1908,11 @@ async function toggleFundCoverage(){
 }
 
 function _coverageTag(f, isSub) {
-    const prefix = isSub ? '<span style="color:#94a3b8;margin-right:2px">└</span>' : '';
+    const prefix = isSub ? '<span style="color:var(--text-muted);margin-right:2px">└</span>' : '';
     if (f.uploaded) {
-        return `<span style="display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px">${prefix}${escapeHtml(f.name)}</span>`;
+        return `<span class="tag-green">${prefix}${escapeHtml(f.name)}</span>`;
     }
-    return `<span style="display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px">${prefix}${escapeHtml(f.name)}</span>`;
+    return `<span class="tag-red">${prefix}${escapeHtml(f.name)}</span>`;
 }
 
 function renderFundCoverage(){
@@ -1881,10 +1924,10 @@ function renderFundCoverage(){
         return;
     }
     const dd = fundCoverageData[dom];
-    let h=`<div style="margin-bottom:12px;font-size:14px;color:#334155">
+    let h=`<div class="mb-3" style="font-size:14px;color:var(--text-strong)">
         <strong>${escapeHtml(dd.label)}</strong>
-        — 已繳交 <span style="color:#059669;font-weight:600">${dd.covered}</span>/${dd.total}
-        ，未繳交 <span style="color:#dc2626;font-weight:600">${dd.total - dd.covered}</span>
+        — 已繳交 <span style="color:var(--success);font-weight:600">${dd.covered}</span>/${dd.total}
+        ，未繳交 <span style="color:var(--danger);font-weight:600">${dd.total - dd.covered}</span>
     </div>`;
     // Flatten for grouping
     const allFlat = [];
@@ -1899,14 +1942,14 @@ function renderFundCoverage(){
     const missing = allFlat.filter(f=>!f.uploaded);
     const uploaded = allFlat.filter(f=>f.uploaded);
     if(missing.length){
-        h+=`<div style="margin-bottom:12px"><div style="font-size:13px;font-weight:600;color:#dc2626;margin-bottom:6px">❌ 未繳交（${missing.length}）</div>`;
-        h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
+        h+=`<div class="mb-3"><div style="font-size:13px;font-weight:600;color:var(--danger);margin-bottom:6px">❌ 未繳交（${missing.length}）</div>`;
+        h+=`<div class="flex flex-wrap" style="gap:4px">`;
         for(const f of missing) h+=_coverageTag(f, f.isSub);
         h+=`</div></div>`;
     }
     if(uploaded.length){
-        h+=`<div><div style="font-size:var(--fs-base);font-weight:700;color:var(--success);margin-bottom:8px">已繳交（${uploaded.length}）</div>`;
-        h+=`<div style="display:flex;flex-wrap:wrap;gap:4px">`;
+        h+=`<div><div class="fw-7" style="font-size:var(--fs-base);color:var(--success);margin-bottom:8px">已繳交（${uploaded.length}）</div>`;
+        h+=`<div class="flex flex-wrap" style="gap:4px">`;
         for(const f of uploaded) h+=_coverageTag(f, f.isSub);
         h+=`</div></div>`;
     }
