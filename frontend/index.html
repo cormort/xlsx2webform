@@ -27,7 +27,7 @@ body{font-family:var(--font-sans);background:var(--bg);color:var(--text);line-he
 /* ── Header ── */
 header{background:linear-gradient(135deg,#1a2332 0%,#243447 100%);border-bottom:3px solid #2b6cb0;position:sticky;top:0;z-index:50;box-shadow:0 2px 8px rgba(0,0,0,.15)}
 header .inner{max-width:100%;margin:0 auto;padding:14px 24px;display:flex;justify-content:space-between;align-items:center;gap:16px}
-header h1{font-size:18px;font-weight:700;color:#fff;letter-spacing:.3px}
+header h1{font-size:20px;font-weight:700;color:#fff;letter-spacing:.3px}
 header .file{font-size:var(--fs-sm);color:rgba(255,255,255,.55)}
 main{padding:20px 24px;max-width:100%}
 
@@ -47,7 +47,7 @@ main{padding:20px 24px;max-width:100%}
 .toolbar .sep{width:1px;height:24px;background:var(--border);margin:0 4px}
 
 /* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border-radius:var(--radius);font-size:var(--fs-sm);font-weight:600;border:1px solid transparent;cursor:pointer;transition:all .15s ease;letter-spacing:.2px;line-height:1.4}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border-radius:var(--radius);font-size:var(--fs-md);font-weight:600;border:1px solid transparent;cursor:pointer;transition:all .15s ease;letter-spacing:.2px;line-height:1.4}
 .btn svg{width:14px;height:14px;fill:currentColor}
 .btn-primary{background:var(--primary);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}.btn-primary:hover{background:var(--primary-hover);box-shadow:0 2px 4px rgba(0,0,0,.18)}
 .btn-success{background:var(--success);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.12)}.btn-success:hover{background:var(--success-hover)}
@@ -57,7 +57,7 @@ main{padding:20px 24px;max-width:100%}
 
 /* ── Formula bar ── */
 .formula-bar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-bottom:8px;padding:8px 14px;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);font-size:var(--fs-sm)}
-.formula-bar label{color:var(--text-soft);font-weight:600;white-space:nowrap}
+.formula-bar label{color:var(--text-soft);font-weight:600;white-space:nowrap;font-size:var(--fs-md)}
 .formula-bar select{padding:4px 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:var(--fs-sm);background:var(--surface)}
 .formula-bar input{flex:1;padding:5px 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);font-size:var(--fs-sm);font-family:'SF Mono','Menlo','Consolas',monospace}
 .formula-bar .hint{color:var(--text-muted);font-size:var(--fs-xs)}
@@ -132,7 +132,7 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 
 /* ── Tab bar ── */
 .tab-bar{display:flex;gap:0;margin-bottom:16px;border-bottom:2px solid var(--border);background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;padding:0 8px}
-.tab-bar .tab{padding:12px 22px;font-size:var(--fs-base);font-weight:600;color:var(--text-soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;letter-spacing:.2px}
+.tab-bar .tab{padding:12px 22px;font-size:var(--fs-md);font-weight:600;color:var(--text-soft);cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:.15s;letter-spacing:.2px}
 .tab-bar .tab:hover{color:var(--text-strong);background:var(--surface-alt)}
 .tab-bar .tab.active{color:var(--primary);border-bottom-color:var(--accent)}
 
@@ -184,10 +184,10 @@ tbody tr:last-child td{border-bottom:2px solid var(--border-strong)}
 /* ── Projects toolbar: search / filter / sort ── */
 .projects-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:var(--sp-4)}
 .projects-toolbar .search{position:relative;flex:1;min-width:200px}
-.projects-toolbar .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);transition:border-color .15s}
+.projects-toolbar .search input{width:100%;padding:10px 14px 10px 36px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md);background:var(--surface);color:var(--text);transition:border-color .15s}
 .projects-toolbar .search input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(43,108,176,.12)}
 .projects-toolbar .search .ico{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px;pointer-events:none}
-.projects-toolbar select{padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface);color:var(--text);cursor:pointer}
+.projects-toolbar select{padding:10px 14px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-md);background:var(--surface);color:var(--text);cursor:pointer}
 
 /* ── Batch action bar ── */
 .batch-bar{display:none;align-items:center;gap:var(--sp-4);padding:12px 16px;background:var(--primary-soft);border:1px solid #a3c2e8;border-radius:var(--radius);margin-bottom:var(--sp-4)}
@@ -242,6 +242,23 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 .field-inline{padding:6px 10px;border:1px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:var(--font-sans)}
 .tag-red{display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#fef2f2;color:#991b1b;border:1px solid #fecaca;border-radius:4px}
 .tag-green{display:inline-flex;align-items:center;padding:3px 8px;font-size:12px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;border-radius:4px}
+
+/* ── Guide / Help ── */
+.guide-container{max-width:800px;margin:0 auto;display:flex;flex-direction:column;gap:var(--sp-5)}
+.guide-section{display:flex;gap:var(--sp-4);padding:var(--sp-5);background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow);align-items:flex-start}
+.guide-icon{flex-shrink:0;width:44px;height:44px;border-radius:50%;background:var(--primary-soft);color:var(--primary);display:flex;align-items:center;justify-content:center;font-size:20px}
+.guide-h{font-size:var(--fs-lg);font-weight:700;color:var(--text-strong);margin-bottom:var(--sp-3);padding-bottom:var(--sp-2);border-bottom:2px solid var(--accent-soft)}
+.guide-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:var(--sp-2)}
+.guide-list li{font-size:var(--fs-base);color:var(--text);line-height:1.6;padding-left:var(--sp-3);position:relative}
+.guide-list li::before{content:'•';position:absolute;left:0;color:var(--accent);font-weight:700}
+.guide-list li strong{color:var(--text-strong)}
+.guide-list li code{padding:1px 5px;background:var(--surface-alt);border:1px solid var(--border);border-radius:3px;font-size:var(--fs-sm);font-family:'SF Mono','Menlo','Consolas',monospace;color:var(--warn)}
+@media(max-width:640px){
+  .guide-section{flex-direction:column;gap:var(--sp-3);padding:var(--sp-4)}
+  .guide-icon{width:36px;height:36px;font-size:16px}
+  .guide-h{font-size:var(--fs-md)}
+  .guide-list li{font-size:var(--fs-sm)}
+}
 
 /* ── Responsive ── */
 @media(max-width:640px){
@@ -301,6 +318,7 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
         <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">基金管理</div>
         <div class="tab" id="tab-template-mgmt" data-tab="template-mgmt">範本管理</div>
         <div class="tab" id="tab-consolidate" data-tab="consolidate">總彙整</div>
+        <div class="tab" id="tab-guide" data-tab="guide">使用說明</div>
     </div>
 
     <!-- Project Management Section -->
@@ -466,6 +484,58 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
         </div>
         <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
         <div id="consolidate-container"><p style="padding:24px;color:var(--text-muted);text-align:center">載入中⋯</p></div>
+    </div>
+
+    <!-- Guide / Help Section -->
+    <div id="guide-view" style="display:none">
+        <div class="guide-container">
+            <div class="guide-section">
+                <div class="guide-icon">👤</div>
+                <div>
+                    <h3 class="guide-h">填表人（開啟分享連結後）</h3>
+                    <ul class="guide-list">
+                        <li><strong>填寫資料</strong>：在表格中輸入資料後按「送出」即可提交。</li>
+                        <li><strong>設定身分</strong>：建議填寫姓名、Email 與填表密碼，以便日後修正。</li>
+                        <li><strong>載入舊資料</strong>：若有填寫過 Email + 密碼，可點擊「載入我之前填過的資料」還原。</li>
+                        <li><strong>匯入 Excel</strong>：點擊「匯入 Excel」可將本機 Excel 資料批次載入（欄位需對應）。</li>
+                        <li><strong>新增／刪除列</strong>：使用「＋ 列」與「－ 列」調整資料行數。</li>
+                        <li><strong>下載備份</strong>：送出成功後會詢問是否下載 XLSX 備份檔。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <div class="guide-icon">✏️</div>
+                <div>
+                    <h3 class="guide-h">專案編輯者（一般使用者）</h3>
+                    <ul class="guide-list">
+                        <li><strong>建立專案</strong>：點擊「＋ 新增專案」，設定 Email 與編輯密碼後上傳 Excel。</li>
+                        <li><strong>編輯表格</strong>：點選儲存格直接修改；支援 Tab 換欄、Enter 換列、Escape 取消編輯。</li>
+                        <li><strong>公式運算</strong>：在公式列輸入 <code>=B+C</code>（逐列運算）或 <code>=B2*1.05</code>（固定儲存格），點選「套用整欄」或「套用此格」。</li>
+                        <li><strong>貼上 Excel 資料</strong>：直接按 Ctrl+V 從 Excel 複製貼上（支援多列多欄）。</li>
+                        <li><strong>發布表單</strong>：編輯完成後按「發布表單」產生分享連結，可複製後傳給填表人。</li>
+                        <li><strong>檢視回應</strong>：切換至「回應結果」tab 查看填表人回覆，可單筆刪除或匯出 CSV。</li>
+                        <li><strong>匯出</strong>：可匯出 JSON、XLSX（維持格式）、CSV（回應資料）。</li>
+                        <li><strong>基金欄位設定</strong>：編輯器中可指定哪一欄為「基金名稱」，供總彙整辨識。</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="guide-section">
+                <div class="guide-icon">⚙️</div>
+                <div>
+                    <h3 class="guide-h">管理員（Admin）</h3>
+                    <ul class="guide-list">
+                        <li><strong>專案管理</strong>：檢視所有專案、批次發布／刪除、管理專案編輯密碼。</li>
+                        <li><strong>使用者管理</strong>：新增／編輯／刪除使用者，設定其「主管機關」與「機關名稱」（影響總彙整分組）。</li>
+                        <li><strong>基金管理</strong>：維護營業基金（國營事業）與非營業特種基金清單，管理別名對照表（aliasMap）。</li>
+                        <li><strong>範本管理</strong>：將既有專案存為範本，供快速建立新專案使用。</li>
+                        <li><strong>總彙整</strong>：以「主管機關 → 機關 → 基金」階層跨專案檢視所有填報資料，可匯出 CSV。</li>
+                        <li><strong>基金繳交狀態</strong>：在專案列表中點擊「基金繳交狀態」，比對已收到回應的基金與完整清單。</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1012,6 +1082,7 @@ function switchTab(tabId) {
         'fund-mgmt':    ['tab-fund-mgmt', 'fund-management-view', loadFundMgmt],
         'template-mgmt':['tab-template-mgmt', 'template-management-view', loadTemplates],
         'consolidate':  ['tab-consolidate', 'consolidate-view', loadConsolidate],
+        'guide':        ['tab-guide', 'guide-view', null],
     };
     if (!document.getElementById('tab-project-mgmt')) return;
     Object.entries(map).forEach(([k, [tabIdEl, viewId]]) => {
@@ -1623,6 +1694,8 @@ function initProjectsPage(){
     const tabTpl = document.getElementById('tab-template-mgmt');
     if (tabTpl) tabTpl.addEventListener('click', () => switchTab('template-mgmt'));
     if (tabConsol) tabConsol.addEventListener('click', () => switchTab('consolidate'));
+    const tabGuide = document.getElementById('tab-guide');
+    if (tabGuide) tabGuide.addEventListener('click', () => switchTab('guide'));
 
     const btnAddUser = document.getElementById('btn-add-user');
     if (btnAddUser) {
