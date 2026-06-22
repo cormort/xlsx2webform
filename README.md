@@ -104,7 +104,7 @@ pinned: false
 
 - **CSS 注入 per-route**：伺服器在 `</head>` 前插入 `<style>` + `<script>`，決定哪個區塊顯示，不依賴 JS 執行時機
 - **檔案持久化**：所有 session、發布狀態、回應寫入 `data/` 目錄 JSON 檔，可承受 Railway/HF Spaces 重啟
-- **單頁三模式**：前端 `index.html` 含三個區塊（projects-section / editor / fill-mode），同一份 HTML 三種呈現
+- **單頁三模式**：前端 `index.html` 含三個區塊（projects-section / editor / fill-mode），同一份 HTML 三種呈現；樣式與邏輯已抽出為 `styles.css`、`app.js`，由 `/static` 提供（`index.html` 僅留 markup）
 
 ---
 
@@ -230,7 +230,9 @@ process_xlsx(file_path, sheet_index, mode)
 
 ---
 
-### `frontend/index.html` — 前端 (775 行)
+### `frontend/` — 前端（3 檔）
+
+> `index.html`（markup）+ `styles.css`（樣式）+ `app.js`（邏輯），透過 `/static` 載入。後端 serve 路由仍只注入 `index.html` 的 `<head>` 設定 window 變數，不影響外部 css/js。
 
 #### CSS 樣式主題
 
