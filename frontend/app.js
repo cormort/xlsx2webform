@@ -1476,6 +1476,10 @@ function isMergeSel(r,c){
     return r>=r0&&r<=r1&&c>=c0&&c<=c1;
 }
 
+function hasMergedCells(d){
+    return d.some(row=>row&&row.some(c=>c&&((c.rowspan||1)>1||(c.colspan||1)>1)));
+}
+
 function render(){
     const tableContainer=document.getElementById('table-container');
     if(!data.length){tableContainer.innerHTML='';return}
@@ -1498,15 +1502,18 @@ function render(){
             const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
             const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
             const spanAttr=(cell.rowspan>1?` rowspan="${cell.rowspan}"`:'')+(cell.colspan>1?` colspan="${cell.colspan}"`:'');
-            const selCls=isMergeSel(r,c)?' merge-sel':'';
-            h+=`<td${hasF?' class="formula'+selCls+'"':selCls?' class="'+selCls.trim()+'"':''}${spanAttr}>`;
+            const selCls=isMergeSel(r,c)?'merge-sel':'';
+            const isMerged=(cell.rowspan>1||cell.colspan>1);
+            const tdCls=[hasF?'formula':'',selCls,isMerged?'merged-cell':''].filter(Boolean).join(' ');
+            h+=`<td${tdCls?` class="${tdCls}"`:''}${spanAttr}>`;
             h+=`<input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
             h+='</td>';
         }
         h+='</tr>';
     }
     h+='</tbody></table>';
-    tableContainer.innerHTML=h;
+    const warn=hasMergedCells(data)?'<div class="merge-warn">⚠ 此表單含合併儲存格（黃底粗框處）。填寫者匯入 Excel 時，合併區域只會保留左上格的值、其餘格將為空白，請確認此版面適合作為填寫表單。</div>':'';
+    tableContainer.innerHTML=warn+h;
     document.querySelectorAll('#main-table input[data-r]').forEach(inp=>{
         inp.addEventListener('change',onChange);inp.addEventListener('focus',onFocus);
         inp.addEventListener('blur',onBlur);inp.addEventListener('paste',onPaste);inp.addEventListener('keydown',onKeyDown);
@@ -2055,7 +2062,8 @@ function renderFillTable(){
         const hc=hdrRow[c]||{};
         if(hc._skip) continue;
         const spanAttr=(hc.rowspan>1?` rowspan="${hc.rowspan}"`:'')+(hc.colspan>1?` colspan="${hc.colspan}"`:'');
-        h+=`<th${spanAttr}>${escapeHtml(hdrs[c]||'')}</th>`;
+        const hMerged=(hc.rowspan>1||hc.colspan>1)?' class="merged-cell"':'';
+        h+=`<th${hMerged}${spanAttr}>${escapeHtml(hdrs[c]||'')}</th>`;
     }
     h+='</tr></thead><tbody>';
 
@@ -2069,18 +2077,20 @@ function renderFillTable(){
             const isNum=nums.includes(c);const isAuto=cell._autoSum;
             const spanAttr=(cell.rowspan>1?` rowspan="${cell.rowspan}"`:'')+(cell.colspan>1?` colspan="${cell.colspan}"`:'');
             const locked=cell._locked;
+            const mCls=(cell.rowspan>1||cell.colspan>1)?' merged-cell':'';
             if(isAuto||locked){
-                h+=`<td style="background:#fef3c7"${spanAttr}><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
+                h+=`<td${mCls?` class="${mCls.trim()}"`:''} style="background:#fef3c7"${spanAttr}><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
             } else {
                 const cls=`${isNum?'num':'txt'}`;
                 const dl=(c===fillFundCol&&fundNames.length)?' list="fund-names-list"':'';
-                h+=`<td${spanAttr}><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}"${dl} placeholder="${c===0?'名稱':'0'}"></td>`;
+                h+=`<td${mCls?` class="${mCls.trim()}"`:''}${spanAttr}><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}"${dl} placeholder="${c===0?'名稱':'0'}"></td>`;
             }
         }
         h+='</tr>';
     }
     h+='</tbody></table>';
-    document.getElementById('fill-table-container').innerHTML=h;
+    const warn=hasMergedCells(data)?'<div class="merge-warn">⚠ 此表單含合併儲存格（黃底粗框處）。合併區域僅左上格可填寫、其餘格無法輸入；若您匯入的 Excel 含合併格，請核對資料是否正確。</div>':'';
+    document.getElementById('fill-table-container').innerHTML=warn+h;
 
     document.querySelectorAll('#fill-table input:not([disabled])').forEach(inp=>{
         inp.addEventListener('change',onFillChange);

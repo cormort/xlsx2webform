@@ -289,6 +289,10 @@ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent)!
 }
 /* merge selection highlight */
 td.merge-sel{background:rgba(59,130,246,.12)!important;outline:2px solid var(--accent)}
+/* merged-cell highlight + warning banner */
+.merged-cell{background:#fff9c4!important;outline:3px solid #f59e0b;outline-offset:-3px}
+.merged-cell input{background:transparent!important}
+.merge-warn{background:var(--warn-soft);color:var(--warn);border:1px solid #f59e0b;border-radius:6px;padding:8px 12px;margin:0 0 10px;font-size:var(--fs-sm);font-weight:600;line-height:1.5}
 /* checkbox column */
 .chk-col{width:32px;min-width:32px;text-align:center;padding:2px!important}
 .chk-col input{cursor:pointer}
