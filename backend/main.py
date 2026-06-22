@@ -42,12 +42,13 @@ limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
-# CORS configuration
+# CORS configuration — ALLOWED_ORIGINS must be set in production (no wildcard fallback)
 allowed_origins_raw = os.environ.get("ALLOWED_ORIGINS", "")
 if allowed_origins_raw:
     origins = [o.strip() for o in allowed_origins_raw.split(",") if o.strip()]
 else:
     origins = ["*"]
+    logging.warning("ALLOWED_ORIGINS not set — CORS allows all origins. Set this env var in production!")
 
 allow_credentials = True
 if "*" in origins:
@@ -162,6 +163,8 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 
 # ── Admin & User Authentication ──────────────────────────
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
+if not ADMIN_PASSWORD:
+    raise RuntimeError("ADMIN_PASSWORD env var is required — refusing to start with an empty admin password")
 ADMIN_SECRET = os.environ.get("ADMIN_SECRET", secrets.token_hex(32))
 ADMIN_TOKEN_EXPIRY_HOURS = int(os.environ.get("ADMIN_TOKEN_EXPIRY_HOURS", "24"))
 admin_tokens: dict[str, datetime] = {}  # token → expiry datetime
