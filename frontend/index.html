@@ -141,7 +141,7 @@
         <!-- 主管機關管理 -->
         <div class="mb-5">
             <h3 class="text-base fw-7 mb-3" style="color:var(--text-strong);font-size:var(--fs-lg)">主管機關管理</h3>
-            <div class="flex gap-2 mb-3" style="flex-wrap:wrap">
+            <div class="flex gap-2 mb-3" id="sup-mgmt-form" style="flex-wrap:wrap;padding:8px;border-radius:var(--radius);transition:background .2s">
                 <select id="sup-mgmt-domain" class="field-inline">
                     <option value="enterprise">營業基金（國營事業）</option>
                     <option value="special">非營業特種基金</option>
@@ -149,6 +149,7 @@
                 <input type="text" id="sup-mgmt-code" placeholder="編號" class="field-inline" style="width:80px">
                 <input type="text" id="sup-mgmt-name" placeholder="主管機關名稱" class="field-inline" style="flex:1;min-width:160px">
                 <button class="btn btn-outline" id="btn-sup-add">＋ 新增 / 修改</button>
+                <button class="btn btn-outline" id="btn-sup-cancel" style="display:none" onclick="cancelSupEdit()">取消</button>
             </div>
             <div id="sup-mgmt-list" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-3);max-height:300px;overflow-y:auto"></div>
         </div>

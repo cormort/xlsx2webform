@@ -717,10 +717,40 @@ function renderSupMgmtList() {
     ).join('');
 }
 
+let _supEditing = null; // {domain, code} when editing
+
+function _supEditMode(on, domain, code, name) {
+    _supEditing = on ? { domain, code } : null;
+    const codeEl = document.getElementById('sup-mgmt-code');
+    const nameEl = document.getElementById('sup-mgmt-name');
+    const btn = document.getElementById('btn-sup-add');
+    const cancel = document.getElementById('btn-sup-cancel');
+    const form = document.getElementById('sup-mgmt-form');
+    if (on) {
+        document.getElementById('sup-mgmt-domain').value = domain;
+        codeEl.value = code;
+        codeEl.readOnly = true;
+        nameEl.value = name;
+        btn.textContent = '儲存修改';
+        cancel.style.display = '';
+        form.style.background = 'var(--warn-soft, #fef9c3)';
+        nameEl.focus();
+    } else {
+        codeEl.value = '';
+        codeEl.readOnly = false;
+        nameEl.value = '';
+        btn.textContent = '＋ 新增 / 修改';
+        cancel.style.display = 'none';
+        form.style.background = '';
+    }
+}
+
 window.editSup = function(domain, code, name) {
-    document.getElementById('sup-mgmt-domain').value = domain;
-    document.getElementById('sup-mgmt-code').value = code;
-    document.getElementById('sup-mgmt-name').value = name;
+    _supEditMode(true, domain, code, name);
+};
+
+window.cancelSupEdit = function() {
+    _supEditMode(false);
 };
 
 window.deleteSup = async function(domain, code) {
@@ -1164,8 +1194,7 @@ function initProjectsPage(){
             });
             if (!r.ok) throw new Error((await r.json()).detail || '儲存失敗');
             toast('已儲存');
-            document.getElementById('sup-mgmt-code').value = '';
-            document.getElementById('sup-mgmt-name').value = '';
+            _supEditMode(false);
             loadSupervisorMgmt();
         } catch (e) { toast(e.message, 1); }
     });
