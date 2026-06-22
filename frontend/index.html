@@ -138,6 +138,22 @@
 
     <!-- Fund Management Section (visible to admin only) -->
     <div id="fund-management-view" style="display:none">
+        <!-- 主管機關管理 -->
+        <div class="mb-5">
+            <h3 class="text-base fw-7 mb-3" style="color:var(--text-strong);font-size:var(--fs-lg)">主管機關管理</h3>
+            <div class="flex gap-2 mb-3" style="flex-wrap:wrap">
+                <select id="sup-mgmt-domain" class="field-inline">
+                    <option value="enterprise">營業基金（國營事業）</option>
+                    <option value="special">非營業特種基金</option>
+                </select>
+                <input type="text" id="sup-mgmt-code" placeholder="編號" class="field-inline" style="width:80px">
+                <input type="text" id="sup-mgmt-name" placeholder="主管機關名稱" class="field-inline" style="flex:1;min-width:160px">
+                <button class="btn btn-outline" id="btn-sup-add">＋ 新增 / 修改</button>
+            </div>
+            <div id="sup-mgmt-list" style="background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:var(--sp-3);max-height:300px;overflow-y:auto"></div>
+        </div>
+        <hr style="border:none;border-top:1px solid var(--border);margin-bottom:var(--sp-4)">
+        <!-- 基金清單管理 -->
         <div class="flex justify-between items-center flex-wrap mb-4" style="gap:8px">
             <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">現行基金清單管理</h3>
             <div class="flex gap-2">
@@ -471,9 +487,15 @@
                 <option value="">— 選擇主管機關 —</option>
             </select>
         </div>
-        <div class="mb-4">
+        <div class="mb-3">
             <label class="field-label">機關名稱</label>
             <input type="text" id="new-user-agency" placeholder="例：經濟部、國立臺灣大學" class="field-input">
+        </div>
+        <div class="mb-4" id="new-user-role-row">
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+                <input type="checkbox" id="new-user-dgbas">
+                <span class="field-label" style="margin:0">設為行政院主計總處</span>
+            </label>
         </div>
         <button class="btn btn-primary" id="btn-submit-new-user" style="width:100%;justify-content:center;padding:12px;font-size:var(--fs-md)">建立使用者</button>
     </div>

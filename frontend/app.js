@@ -689,6 +689,52 @@ async function loadAudit() {
     }
 }
 
+// ── Supervisor Management (主管機關管理) ──
+let _supCache = [];
+
+async function loadSupervisorMgmt() {
+    try {
+        const r = await fetch('/api/supervisors', { headers: getAuthHeaders() });
+        if (!r.ok) throw new Error('載入失敗');
+        _supCache = (await r.json()).supervisors || [];
+        renderSupMgmtList();
+    } catch (e) { toast(e.message, 1); }
+}
+
+function renderSupMgmtList() {
+    const dom = document.getElementById('sup-mgmt-domain').value;
+    const list = _supCache.filter(s => s.domain === dom);
+    const el = document.getElementById('sup-mgmt-list');
+    if (!list.length) { el.innerHTML = '<p style="color:#94a3b8">此類別尚無主管機關</p>'; return; }
+    list.sort((a, b) => a.code.localeCompare(b.code));
+    el.innerHTML = list.map(s =>
+        `<div class="flex items-center" style="gap:8px;padding:6px 8px;border-bottom:1px solid var(--border)">
+            <span style="font-size:12px;color:var(--text-muted);min-width:36px;font-family:monospace">${escapeHtml(s.code)}</span>
+            <span style="flex:1;font-size:13px;font-weight:600">${escapeHtml(s.name)}</span>
+            <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editSup('${escapeHtml(s.domain)}','${escapeHtml(s.code)}','${escapeHtml(s.name)}')">編輯</button>
+            <button class="btn btn-outline-red" style="padding:2px 8px;font-size:11px" onclick="deleteSup('${escapeHtml(s.domain)}','${escapeHtml(s.code)}')">刪除</button>
+        </div>`
+    ).join('');
+}
+
+window.editSup = function(domain, code, name) {
+    document.getElementById('sup-mgmt-domain').value = domain;
+    document.getElementById('sup-mgmt-code').value = code;
+    document.getElementById('sup-mgmt-name').value = name;
+};
+
+window.deleteSup = async function(domain, code) {
+    if (!confirm(`確定刪除主管機關 ${code}？`)) return;
+    try {
+        const r = await fetch(`/api/admin/supervisors/${encodeURIComponent(domain)}/${encodeURIComponent(code)}`, {
+            method: 'DELETE', headers: getAuthHeaders()
+        });
+        if (!r.ok) throw new Error((await r.json()).detail || '刪除失敗');
+        toast('已刪除');
+        loadSupervisorMgmt();
+    } catch (e) { toast(e.message, 1); }
+};
+
 // ── Fund Management ──
 let _fundMgmtData = null;
 
@@ -699,6 +745,7 @@ async function loadFundMgmt() {
         _fundMgmtData = await r.json();
         renderFundMgmtList();
         renderAliasList();
+        loadSupervisorMgmt();
     } catch (e) { toast(e.message, 1); }
 }
 
@@ -984,6 +1031,7 @@ window.setUserRole = setUserRole;
         const supVal = document.getElementById('new-user-supervisor').value;
         const [dom, code] = supVal ? supVal.split('|') : ['', ''];
         const agency = document.getElementById('new-user-agency').value.trim();
+        const isDgbas = document.getElementById('new-user-dgbas').checked;
         try {
             const r = await fetch('/api/admin/users', {
                 method: 'POST',
@@ -992,12 +1040,20 @@ window.setUserRole = setUserRole;
             });
             const res = await r.json();
             if (!r.ok) throw new Error(res.detail || '建立失敗');
+            if (isDgbas) {
+                await fetch(`/api/admin/users/${encodeURIComponent(email)}/role`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                    body: JSON.stringify({ role: 'dgbas' })
+                });
+            }
             toast('使用者建立成功');
             dialog.classList.remove('show');
             document.getElementById('new-user-email').value = '';
             document.getElementById('new-user-password').value = '';
             document.getElementById('new-user-supervisor').value = '';
             document.getElementById('new-user-agency').value = '';
+            document.getElementById('new-user-dgbas').checked = false;
             loadUsers();
         } catch(e) {
             toast(e.message, 1);
@@ -1058,6 +1114,8 @@ function initProjectsPage(){
         btnAddUser.addEventListener('click', async () => {
             await loadSupervisors();
             fillSupervisorSelect(document.getElementById('new-user-supervisor'), '');
+            const roleRow = document.getElementById('new-user-role-row');
+            if (roleRow) roleRow.style.display = currentRole() === 'admin' ? '' : 'none';
             document.getElementById('add-user-dialog').classList.add('show');
         });
     }
@@ -1092,6 +1150,25 @@ function initProjectsPage(){
     document.getElementById('btn-fund-add')?.addEventListener('click', addFund);
     document.getElementById('btn-alias-add')?.addEventListener('click', addAlias);
     document.getElementById('fund-mgmt-domain')?.addEventListener('change', renderFundMgmtList);
+    document.getElementById('sup-mgmt-domain')?.addEventListener('change', renderSupMgmtList);
+    document.getElementById('btn-sup-add')?.addEventListener('click', async () => {
+        const domain = document.getElementById('sup-mgmt-domain').value;
+        const code = document.getElementById('sup-mgmt-code').value.trim();
+        const name = document.getElementById('sup-mgmt-name').value.trim();
+        if (!code || !name) { toast('編號與名稱皆為必填', 1); return; }
+        try {
+            const r = await fetch('/api/admin/supervisors', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+                body: JSON.stringify({ domain, code, name })
+            });
+            if (!r.ok) throw new Error((await r.json()).detail || '儲存失敗');
+            toast('已儲存');
+            document.getElementById('sup-mgmt-code').value = '';
+            document.getElementById('sup-mgmt-name').value = '';
+            loadSupervisorMgmt();
+        } catch (e) { toast(e.message, 1); }
+    });
     document.getElementById('btn-batch-clear')?.addEventListener('click', ()=>{
         projSelected.clear();
         document.querySelectorAll('.proj-check').forEach(cb=>{ cb.checked=false; cb.closest('.project-card')?.classList.remove('selected'); });

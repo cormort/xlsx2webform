@@ -104,5 +104,30 @@ def list_supervisors():
     return out
 
 
+def save_registry():
+    """Persist the current in-memory registry to disk and rebuild indexes."""
+    REGISTRY_PATH.write_text(json.dumps(_registry, ensure_ascii=False, indent=2), encoding="utf-8")
+    load_registry()
+
+
+def upsert_supervisor(domain: str, code: str, name: str):
+    dd = _registry.get("domains", {}).get(domain)
+    if dd is None:
+        raise KeyError(f"Unknown domain: {domain}")
+    dd.setdefault("supervisors", {})[code] = name
+    save_registry()
+
+
+def delete_supervisor(domain: str, code: str):
+    dd = _registry.get("domains", {}).get(domain)
+    if dd is None:
+        raise KeyError(f"Unknown domain: {domain}")
+    sups = dd.get("supervisors", {})
+    if code not in sups:
+        raise KeyError(f"Supervisor code {code} not found")
+    del sups[code]
+    save_registry()
+
+
 # Load once at import.
 load_registry()

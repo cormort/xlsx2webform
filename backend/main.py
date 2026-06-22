@@ -825,6 +825,30 @@ async def list_supervisors_api():
     return {"supervisors": registry.list_supervisors()}
 
 
+class SupervisorPayload(BaseModel):
+    domain: str
+    code: str
+    name: str
+
+
+@app.put("/api/admin/supervisors")
+async def upsert_supervisor_api(payload: SupervisorPayload, _admin=Depends(check_admin)):
+    try:
+        registry.upsert_supervisor(payload.domain, payload.code.strip(), payload.name.strip())
+    except KeyError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    return {"success": True}
+
+
+@app.delete("/api/admin/supervisors/{domain}/{code}")
+async def delete_supervisor_api(domain: str, code: str, _admin=Depends(check_admin)):
+    try:
+        registry.delete_supervisor(domain, code)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    return {"success": True}
+
+
 @app.get("/api/consolidate")
 async def consolidate(_admin=Depends(check_admin)):
     """Cross-project consolidation grouped 主管機關 → 機關 → 基金. Admin only.
