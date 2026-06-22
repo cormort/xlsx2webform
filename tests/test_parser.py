@@ -10,10 +10,11 @@ def test_hex_to_rgb_none():
 
 
 def test_hex_to_rgb_string():
-    assert hex_to_rgb('abcd') == 'ABCD'
-    assert hex_to_rgb('#FF00AA') == '#FF00AA'  # function does not strip #, just upper
-    # Actually function just returns upper if string, so '#ff00aa' -> '#FF00AA'
-    assert hex_to_rgb('#ff00aa') == '#FF00AA'
+    # Sanitizer only accepts 6- or 8-char hex (no '#', no other lengths)
+    assert hex_to_rgb('abcd') is None  # 4 chars, invalid
+    assert hex_to_rgb('FF00AA') == 'FF00AA'  # 6-char hex, uppercased
+    assert hex_to_rgb('ff00aa') == 'FF00AA'  # lower -> upper
+    assert hex_to_rgb('#ff00aa') is None  # '#' not allowed
 
 
 def test_hex_to_rgb_object_with_rgb():

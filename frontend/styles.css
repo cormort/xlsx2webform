@@ -298,3 +298,5 @@ td.merge-sel{background:rgba(59,130,246,.12)!important;outline:2px solid var(--a
 .chk-col input{cursor:pointer}
 /* edit mode active btn */
 #btn-edit-mode.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* 主計總處 (read-only) — hide project write affordances */
+body.role-dgbas #btn-new-project,body.role-dgbas #batch-bar{display:none!important}

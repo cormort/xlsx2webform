@@ -300,18 +300,24 @@ function renderIdentity(role, email){
     // Only show when authenticated (token present, or admin not required)
     const authed = !!getAdminToken() || !adminRequired;
     if(!authed || !role){ box.style.display='none'; box.innerHTML=''; return; }
-    const roleLabel = role === 'admin' ? '管理員' : '使用者';
-    const roleClass = role === 'admin' ? 'badge-role admin' : 'badge-role';
+    const roleLabel = role === 'admin' ? '管理員' : role === 'dgbas' ? '主計總處' : '使用者';
+    const roleClass = (role === 'admin' || role === 'dgbas') ? 'badge-role admin' : 'badge-role';
     const who = email
         ? `<span class="who"><span class="${roleClass}">${roleLabel}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></span>`
         : `<span class="who"><span class="${roleClass}">${roleLabel}</span></span>`;
-    const changePwdBtn = role === 'user' ? `<button class="btn btn-outline" onclick="showChangePassword()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">改密碼</button>` : '';
+    const changePwdBtn = (role === 'user' || role === 'dgbas') ? `<button class="btn btn-outline" onclick="showChangePassword()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">改密碼</button>` : '';
     box.innerHTML = `${who}${changePwdBtn}<button class="btn btn-outline" onclick="authLogout()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">登出</button>`;
     box.style.display = 'flex';
 }
 
+function currentRole() {
+    return sessionStorage.getItem('auth_role') || (!adminRequired ? 'admin' : null);
+}
+// 主計總處: elevated, read-only over projects/templates
+function isReadOnly() { return currentRole() === 'dgbas'; }
+
 function updateAdminLayout() {
-    const role = sessionStorage.getItem('auth_role') || (!adminRequired ? 'admin' : null);
+    const role = currentRole();
     const email = sessionStorage.getItem('auth_email');
     const adminTabs = document.getElementById('admin-tabs');
     const userMgmtView = document.getElementById('user-management-view');
@@ -320,8 +326,18 @@ function updateAdminLayout() {
     // Render identity bar (role + email + logout)
     renderIdentity(role, email);
 
-    if (role === 'admin') {
+    document.body.classList.toggle('role-dgbas', role === 'dgbas');
+
+    if (role === 'admin' || role === 'dgbas') {
         if (adminTabs) adminTabs.style.display = 'flex';
+        // 主計總處 cannot use the admin-only 基金管理 / 總彙整 tabs
+        const dg = role === 'dgbas';
+        ['tab-fund-mgmt', 'tab-consolidate'].forEach(id => {
+            const t = document.getElementById(id);
+            if (t) t.style.display = dg ? 'none' : '';
+        });
+        const auditTab = document.getElementById('tab-audit');
+        if (auditTab) auditTab.style.display = '';   // visible to admin + 主計總處
         // Make sure we are on the project tab by default
         switchTab('project-mgmt');
     } else {
@@ -354,6 +370,7 @@ function switchTab(tabId) {
         'fund-mgmt':    ['tab-fund-mgmt', 'fund-management-view', loadFundMgmt],
         'template-mgmt':['tab-template-mgmt', 'template-management-view', loadTemplates],
         'consolidate':  ['tab-consolidate', 'consolidate-view', loadConsolidate],
+        'audit':        ['tab-audit', 'audit-view', loadAudit],
         'guide':        ['tab-guide', 'guide-view', null],
     };
     if (!document.getElementById('tab-project-mgmt')) return;
@@ -411,18 +428,28 @@ async function loadUsers() {
         }
         const dash = '<span style="color:var(--border)">—</span>';
         let h = '';
+        const dg = isReadOnly();   // current user is 主計總處
         _usersCache.forEach(u => {
-            const sup = u.supervisor ? `${u.supervisor.code} ${escapeHtml(u.supervisor.name)}` : dash;
+            const roleTag = u.role === 'dgbas' ? ' <span class="badge-pill" style="background:#fef3c7;color:#92400e">主計總處</span>' : '';
+            const sup = (u.supervisor ? `${u.supervisor.code} ${escapeHtml(u.supervisor.name)}` : dash) + roleTag;
             const agency = u.agency_name ? escapeHtml(u.agency_name) : dash;
+            // Only admins can grant/revoke the 主計總處 role
+            const roleBtn = (currentRole() === 'admin')
+                ? (u.role === 'dgbas'
+                    ? `<button class="btn btn-outline" onclick="setUserRole('${escapeHtml(u.email)}','')" title="取消主計總處權限">取消主計總處</button>`
+                    : `<button class="btn btn-outline" onclick="setUserRole('${escapeHtml(u.email)}','dgbas')" title="授予主計總處權限">設為主計總處</button>`)
+                : '';
+            // 主計總處 cannot manage other 主計總處 accounts (server also enforces)
+            const actions = (dg && u.role === 'dgbas')
+                ? '<span style="color:var(--text-muted);font-size:12px">—</span>'
+                : `${roleBtn}<button class="btn btn-outline" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
+                    <button class="btn btn-outline-red" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>`;
             h += `<tr>
                 <td style="padding:10px 14px">${sup}</td>
                 <td style="padding:10px 14px">${agency}</td>
                 <td style="padding:10px 14px;font-weight:600">${escapeHtml(u.email)}</td>
                 <td style="padding:10px 14px;color:var(--text-soft)">${u.created_at?.split('T')[0] || ''}</td>
-                <td class="text-center nowrap" style="padding:10px 14px">
-                    <button class="btn btn-outline" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
-                    <button class="btn btn-outline-red" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>
-                </td>
+                <td class="text-center nowrap" style="padding:10px 14px">${actions}</td>
             </tr>`;
         });
         listBody.innerHTML = h;
@@ -508,8 +535,8 @@ function renderTemplateList() {
                 </div>
             </div>
             <div class="flex" style="gap:6px">
-                <button class="btn btn-primary" onclick="createFromTemplate('${t.id}')">建立專案</button>
-                <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">&times;</button>
+                ${isReadOnly() ? '' : `<button class="btn btn-primary" onclick="createFromTemplate('${t.id}')">建立專案</button>
+                <button class="icon-btn danger" onclick="deleteTemplate('${t.id}')" title="刪除範本">&times;</button>`}
             </div>
         </div>`;
     }).join('');
@@ -626,6 +653,40 @@ function exportConsolCSV() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'consolidation.csv';
     document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+}
+
+// ── Audit Log (稽核紀錄) ──
+async function loadAudit() {
+    const c = document.getElementById('audit-container');
+    if (!c) return;
+    c.innerHTML = '<p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p>';
+    const emailF = (document.getElementById('audit-filter-email')?.value || '').trim();
+    const actionF = (document.getElementById('audit-filter-action')?.value || '').trim();
+    const qs = new URLSearchParams({ limit: '800' });
+    if (emailF) qs.set('email', emailF);
+    if (actionF) qs.set('action', actionF);
+    try {
+        const r = await fetch('/api/admin/audit-log?' + qs.toString(), { headers: getAuthHeaders() });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.detail || '載入失敗');
+        const rows = res.entries || [];
+        if (!rows.length) { c.innerHTML = '<p style="padding:48px;color:var(--text-muted);text-align:center">尚無紀錄</p>'; return; }
+        const roleLabel = { admin: '管理員', dgbas: '主計總處', user: '使用者', guest: '訪客' };
+        let h = `<p class="resp-stats" style="margin-bottom:8px">共 ${rows.length} 筆（最新在上）</p>`;
+        h += '<div class="table-wrap"><div class="scroll"><table class="resp-compare-table"><thead><tr><th style="width:150px">時間</th><th>身分</th><th>Email</th><th>IP</th><th>動作</th><th style="width:60px">狀態</th></tr></thead><tbody>';
+        rows.forEach(e => {
+            h += `<tr><td class="resp-row-label">${escapeHtml((e.ts || '').replace('T', ' '))}</td>`
+               + `<td>${escapeHtml(roleLabel[e.role] || e.role || '')}</td>`
+               + `<td>${escapeHtml(e.email || '')}</td>`
+               + `<td>${escapeHtml(e.ip || '')}</td>`
+               + `<td>${escapeHtml(e.action || '')}</td>`
+               + `<td>${escapeHtml(e.detail || '')}</td></tr>`;
+        });
+        h += '</tbody></table></div></div>';
+        c.innerHTML = h;
+    } catch(e) {
+        c.innerHTML = `<p style="padding:24px;color:#dc2626;text-align:center">${escapeHtml(e.message)}</p>`;
+    }
 }
 
 // ── Fund Management ──
@@ -835,6 +896,27 @@ async function deleteUser(email) {
 }
 window.deleteUser = deleteUser;
 
+async function setUserRole(email, role) {
+    const msg = role === 'dgbas'
+        ? `確定將 ${email} 設為「主計總處」？\n該帳號將可唯讀檢視所有專案/範本，並管理一般使用者。`
+        : `確定取消 ${email} 的「主計總處」權限？`;
+    if (!confirm(msg + '\n變更後該帳號需重新登入。')) return;
+    try {
+        const r = await fetch(`/api/admin/users/${encodeURIComponent(email)}/role`, {
+            method: 'PUT',
+            headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role })
+        });
+        const res = await r.json();
+        if (!r.ok) throw new Error(res.detail || '設定失敗');
+        toast(role === 'dgbas' ? '已設為主計總處' : '已取消主計總處權限');
+        loadUsers();
+    } catch(e) {
+        toast(e.message, 1);
+    }
+}
+window.setUserRole = setUserRole;
+
 (function bindAdminLogin(){
     const overlay=document.getElementById('admin-overlay');
     const emailInput=document.getElementById('admin-email-input');
@@ -966,6 +1048,8 @@ function initProjectsPage(){
     const tabTpl = document.getElementById('tab-template-mgmt');
     if (tabTpl) tabTpl.addEventListener('click', () => switchTab('template-mgmt'));
     if (tabConsol) tabConsol.addEventListener('click', () => switchTab('consolidate'));
+    const tabAudit = document.getElementById('tab-audit');
+    if (tabAudit) tabAudit.addEventListener('click', () => switchTab('audit'));
     const tabGuide = document.getElementById('tab-guide');
     if (tabGuide) tabGuide.addEventListener('click', () => switchTab('guide'));
 
@@ -981,6 +1065,9 @@ function initProjectsPage(){
     // Consolidation controls
     document.getElementById('btn-consol-refresh')?.addEventListener('click', loadConsolidate);
     document.getElementById('btn-consol-export')?.addEventListener('click', exportConsolCSV);
+
+    // Audit-log controls
+    document.getElementById('btn-audit-refresh')?.addEventListener('click', loadAudit);
 
     // Search / filter / sort
     document.getElementById('proj-search')?.addEventListener('input', renderProjects);
@@ -1158,6 +1245,7 @@ function renderProjects(){
         return;
     }
 
+    const ro=isReadOnly();
     let h='<div class="project-grid">';
     for(const p of rows){
         const badge=p.published
@@ -1185,9 +1273,9 @@ function renderProjects(){
             <div class="actions">
                 ${copyBtn}
                 ${viewRespBtn}
-                <button class="icon-btn" onclick="saveAsTemplate('${p.id}')" title="存為範本" style="font-size:var(--fs-sm)">T</button>
-                <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'" style="font-size:var(--fs-sm)">編輯</button>
-                <button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">&times;</button>
+                ${ro ? '' : `<button class="icon-btn" onclick="saveAsTemplate('${p.id}')" title="存為範本" style="font-size:var(--fs-sm)">T</button>`}
+                <button class="btn btn-primary" onclick="location.href='/editor/${p.id}'" style="font-size:var(--fs-sm)">${ro ? '檢視' : '編輯'}</button>
+                ${ro ? '' : `<button class="icon-btn danger" onclick="deleteProject('${p.id}')" title="刪除">&times;</button>`}
             </div>
         </div>`;
     }

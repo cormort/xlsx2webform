@@ -61,7 +61,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# HTTP Security Headers Middleware
+# Paths whose GETs are polled/static — skipped by the audit log to cut noise.
+_AUDIT_SKIP_GET = {
+    "/api/auth/verify", "/api/admin/verify", "/api/registry",
+    "/api/fund-names", "/api/supervisors",
+}
+
+# HTTP Security Headers + audit-log Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
@@ -76,6 +82,19 @@ async def add_security_headers(request: Request, call_next):
         "img-src 'self' data:; "
         "frame-ancestors 'none';"
     )
+
+    # Audit: record every API/fill action (skip polled & static GETs)
+    path = request.url.path
+    if (path.startswith("/api/") or path.startswith("/fill/")) and \
+       not (request.method == "GET" and path in _AUDIT_SKIP_GET):
+        try:
+            auth = get_current_auth_optional(request.headers.get("X-Admin-Token"))
+            client = request.client.host if request.client else ""
+            _audit(f"{request.method} {path}", auth["role"], auth.get("email"),
+                   client, detail=str(response.status_code))
+        except Exception as e:
+            logger.warning("audit failed: %s", e)
+
     return response
 
 # Upload directory
@@ -87,8 +106,56 @@ TEMPLATE_DIR.mkdir(exist_ok=True)
 DATA_DIR = Path(__file__).parent.parent / "data"
 DATA_DIR.mkdir(exist_ok=True)
 
+AUDIT_LOG = DATA_DIR / "audit.log"
+
 # Logging
 logger = logging.getLogger(__name__)
+
+
+def _audit(action: str, role: str, email, ip: str, detail: str = ""):
+    """Append one JSON line to the audit log. Never raises."""
+    rec = {
+        "ts": datetime.now().isoformat(timespec="seconds"),
+        "role": role,
+        "email": email or "",
+        "ip": ip or "",
+        "action": action,
+        "detail": detail,
+    }
+    try:
+        with AUDIT_LOG.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception as e:
+        logger.warning("audit write failed: %s", e)
+
+
+def _read_audit(limit: int = 500, email: str = "", action: str = ""):
+    """Return the most recent audit records (newest first), optionally filtered."""
+    if not AUDIT_LOG.exists():
+        return []
+    email = (email or "").strip().lower()
+    action = (action or "").strip().lower()
+    out = []
+    try:
+        lines = AUDIT_LOG.read_text(encoding="utf-8").splitlines()
+    except Exception as e:
+        logger.warning("audit read failed: %s", e)
+        return []
+    for line in reversed(lines):
+        if not line.strip():
+            continue
+        try:
+            rec = json.loads(line)
+        except Exception:
+            continue
+        if email and email not in rec.get("email", "").lower():
+            continue
+        if action and action not in rec.get("action", "").lower():
+            continue
+        out.append(rec)
+        if len(out) >= limit:
+            break
+    return out
 
 # Upload size limit (10 MB)
 MAX_UPLOAD_BYTES = 10 * 1024 * 1024
@@ -200,7 +267,9 @@ def get_current_auth_optional(x_admin_token: Optional[str] = None) -> dict:
         if x_admin_token in user_tokens:
             val = user_tokens[x_admin_token]
             if datetime.now() < val["expiry"]:
-                return {"role": "user", "email": val["email"]}
+                email = val["email"]
+                role = "dgbas" if users.get(email, {}).get("role") == "dgbas" else "user"
+                return {"role": role, "email": email}
             else:
                 del user_tokens[x_admin_token]
                 _save_user_tokens()
@@ -235,6 +304,26 @@ def check_admin(
             headers={"X-Needs-Admin": "true"}
         )
     return True
+
+
+def check_admin_or_dgbas(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+) -> dict:
+    """Dependency: require admin or 主計總處 (dgbas). Returns the auth dict."""
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] not in ("admin", "dgbas"):
+        raise HTTPException(
+            status_code=403,
+            detail="需要管理員或主計總處權限",
+            headers={"X-Needs-Admin": "true"}
+        )
+    return auth
+
+
+def _guard_dgbas_target(auth: dict, target_email: str):
+    """主計總處 may only manage regular users — never admins or other 主計總處."""
+    if auth["role"] == "dgbas" and users.get(target_email, {}).get("role") == "dgbas":
+        raise HTTPException(status_code=403, detail="主計總處不可管理其他主計總處帳號")
 
 # In-memory stores
 sessions = {}
@@ -284,15 +373,21 @@ def check_session_auth(
     session_id: str,
     password_header: Optional[str] = None,
     password_query: Optional[str] = None,
-    x_admin_token: Optional[str] = None
+    x_admin_token: Optional[str] = None,
+    write: bool = False
 ):
     if session_id not in sessions:
         raise HTTPException(status_code=404, detail="Session not found")
     session = sessions[session_id]
-    
+
     # Bypass verification if the user is admin
     auth = get_current_auth_optional(x_admin_token)
     if auth["role"] == "admin":
+        return session
+    # 主計總處: read-only access to every project; never allowed to modify
+    if auth["role"] == "dgbas":
+        if write:
+            raise HTTPException(status_code=403, detail="主計總處為唯讀權限，無法修改專案")
         return session
 
     if session.password_hash:
@@ -479,9 +574,10 @@ async def auth_login(request: Request, payload: LoginRequest):
             expiry = datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS)
             user_tokens[token] = {"email": email_lower, "expiry": expiry}
             _save_user_tokens()
+            role = "dgbas" if user_info.get("role") == "dgbas" else "user"
             return {
                 "success": True,
-                "role": "user",
+                "role": role,
                 "email": email_lower,
                 "token": token,
                 "expires_in_hours": ADMIN_TOKEN_EXPIRY_HOURS
@@ -537,7 +633,7 @@ async def change_password(
 ):
     """Let an authenticated user change their own password."""
     auth = get_current_auth_optional(x_admin_token)
-    if auth["role"] != "user" or not auth["email"]:
+    if auth["role"] not in ("user", "dgbas") or not auth["email"]:
         raise HTTPException(status_code=403, detail="Only regular users can change password here")
     email = auth["email"]
     if email not in users:
@@ -551,17 +647,18 @@ async def change_password(
     return {"success": True}
 
 
-# User maintenance endpoints (Admin only)
+# User maintenance endpoints (Admin or 主計總處)
 @app.get("/api/admin/users")
-async def list_users(_admin=Depends(check_admin)):
-    """List all registered users. Admin only."""
+async def list_users(auth=Depends(check_admin_or_dgbas)):
+    """List all registered users. Admin or 主計總處."""
     return {
         "users": [
             {
                 "email": email,
                 "created_at": info.get("created_at", ""),
                 "supervisor": info.get("supervisor"),
-                "agency_name": info.get("agency_name", "")
+                "agency_name": info.get("agency_name", ""),
+                "role": info.get("role", "")
             }
             for email, info in users.items()
         ]
@@ -569,8 +666,8 @@ async def list_users(_admin=Depends(check_admin)):
 
 
 @app.post("/api/admin/users")
-async def create_user(payload: CreateUserRequest, _admin=Depends(check_admin)):
-    """Create a new user. Admin only."""
+async def create_user(payload: CreateUserRequest, auth=Depends(check_admin_or_dgbas)):
+    """Create a new user (always a regular publishing user). Admin or 主計總處."""
     email = payload.email.strip().lower()
     if not email:
         raise HTTPException(status_code=400, detail="Email cannot be empty")
@@ -593,11 +690,12 @@ async def create_user(payload: CreateUserRequest, _admin=Depends(check_admin)):
 
 
 @app.put("/api/admin/users/{email}/profile")
-async def set_user_profile(email: str, payload: CreateUserRequest, _admin=Depends(check_admin)):
-    """Update a user's 主管機關 and 機關名稱. Admin only."""
+async def set_user_profile(email: str, payload: CreateUserRequest, auth=Depends(check_admin_or_dgbas)):
+    """Update a user's 主管機關 and 機關名稱. Admin or 主計總處."""
     email = email.strip().lower()
     if email not in users:
         raise HTTPException(status_code=404, detail="User not found")
+    _guard_dgbas_target(auth, email)
     users[email]["supervisor"] = _resolve_supervisor(payload.supervisor_domain, payload.supervisor_code)
     users[email]["agency_name"] = (payload.agency_name or "").strip()
     _save_users()
@@ -605,12 +703,13 @@ async def set_user_profile(email: str, payload: CreateUserRequest, _admin=Depend
 
 
 @app.delete("/api/admin/users/{email}")
-async def delete_user(email: str, _admin=Depends(check_admin)):
-    """Delete a user. Admin only."""
+async def delete_user(email: str, auth=Depends(check_admin_or_dgbas)):
+    """Delete a user. Admin or 主計總處 (主計總處 cannot delete other 主計總處)."""
     email = email.strip().lower()
     if email not in users:
         raise HTTPException(status_code=404, detail="User not found")
-        
+    _guard_dgbas_target(auth, email)
+
     del users[email]
     _save_users()
     
@@ -620,8 +719,47 @@ async def delete_user(email: str, _admin=Depends(check_admin)):
         del user_tokens[t]
     if tokens_to_del:
         _save_user_tokens()
-        
+
     return {"success": True, "message": f"User {email} deleted successfully"}
+
+
+class SetRoleRequest(BaseModel):
+    role: str = ""   # "dgbas" (主計總處) or "" (regular user)
+
+
+@app.put("/api/admin/users/{email}/role")
+async def set_user_role(email: str, payload: SetRoleRequest, _admin=Depends(check_admin)):
+    """Grant or revoke the 主計總處 (dgbas) role. Admin only — guards against escalation."""
+    email = email.strip().lower()
+    if email not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    role = (payload.role or "").strip()
+    if role not in ("", "dgbas"):
+        raise HTTPException(status_code=400, detail="Invalid role")
+    if role:
+        users[email]["role"] = role
+    else:
+        users[email].pop("role", None)
+    _save_users()
+    # Revoke existing tokens so the new role takes effect on next login
+    tokens_to_del = [t for t, val in user_tokens.items() if val["email"] == email]
+    for t in tokens_to_del:
+        del user_tokens[t]
+    if tokens_to_del:
+        _save_user_tokens()
+    return {"success": True, "role": role}
+
+
+@app.get("/api/admin/audit-log")
+async def get_audit_log(
+    limit: int = 500,
+    email: str = "",
+    action: str = "",
+    auth=Depends(check_admin_or_dgbas)
+):
+    """Return recent audit-log entries (newest first). Admin or 主計總處."""
+    limit = max(1, min(limit, 2000))
+    return {"entries": _read_audit(limit, email, action)}
 
 
 # ── Fund / supervising-authority registry ────────────────
@@ -967,8 +1105,8 @@ async def upload_xlsx(
 
 @app.get("/api/sessions")
 async def list_sessions(auth=Depends(get_current_auth)):
-    """List active editing sessions. Admins see all, users see only their own."""
-    if auth["role"] == "admin":
+    """List active editing sessions. Admin/主計總處 see all, users see only their own."""
+    if auth["role"] in ("admin", "dgbas"):
         visible_sessions = list(sessions.values())
     elif auth["role"] == "user":
         visible_sessions = [s for s in sessions.values() if s.email == auth["email"]]
@@ -1025,7 +1163,7 @@ async def save_session(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Save edited data to session. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     session.current_data = request.data
     if request.name:
         session.name = request.name
@@ -1075,7 +1213,7 @@ async def import_json(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Import JSON data into session."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     try:
         content = await file.read()
         data = json.loads(content.decode('utf-8'))
@@ -1101,7 +1239,7 @@ async def reset_session(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Reset session to original data. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     session.current_data = session.original_json
 
     # Reset form_data to original by re-processing the uploaded file
@@ -1127,7 +1265,7 @@ async def delete_session(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Delete a session and all associated data. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     del sessions[session_id]
 
     # Clean up session JSON file
@@ -1203,8 +1341,8 @@ async def save_template_from_session(session_id: str, _admin=Depends(check_admin
 
 
 @app.get("/api/templates")
-async def list_templates(_admin=Depends(check_admin)):
-    """List all saved templates. Requires admin auth."""
+async def list_templates(auth=Depends(check_admin_or_dgbas)):
+    """List all saved templates. Admin or 主計總處."""
     templates = []
     for f in TEMPLATE_DIR.glob("template_*.json"):
         try:
@@ -1222,6 +1360,15 @@ async def list_templates(_admin=Depends(check_admin)):
             continue
 
     return {"templates": templates}
+
+
+@app.get("/api/templates/{template_id}")
+async def get_template(template_id: str, auth=Depends(check_admin_or_dgbas)):
+    """Read a single template's full content (read-only). Admin or 主計總處."""
+    template_path = TEMPLATE_DIR / f"template_{template_id}.json"
+    if not template_path.exists():
+        raise HTTPException(status_code=404, detail="Template not found")
+    return json.loads(template_path.read_text(encoding='utf-8'))
 
 
 @app.delete("/api/templates/{template_id}")
@@ -1292,7 +1439,7 @@ async def publish_form(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Publish a form for others to fill. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
 
     if session_id in published_forms:
         token = published_forms[session_id]
@@ -1338,7 +1485,7 @@ async def unpublish_form(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Unpublish a form. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     if session_id in published_forms:
         token = published_forms.pop(session_id)
         publish_store.pop(token, None)
@@ -1530,7 +1677,7 @@ async def delete_response(
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Delete a single response. Protected by project password or auth."""
-    session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
     responses = response_store.get(session_id, [])
     for i, r in enumerate(responses):
         if r["id"] == response_id:

@@ -28,6 +28,7 @@
         <div class="tab" id="tab-fund-mgmt" data-tab="fund-mgmt">基金管理</div>
         <div class="tab" id="tab-template-mgmt" data-tab="template-mgmt">範本管理</div>
         <div class="tab" id="tab-consolidate" data-tab="consolidate">總彙整</div>
+        <div class="tab" id="tab-audit" data-tab="audit">稽核紀錄</div>
         <div class="tab" id="tab-guide" data-tab="guide">使用說明</div>
     </div>
 
@@ -194,6 +195,20 @@
         </div>
         <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">主管機關與機關名稱取自專案發起人的使用者設定；基金名稱取自各回應的基金欄位，並依官方編號表正規化（含別名）。</p>
         <div id="consolidate-container"><p style="padding:24px;color:var(--text-muted);text-align:center">載入中⋯</p></div>
+    </div>
+
+    <!-- Audit Log Section (visible to admin + 主計總處) -->
+    <div id="audit-view" style="display:none">
+        <div class="flex justify-between items-center flex-wrap mb-4" style="gap:8px">
+            <h3 class="text-base fw-7" style="color:var(--text-strong);font-size:var(--fs-lg)">稽核紀錄</h3>
+            <div class="flex gap-2 flex-wrap">
+                <input type="text" id="audit-filter-email" placeholder="篩選 Email⋯" class="field-inline" style="width:160px">
+                <input type="text" id="audit-filter-action" placeholder="篩選動作（如 DELETE）⋯" class="field-inline" style="width:180px">
+                <button class="btn btn-outline" id="btn-audit-refresh">查詢</button>
+            </div>
+        </div>
+        <p style="font-size:var(--fs-sm);color:var(--text-muted);margin-bottom:var(--sp-3)">記錄所有使用者對系統的操作（method + 路徑 + 身分 + IP + 回應狀態）。最新在上。</p>
+        <div id="audit-container"><p style="padding:24px;color:var(--text-muted);text-align:center">載入中⋯</p></div>
     </div>
 
     <!-- Guide / Help Section -->
