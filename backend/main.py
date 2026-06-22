@@ -525,6 +525,32 @@ async def auth_logout(
     return {"success": True}
 
 
+class ChangePasswordRequest(BaseModel):
+    old_password: str
+    new_password: str
+
+
+@app.put("/api/auth/change-password")
+async def change_password(
+    payload: ChangePasswordRequest,
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Let an authenticated user change their own password."""
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] != "user" or not auth["email"]:
+        raise HTTPException(status_code=403, detail="Only regular users can change password here")
+    email = auth["email"]
+    if email not in users:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not _verify_password(payload.old_password, users[email]["password_hash"]):
+        raise HTTPException(status_code=403, detail="舊密碼錯誤")
+    if len(payload.new_password) < 1:
+        raise HTTPException(status_code=400, detail="新密碼不可為空")
+    users[email]["password_hash"] = _hash_password(payload.new_password)
+    _save_users()
+    return {"success": True}
+
+
 # User maintenance endpoints (Admin only)
 @app.get("/api/admin/users")
 async def list_users(_admin=Depends(check_admin)):

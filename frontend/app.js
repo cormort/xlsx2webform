@@ -12,6 +12,24 @@ let isDirty = false;
 let fundNames = [];
 let fillFundCol = 0;
 let selectedCell = null;
+let editMode = false;
+const checkedRows = new Set();
+const checkedCols = new Set();
+// ponytail: undo is full JSON snapshots, swap to diff-based if memory matters
+const undoStack = [];
+const MAX_UNDO = 50;
+let selectionStart = null; // {r,c} for merge selection
+let selectionEnd = null;
+
+function pushUndo(){
+    undoStack.push(JSON.parse(JSON.stringify(data)));
+    if(undoStack.length>MAX_UNDO) undoStack.shift();
+}
+function undo(){
+    if(!undoStack.length){toast('沒有可還原的操作',1);return}
+    data=undoStack.pop();
+    recalcAll();render();isDirty=true;
+}
 
 // ===== Admin Auth Helpers =====
 const adminRequired = !!(window.ADMIN_REQUIRED);
@@ -264,6 +282,18 @@ function authLogout(){
 }
 window.authLogout = authLogout;
 
+function showChangePassword(){
+    const old_pw = prompt('請輸入目前密碼：');
+    if(!old_pw) return;
+    const new_pw = prompt('請輸入新密碼：');
+    if(!new_pw) return;
+    fetch('/api/auth/change-password',{method:'PUT',headers:{...getAuthHeaders(),'Content-Type':'application/json'},body:JSON.stringify({old_password:old_pw,new_password:new_pw})})
+        .then(r=>{if(!r.ok) return r.json().then(e=>{throw new Error(e.detail||'失敗')}); return r.json()})
+        .then(()=>alert('密碼已更新'))
+        .catch(e=>alert(e.message));
+}
+window.showChangePassword = showChangePassword;
+
 function renderIdentity(role, email){
     const box = document.getElementById('identity');
     if(!box) return;
@@ -275,7 +305,8 @@ function renderIdentity(role, email){
     const who = email
         ? `<span class="who"><span class="${roleClass}">${roleLabel}</span><span class="email" title="${escapeHtml(email)}">${escapeHtml(email)}</span></span>`
         : `<span class="who"><span class="${roleClass}">${roleLabel}</span></span>`;
-    box.innerHTML = `${who}<button class="btn btn-outline" onclick="authLogout()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">登出</button>`;
+    const changePwdBtn = role === 'user' ? `<button class="btn btn-outline" onclick="showChangePassword()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">改密碼</button>` : '';
+    box.innerHTML = `${who}${changePwdBtn}<button class="btn btn-outline" onclick="authLogout()" style="padding:6px 14px;background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.25)">登出</button>`;
     box.style.display = 'flex';
 }
 
@@ -1438,21 +1469,37 @@ function populateFundColSelect(selected){
     sel.innerHTML=h;
 }
 
+function isMergeSel(r,c){
+    if(!selectionStart||!selectionEnd) return false;
+    const r0=Math.min(selectionStart.r,selectionEnd.r),r1=Math.max(selectionStart.r,selectionEnd.r);
+    const c0=Math.min(selectionStart.c,selectionEnd.c),c1=Math.max(selectionStart.c,selectionEnd.c);
+    return r>=r0&&r<=r1&&c>=c0&&c<=c1;
+}
+
 function render(){
     const tableContainer=document.getElementById('table-container');
     if(!data.length){tableContainer.innerHTML='';return}
     const maxC=Math.max(...data.map(r=>r.length||0),1);const hdrs=getHeaders();const nums=getNumerics();
     let h='<table id="main-table"><thead><tr>';
-    for(let c=0;c<maxC;c++){h+=`<th><input type="text" id="hdr-${c}" name="hdr-${c}" data-row="0" data-col="${c}" value="${escapeHtml(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`}
+    if(editMode) h+='<th class="chk-col"></th>';
+    for(let c=0;c<maxC;c++){
+        const colChk=editMode?`<input type="checkbox" class="col-chk" data-col="${c}"${checkedCols.has(c)?' checked':''}> `:'';
+        h+=`<th>${colChk}<input type="text" id="hdr-${c}" name="hdr-${c}" data-row="0" data-col="${c}" value="${escapeHtml(hdrs[c]||'')}" placeholder="欄${alpha(c)}"></th>`;
+    }
     h+='</tr></thead><tbody>';
     for(let r=1;r<data.length;r++){
         const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
         h+=`<tr class="lv-${lv}">`;
+        if(editMode) h+=`<td class="chk-col"><input type="checkbox" class="row-chk" data-row="${r}"${checkedRows.has(r)?' checked':''}></td>`;
         for(let c=0;c<Math.max(maxC,row.length);c++){
-            const cell=row[c]||{value:'',_autoSum:false,_formula:''};const val=cell.value||'';
+            const cell=row[c]||{value:'',_autoSum:false,_formula:''};
+            if(cell._skip) continue;
+            const val=cell.value||'';
             const isNum=nums.includes(c);const isAuto=cell._autoSum;const hasF=cell._formula&&!cell._autoSum;
             const cls=`${isNum?'num':'txt'}${isAuto?' auto-sum':''}${hasF?' formula-cell':''}`;
-            h+=`<td${hasF?' class="formula"':''}>`;
+            const spanAttr=(cell.rowspan>1?` rowspan="${cell.rowspan}"`:'')+(cell.colspan>1?` colspan="${cell.colspan}"`:'');
+            const selCls=isMergeSel(r,c)?' merge-sel':'';
+            h+=`<td${hasF?' class="formula'+selCls+'"':selCls?' class="'+selCls.trim()+'"':''}${spanAttr}>`;
             h+=`<input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}" placeholder="${c===0?'名稱':(isNum?'0':'')}">`;
             h+='</td>';
         }
@@ -1460,18 +1507,97 @@ function render(){
     }
     h+='</tbody></table>';
     tableContainer.innerHTML=h;
-    document.querySelectorAll('#main-table input').forEach(inp=>{
+    document.querySelectorAll('#main-table input[data-r]').forEach(inp=>{
         inp.addEventListener('change',onChange);inp.addEventListener('focus',onFocus);
         inp.addEventListener('blur',onBlur);inp.addEventListener('paste',onPaste);inp.addEventListener('keydown',onKeyDown);
+        inp.addEventListener('mousedown',onCellMouseDown);
+    });
+    document.querySelectorAll('#main-table .row-chk').forEach(chk=>{
+        chk.addEventListener('change',()=>{
+            const r=parseInt(chk.dataset.row);
+            chk.checked?checkedRows.add(r):checkedRows.delete(r);
+            updateBatchCount();
+        });
+    });
+    document.querySelectorAll('#main-table .col-chk').forEach(chk=>{
+        chk.addEventListener('change',()=>{
+            const c=parseInt(chk.dataset.col);
+            chk.checked?checkedCols.add(c):checkedCols.delete(c);
+        });
     });
     updateFormulaCols();
+    updateMergeButtons();
 }
 
+function updateBatchCount(){
+    const el=document.getElementById('batch-edit-count');
+    if(el) el.textContent=`已選 ${checkedRows.size} 列`;
+}
+
+function onCellMouseDown(e){
+    if(!e.shiftKey){
+        selectionStart={r:parseInt(e.target.dataset.r),c:parseInt(e.target.dataset.c)};
+        selectionEnd=null;
+    } else if(selectionStart){
+        selectionEnd={r:parseInt(e.target.dataset.r),c:parseInt(e.target.dataset.c)};
+        render();
+    }
+    updateMergeButtons();
+}
+
+function updateMergeButtons(){
+    const mergeBtn=document.getElementById('btn-merge');
+    const unmergeBtn=document.getElementById('btn-unmerge');
+    if(!mergeBtn) return;
+    const hasSel=selectionStart&&selectionEnd&&(selectionStart.r!==selectionEnd.r||selectionStart.c!==selectionEnd.c);
+    mergeBtn.style.display=hasSel?'':'none';
+    const cell=selectedCell&&data[selectedCell.r]?.[selectedCell.c];
+    unmergeBtn.style.display=(cell&&(cell.rowspan>1||cell.colspan>1))?'':'none';
+}
+
+function doMerge(){
+    if(!selectionStart||!selectionEnd) return;
+    pushUndo();
+    const r0=Math.min(selectionStart.r,selectionEnd.r),r1=Math.max(selectionStart.r,selectionEnd.r);
+    const c0=Math.min(selectionStart.c,selectionEnd.c),c1=Math.max(selectionStart.c,selectionEnd.c);
+    const topLeft=data[r0]?.[c0];
+    if(!topLeft) return;
+    topLeft.rowspan=(r1-r0+1);
+    topLeft.colspan=(c1-c0+1);
+    for(let r=r0;r<=r1;r++){
+        for(let c=c0;c<=c1;c++){
+            if(r===r0&&c===c0) continue;
+            if(!data[r]) data[r]=[];
+            data[r][c]={_skip:true,value:''};
+        }
+    }
+    selectionStart=selectionEnd=null;
+    isDirty=true;render();toast('已合併儲存格');
+}
+
+function doUnmerge(){
+    if(!selectedCell) return;
+    const cell=data[selectedCell.r]?.[selectedCell.c];
+    if(!cell||(!cell.rowspan&&!cell.colspan)) return;
+    pushUndo();
+    const rs=cell.rowspan||1,cs=cell.colspan||1;
+    delete cell.rowspan;delete cell.colspan;
+    for(let r=selectedCell.r;r<selectedCell.r+rs;r++){
+        for(let c=selectedCell.c;c<selectedCell.c+cs;c++){
+            if(r===selectedCell.r&&c===selectedCell.c) continue;
+            if(data[r]?.[c]) {delete data[r][c]._skip; data[r][c].value='';}
+        }
+    }
+    isDirty=true;render();toast('已取消合併');
+}
+
+let _undoPushedForFocus=false;
 function onChange(e){
     const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     const val=inp.value.trim();while(data.length<=r)data.push([]);if(!data[r])data[r]=[];
     if(!data[r][c])data[r][c]={row:r+1,col:c+1,value:'',type:'str'};
     if(data[r][c].value!==val){
+        if(!_undoPushedForFocus){pushUndo();_undoPushedForFocus=true;}
         data[r][c].value=val;
         // Manually editing a cell overrides any formula/auto-sum on it
         if(data[r][c]._formula)data[r][c]._formula='';
@@ -1500,6 +1626,7 @@ function refreshComputed(skipR,skipC){
 }
 
 function onFocus(e){
+    _undoPushedForFocus=false;
     const inp=e.target;selectedCell={r:parseInt(inp.dataset.r),c:parseInt(inp.dataset.c)};
     document.querySelectorAll('td.focused').forEach(t=>t.classList.remove('focused'));const td=inp.closest('td');if(td)td.classList.add('focused');inp.select();
     const cell=data[selectedCell.r]?.[selectedCell.c];const colSelect=document.getElementById('formula-col');colSelect.value=selectedCell.c;
@@ -1521,7 +1648,7 @@ function onKeyDown(e){
 }
 
 function onPaste(e){
-    e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
+    e.preventDefault();pushUndo();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
     const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
     cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={row:targetR+1,col:targetC+1,value:'',type:'str'};data[targetR][targetC].value=val.trim()})});
@@ -1576,17 +1703,50 @@ function updateFormulaCols(){
     });
     document.getElementById('btn-import').addEventListener('click',()=>document.getElementById('json-import').click());
     document.getElementById('json-import').addEventListener('change',async e=>{const file=e.target.files[0];if(!file||!sessionId)return;const fd=new FormData();fd.append('file',file);try{const r=await fetch(`/api/sessions/${sessionId}/import/json`,{method:'POST',headers:getAuthHeaders(),body:fd});if(r.ok){toast('匯入成功');const s=await fetch(`/api/sessions/${sessionId}`,{headers:getAuthHeaders()}).then(r=>r.json());data=s.current_data||s.json||[];original=JSON.parse(JSON.stringify(data));recalcAll();render()}}catch(e){toast(e.message,1)}});
-    document.getElementById('btn-add-row').addEventListener('click',()=>{const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAll();render();isDirty=true;toast('新增一列')});
-    document.getElementById('btn-del-row').addEventListener('click',()=>{if(data.length<=1){toast('至少保留一列',1);return}if(!confirm('刪除最後一列？'))return;data.pop();recalcAll();render();isDirty=true;toast('已刪除')});
-    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('回復原始資料？'))return;data=JSON.parse(JSON.stringify(original));recalcAll();render();isDirty=false;toast('已重置')});
-    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有數值？保留結構與公式'))return;data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAll();render();isDirty=true;toast('已清除')});
+    document.getElementById('btn-add-row').addEventListener('click',()=>{pushUndo();const maxC=Math.max(...data.map(r=>r.length),2);const nr=[];for(let c=0;c<maxC;c++)nr.push({row:data.length+1,col:c+1,value:'',type:'str'});data.push(nr);recalcAll();render();isDirty=true;toast('新增一列')});
+    document.getElementById('btn-add-col').addEventListener('click',()=>{pushUndo();data.forEach(row=>{row.push({row:0,col:row.length+1,value:'',type:'str'})});recalcAll();render();isDirty=true;toast('新增一欄')});
+    document.getElementById('btn-reset').addEventListener('click',()=>{if(!data.length)return;if(!confirm('重新載入原始欄位資料？'))return;pushUndo();data=JSON.parse(JSON.stringify(original));recalcAll();render();isDirty=false;toast('已重新載入')});
+    document.getElementById('btn-clear').addEventListener('click',()=>{if(!data.length)return;if(!confirm('清除所有欄位名稱？保留結構與公式'))return;pushUndo();data.forEach(row=>row.forEach(c=>{if(c){c.value='';c._autoSum=undefined}}));recalcAll();render();isDirty=true;toast('已清除欄位名稱')});
+    document.getElementById('btn-undo').addEventListener('click',undo);
+    document.getElementById('btn-merge').addEventListener('click',doMerge);
+    document.getElementById('btn-unmerge').addEventListener('click',doUnmerge);
+    document.getElementById('btn-edit-mode').addEventListener('click',()=>{
+        editMode=!editMode;checkedRows.clear();checkedCols.clear();
+        document.getElementById('btn-edit-mode').classList.toggle('active',editMode);
+        document.getElementById('batch-edit-bar').style.display=editMode?'flex':'none';
+        updateBatchCount();render();
+    });
+    document.getElementById('batch-select-all-editor').addEventListener('change',e=>{
+        checkedRows.clear();
+        if(e.target.checked) for(let r=1;r<data.length;r++) checkedRows.add(r);
+        updateBatchCount();render();
+    });
+    document.getElementById('btn-batch-del-rows').addEventListener('click',()=>{
+        if(!checkedRows.size){toast('請先勾選要刪除的列',1);return}
+        if(!confirm(`刪除 ${checkedRows.size} 列？`))return;
+        pushUndo();
+        const sorted=[...checkedRows].sort((a,b)=>b-a);
+        sorted.forEach(r=>{if(r>0&&r<data.length) data.splice(r,1)});
+        checkedRows.clear();updateBatchCount();recalcAll();render();isDirty=true;toast('已刪除');
+    });
+    document.getElementById('btn-batch-del-cols').addEventListener('click',()=>{
+        if(!checkedCols.size){toast('請先勾選表頭的欄位核取方塊',1);return}
+        if(!confirm(`刪除 ${checkedCols.size} 欄？`))return;
+        pushUndo();
+        const sorted=[...checkedCols].sort((a,b)=>b-a);
+        data.forEach(row=>{sorted.forEach(c=>{if(c<row.length) row.splice(c,1)})});
+        checkedCols.clear();recalcAll();render();isDirty=true;toast('已刪除');
+    });
+    document.addEventListener('keydown',e=>{
+        if((e.ctrlKey||e.metaKey)&&e.key==='z'&&!e.shiftKey){e.preventDefault();undo()}
+    });
     document.getElementById('btn-new-upload').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
     document.getElementById('btn-apply-formula').addEventListener('click',()=>{
         const col=parseInt(document.getElementById('formula-col').value);
         const formula=document.getElementById('formula-input').value.trim();
         if(isNaN(col)||!formula){toast('請選擇欄位並輸入公式',1);return}
         if(!formula.startsWith('=')){toast('公式需以 = 開頭，例如 =B+C',1);return}
-        applyFormula(col,formula);recalcAll();render();toast('公式已套用至整欄');
+        pushUndo();applyFormula(col,formula);recalcAll();render();toast('公式已套用至整欄');
     });
     document.getElementById('btn-apply-cell').addEventListener('click',()=>{
         const formula=document.getElementById('formula-input').value.trim();
@@ -1594,7 +1754,7 @@ function updateFormulaCols(){
         if(selectedCell.c===0){toast('名稱欄不支援公式',1);return}
         if(!formula){toast('請輸入公式',1);return}
         if(!formula.startsWith('=')){toast('公式需以 = 開頭，例如 =B2*1.05',1);return}
-        applyFormula(selectedCell.c,formula,selectedCell.r);recalcAll();render();toast('公式已套用至此格');
+        pushUndo();applyFormula(selectedCell.c,formula,selectedCell.r);recalcAll();render();toast('公式已套用至此格');
     });
     document.getElementById('formula-input').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('btn-apply-formula').click()});
     document.getElementById('app-title').addEventListener('click',()=>{if(isDirty&&!confirm('有未儲存變更，離開？'))return;location.href=getAdminToken()?'/':'/create'});
@@ -1890,21 +2050,31 @@ function renderFillTable(){
     const nums=getNumerics();
 
     let h='<table id="fill-table"><thead><tr>';
-    for(let c=0;c<maxC;c++){h+=`<th>${escapeHtml(hdrs[c]||'')}</th>`}
+    const hdrRow=data[0]||[];
+    for(let c=0;c<maxC;c++){
+        const hc=hdrRow[c]||{};
+        if(hc._skip) continue;
+        const spanAttr=(hc.rowspan>1?` rowspan="${hc.rowspan}"`:'')+(hc.colspan>1?` colspan="${hc.colspan}"`:'');
+        h+=`<th${spanAttr}>${escapeHtml(hdrs[c]||'')}</th>`;
+    }
     h+='</tr></thead><tbody>';
 
     for(let r=1;r<data.length;r++){
         const row=data[r]||[];const name=row[0]?.value||'';const lv=detectLevel(name);
         h+=`<tr class="lv-${lv}">`;
         for(let c=0;c<Math.max(maxC,row.length);c++){
-            const cell=row[c]||{};const val=cell.value||'';
+            const cell=row[c]||{};
+            if(cell._skip) continue;
+            const val=cell.value||'';
             const isNum=nums.includes(c);const isAuto=cell._autoSum;
-            if(isAuto){
-                h+=`<td style="background:#fef3c7"><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
+            const spanAttr=(cell.rowspan>1?` rowspan="${cell.rowspan}"`:'')+(cell.colspan>1?` colspan="${cell.colspan}"`:'');
+            const locked=cell._locked;
+            if(isAuto||locked){
+                h+=`<td style="background:#fef3c7"${spanAttr}><input type="text" class="txt auto-sum" name="r${r}_c${c}_auto" value="${escapeHtml(val)}" disabled style="background:transparent;cursor:default"></td>`;
             } else {
                 const cls=`${isNum?'num':'txt'}`;
                 const dl=(c===fillFundCol&&fundNames.length)?' list="fund-names-list"':'';
-                h+=`<td><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}"${dl} placeholder="${c===0?'名稱':'0'}"></td>`;
+                h+=`<td${spanAttr}><input type="text" class="${cls}" name="r${r}_c${c}" data-r="${r}" data-c="${c}" value="${escapeHtml(val)}"${dl} placeholder="${c===0?'名稱':'0'}"></td>`;
             }
         }
         h+='</tr>';

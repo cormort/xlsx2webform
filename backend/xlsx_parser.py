@@ -314,6 +314,7 @@ def worksheet_to_json(ws):
         row_cells = []
         for cell in row:
             if (cell.row, cell.column) in merged_map and merged_map[(cell.row, cell.column)].get('skip'):
+                row_cells.append({'_skip': True, 'value': ''})
                 continue
 
             value = cell.value
