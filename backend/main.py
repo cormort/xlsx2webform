@@ -165,7 +165,6 @@ MAX_UPLOAD_BYTES = 10 * 1024 * 1024
 ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "")
 if not ADMIN_PASSWORD:
     raise RuntimeError("ADMIN_PASSWORD env var is required — refusing to start with an empty admin password")
-ADMIN_SECRET = os.environ.get("ADMIN_SECRET", secrets.token_hex(32))
 ADMIN_TOKEN_EXPIRY_HOURS = int(os.environ.get("ADMIN_TOKEN_EXPIRY_HOURS", "24"))
 admin_tokens: dict[str, datetime] = {}  # token → expiry datetime
 users: dict[str, dict] = {}             # email → {password_hash, created_at}
@@ -512,7 +511,7 @@ async def admin_login(request: Request, payload: AdminLoginRequest):
     """Authenticate as admin. Returns a session token (Backward compatibility)."""
     if not ADMIN_PASSWORD:
         return {"success": True, "token": "", "message": "No admin password configured"}
-    if payload.password != ADMIN_PASSWORD:
+    if not hmac.compare_digest(payload.password, ADMIN_PASSWORD):
         raise HTTPException(status_code=403, detail="管理員密碼錯誤")
     token = _generate_admin_token()
     return {
@@ -552,7 +551,7 @@ async def auth_login(request: Request, payload: LoginRequest):
     password = payload.password
     
     is_admin = False
-    if ADMIN_PASSWORD and password == ADMIN_PASSWORD:
+    if ADMIN_PASSWORD and hmac.compare_digest(password, ADMIN_PASSWORD):
         if not email or email.lower() == "admin":
             is_admin = True
             
@@ -1058,7 +1057,8 @@ async def upload_xlsx(
 
     # Save uploaded file
     session_id = str(uuid.uuid4())[:8]
-    file_path = UPLOAD_DIR / f"{session_id}_{file.filename}"
+    # Path(...).name strips any directory components from the client filename
+    file_path = UPLOAD_DIR / f"{session_id}_{Path(file.filename).name}"
 
     try:
         with open(file_path, "wb") as buffer:
@@ -1526,9 +1526,11 @@ async def fill_form_page(token: str):
     frontend_path = Path(__file__).parent.parent / "frontend" / "index.html"
     if not frontend_path.exists():
         raise HTTPException(status_code=404, detail="Page not found")
+    if token not in publish_store:
+        raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
     html = frontend_path.read_text(encoding='utf-8')
     # Inject fill token and CSS to hide other sections, show fill mode
-    head_script = f'<script>window.FILL_TOKEN="{token}";</script>'
+    head_script = f'<script>window.FILL_TOKEN={json.dumps(token)};</script>'
     head_style = '<style>#projects-section{display:none!important}#editor{display:none!important}#fill-mode{display:block!important}#fill-banner{display:block!important}</style>'
     html = html.replace("</head>", f"{head_script}{head_style}</head>")
     return HTMLResponse(content=html, headers={"Cache-Control": "no-cache, no-store, must-revalidate", "Pragma": "no-cache", "Expires": "0"})
@@ -1574,8 +1576,9 @@ async def submit_fill(token: str, request: Request, payload: SubmitRequest):
                 break
 
     if existing_resp:
-        # 如果已經填過，必須校驗密碼
-        if not payload.password or not _verify_password(payload.password, existing_resp.get("password_hash", "")):
+        # 如果已經填過，必須校驗密碼（當初未設密碼者可直接覆蓋）
+        if existing_resp.get("password_hash") and \
+           (not payload.password or not _verify_password(payload.password, existing_resp["password_hash"])):
             raise HTTPException(
                 status_code=403,
                 detail="此 Email 已有填表紀錄。如欲修改，請輸入您當初設定的填表密碼。"
@@ -1662,7 +1665,10 @@ async def list_responses(
         return {
             "session_id": session_id,
             "count": len(responses),
-            "responses": responses
+            "responses": [
+                {k: v for k, v in r.items() if k != "password_hash"}
+                for r in responses
+            ]
         }
     
     return {
@@ -1693,7 +1699,7 @@ async def get_response(
     responses = response_store.get(session_id, [])
     for r in responses:
         if r["id"] == response_id:
-            return r
+            return {k: v for k, v in r.items() if k != "password_hash"}
     raise HTTPException(status_code=404, detail="Response not found")
 
 @app.delete("/api/sessions/{session_id}/responses/{response_id}")
@@ -1730,16 +1736,21 @@ async def export_responses_csv(
     sess_data = session.current_data or session.original_json
     headers = [c.get("value", "") for c in (sess_data[0] if sess_data else [])]
 
+    def _csv_safe(v):
+        # Prevent CSV/formula injection when opened in Excel
+        s = "" if v is None else str(v)
+        return "'" + s if s[:1] in ("=", "+", "-", "@") else s
+
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["回應時間", "填表人"] + headers)
+    writer.writerow(["回應時間", "填表人"] + [_csv_safe(h) for h in headers])
 
     for r in responses:
         row_data = r.get("data", [])
         # 排除 row_data[0]（標題列），匯出所有填寫的數據列
         for ri in range(1, len(row_data)):
             row = row_data[ri]
-            vals = [c.get("value", "") for c in row]
+            vals = [_csv_safe(c.get("value", "")) for c in row]
             writer.writerow([r["submitted_at"], r["respondent"]] + vals)
 
     csv_content = output.getvalue()
@@ -1764,7 +1775,7 @@ async def parse_xlsx_only(
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
 
     temp_id = str(uuid.uuid4())[:8]
-    temp_path = UPLOAD_DIR / f"temp_{temp_id}_{file.filename}"
+    temp_path = UPLOAD_DIR / f"temp_{temp_id}_{Path(file.filename).name}"
     try:
         with open(temp_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
@@ -1789,7 +1800,11 @@ async def export_xlsx_api(
     request: Request,
     payload: ExportXlsxRequest
 ):
-    """Generate and return an XLSX file from the budget table JSON data."""
+    """Generate and return an XLSX file from the budget table JSON data.
+
+    Intentionally unauthenticated: anonymous fill-mode users download their
+    XLSX backup here. Rate limit + index clamp below guard against abuse.
+    """
     try:
         import openpyxl
         from openpyxl.styles import PatternFill, Font, Alignment
@@ -1817,6 +1832,13 @@ async def export_xlsx_api(
                     continue
                 r_idx = c.get('row') if c.get('row') is not None else (row_idx + 1)
                 c_idx = c.get('col') if c.get('col') is not None else (col_idx + 1)
+                # Clamp client-supplied indices to Excel limits to avoid memory-DoS
+                try:
+                    r_idx, c_idx = int(r_idx), int(c_idx)
+                except (TypeError, ValueError):
+                    continue
+                if not (1 <= r_idx <= 1048576 and 1 <= c_idx <= 16384):
+                    continue
                 val = c.get('value', '')
                     
                 cell = ws.cell(row=r_idx, column=c_idx, value=val)
