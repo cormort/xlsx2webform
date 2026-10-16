@@ -115,3 +115,17 @@ def test_negative_fund_col_rejected():
     atok = _admin()
     _session("sec5")
     assert c.post("/api/sessions/sec5/save", json={"data": [], "fund_col": -1}, headers=_h(atok)).status_code == 400
+
+
+def test_fill_parse_xlsx_is_token_scoped_and_size_limited(monkeypatch):
+    import openpyxl
+    buf = io.BytesIO(); wb = openpyxl.Workbook(); wb.active.append(["基金名稱", "預算數"]); wb.save(buf)
+    xlsx = ("t.xlsx", buf.getvalue())
+    atok = _admin()
+    _session("sec6")
+    assert c.post("/api/fill/nope/parse-xlsx", files={"file": xlsx}).status_code == 404
+    token = c.post("/api/sessions/sec6/publish", headers=_h(atok)).json()["share_token"]
+    r = c.post(f"/api/fill/{token}/parse-xlsx", files={"file": xlsx})     # anonymous respondent
+    assert r.status_code == 200 and r.json()["json"][0][0]["value"] == "基金名稱"
+    monkeypatch.setattr(main, "MAX_UPLOAD_BYTES", 10)
+    assert c.post(f"/api/fill/{token}/parse-xlsx", files={"file": xlsx}).status_code == 413

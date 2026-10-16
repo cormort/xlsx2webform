@@ -802,6 +802,53 @@ async def get_audit_log(
     return {"entries": _read_audit(limit, email, action)}
 
 
+# ── Template locking (fixed columns, variable rows) ──────
+def _template(session):
+    return session.current_data or session.original_json or []
+
+
+def _tcell(tpl, r, c):
+    row = tpl[r] if 0 <= r < len(tpl) else None
+    cell = row[c] if row and 0 <= c < len(row) else None
+    return cell if isinstance(cell, dict) else None
+
+
+def _is_locked(tcell):
+    """Respondents may only fill template cells that are empty and not computed."""
+    if tcell is None:
+        return False
+    return bool(tcell.get("_locked") or tcell.get("_formula") or tcell.get("_skip")
+                or str(tcell.get("value") or "").strip())
+
+
+def _enforce_template_locks(tpl, data):
+    """Restore locked template cells (header row, prefilled labels/values) in a submission.
+
+    Formula cells keep the client's computed value; rows beyond the template are untouched.
+    """
+    if not tpl or not data:
+        return data
+    data[0] = [dict(c) for c in tpl[0]]
+    for r in range(1, min(len(tpl), len(data))):
+        for c, tcell in enumerate(tpl[r] or []):
+            if not isinstance(tcell, dict) or tcell.get("_formula") or not _is_locked(tcell):
+                continue
+            while len(data[r]) <= c:
+                data[r].append({"value": ""})
+            data[r][c] = {**data[r][c], "value": tcell.get("value", "")}
+    return data
+
+
+def _row_filled(tpl, r, row, fund_col):
+    """True when the respondent entered something in this row (not just the prefilled template)."""
+    for c, cell in enumerate(row):
+        if c == fund_col or not isinstance(cell, dict) or not str(cell.get("value") or "").strip():
+            continue
+        if r >= len(tpl) or not _is_locked(_tcell(tpl, r, c)):
+            return True
+    return False
+
+
 # ── Fund / supervising-authority registry ────────────────
 _active_funds_cache = None
 
@@ -911,12 +958,15 @@ async def consolidate(_admin=Depends(check_admin)):
         sup_key = (sup_code, sup.get("name") or "") if sup_code else UNSET
         agency = uinfo.get("agency_name") or session.email or "（未指定機關）"
         fund_col = session.fund_col or 0
+        tpl = _template(session)
 
         for r in responses:
             rdata = r.get("data", []) or []
             header = [c.get("value", "") for c in (rdata[0] if rdata else [])]
             for ri in range(1, len(rdata)):
                 row = rdata[ri] or []
+                if not _row_filled(tpl, ri, row, fund_col):
+                    continue
                 cell = row[fund_col] if 0 <= fund_col < len(row) else None
                 fund_raw = str(cell.get("value") or "").strip() if isinstance(cell, dict) else ""
                 if not fund_raw:
@@ -980,10 +1030,13 @@ async def fund_coverage_api(_admin=Depends(check_admin)):
     for sid, session in sessions.items():
         responses = response_store.get(sid, [])
         fund_col = session.fund_col or 0
+        tpl = _template(session)
         for r in responses:
             rdata = r.get("data", []) or []
             for ri in range(1, len(rdata)):
                 row = rdata[ri] or []
+                if not _row_filled(tpl, ri, row, fund_col):
+                    continue
                 cell = row[fund_col] if 0 <= fund_col < len(row) else None
                 raw = str(cell.get("value") or "").strip() if isinstance(cell, dict) else ""
                 if not raw:
@@ -1073,7 +1126,8 @@ async def editor_page(session_id: str):
 async def upload_xlsx(
     request: Request,
     file: UploadFile = File(...),
-    sheet_index: int = Form(0),
+    sheet_index: Optional[int] = Form(None),   # None = first visible sheet
+    header_row: Optional[int] = Form(None),    # None = auto-detect header
     mode: str = Form("table"),  # 'table' or 'form'
     email: str = Form(""),
     password: str = Form(""),
@@ -1105,7 +1159,7 @@ async def upload_xlsx(
             shutil.copyfileobj(file.file, buffer)
 
         # Process the XLSX file
-        result = process_xlsx(str(file_path), sheet_index, mode=mode)
+        result = process_xlsx(str(file_path), sheet_index, mode=mode, header_row=header_row)
 
         password_hash = ""
         if password:
@@ -1325,6 +1379,41 @@ async def reset_session(
     session.updated_at = datetime.now().isoformat()
     _save_session(session_id)
     return {"success": True, "message": "Session reset to original data"}
+
+
+class ReparseRequest(BaseModel):
+    sheet_index: Optional[int] = None    # None = first visible sheet
+    header_row: Optional[int] = None     # 1-based first header row; None = auto-detect
+
+
+@app.post("/api/sessions/{session_id}/reparse")
+async def reparse_session(
+    session_id: str,
+    payload: ReparseRequest,
+    x_project_password: Optional[str] = Header(None, alias="X-Project-Password"),
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+):
+    """Re-read the uploaded XLSX with another sheet / header row. Replaces the table."""
+    session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
+    if response_store.get(session_id):
+        raise HTTPException(status_code=409, detail="已有填表回應，無法變更工作表或標題列")
+    files = glob.glob(str(UPLOAD_DIR / f"{session_id}_*.xlsx"))
+    if not files:
+        raise HTTPException(status_code=404, detail="找不到原始 Excel 檔，請重新上傳")
+    if payload.header_row is not None and payload.header_row < 1:
+        raise HTTPException(status_code=400, detail="header_row must be >= 1")
+    try:
+        result = process_xlsx(files[0], payload.sheet_index, mode='table', header_row=payload.header_row)
+    except Exception as e:
+        logger.error("Reparse failed (session %s): %s", session_id, e, exc_info=True)
+        raise HTTPException(status_code=500, detail="無法重新解析此 Excel 檔")
+    session.original_html = result['html']
+    session.original_json = result['json']
+    session.current_data = result['json']
+    session.metadata = result['metadata']
+    session.updated_at = datetime.now().isoformat()
+    _save_session(session_id)
+    return {"success": True, "json": result['json'], "metadata": result['metadata']}
 
 
 @app.delete("/api/sessions/{session_id}")
@@ -1606,6 +1695,8 @@ async def submit_fill(token: str, request: Request, payload: SubmitRequest):
     if token not in publish_store:
         raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
     session_id = publish_store[token]
+    if session_id in sessions:
+        payload.data = _enforce_template_locks(_template(sessions[session_id]), payload.data)
 
     respondent_email = payload.email.strip() if payload.email else ""
     password_hash = ""
@@ -1814,21 +1905,48 @@ async def export_responses_csv(
 async def parse_xlsx_only(
     request: Request,
     file: UploadFile = File(...),
-    sheet_index: int = Form(0),
+    sheet_index: Optional[int] = Form(None),
+    header_row: Optional[int] = Form(None),
     x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
 ):
     """Parse an XLSX file and return raw JSON data without saving any session (Authenticated)."""
     get_current_auth(x_admin_token)
+    return await _parse_upload(file, sheet_index, header_row)
+
+
+@app.post("/api/fill/{token}/parse-xlsx")
+@limiter.limit("10/minute")
+async def fill_parse_xlsx(
+    token: str,
+    request: Request,
+    file: UploadFile = File(...),
+):
+    """Parse an XLSX for anonymous respondents of a published form (fill-mode 匯入 Excel).
+
+    Uses the project's own sheet/header settings so a filled copy of the template lines up.
+    """
+    session = sessions.get(publish_store.get(token, ""))
+    if session is None:
+        raise HTTPException(status_code=404, detail="Form not found or has been unpublished")
+    meta = session.metadata or {}
+    hdr = meta.get("header_rows")
+    return await _parse_upload(file, meta.get("sheet_index"), hdr[0] if hdr else 0)
+
+
+async def _parse_upload(file: UploadFile, sheet_index: Optional[int], header_row: Optional[int] = None):
+    """Shared by parse-xlsx endpoints: size-check, parse to table JSON, never keep the file."""
     if not file.filename or not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(status_code=400, detail="Only .xlsx files are supported")
+    contents = await file.read()
+    if len(contents) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail=f"File too large. Maximum {MAX_UPLOAD_BYTES // (1024*1024)}MB allowed.")
 
     temp_id = str(uuid.uuid4())[:8]
     temp_path = UPLOAD_DIR / f"temp_{temp_id}_{Path(file.filename).name}"
     try:
-        with open(temp_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
+        temp_path.write_bytes(contents)
 
-        result = process_xlsx(str(temp_path), sheet_index, mode='table')
+        result = process_xlsx(str(temp_path), sheet_index, mode='table', header_row=header_row)
         return {
             "success": True,
             "json": result['json'],
