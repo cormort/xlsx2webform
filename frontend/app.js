@@ -11,6 +11,7 @@ let original = [];
 let isDirty = false;
 let fundNames = [];
 let fillFundCol = 0;
+let fillTemplate = [];   // published template snapshot, for fill-mode locks
 let selectedCell = null;
 let editMode = false;
 const checkedRows = new Set();
@@ -107,6 +108,11 @@ function isNumericCol(colIdx){
 }
 
 function getNumerics(){const nc=[];if(!data.length)return nc;for(let c=0;c<Math.max(...data.map(r=>r.length));c++)if(isNumericCol(c))nc.push(c);return nc}
+// Title / unit rows from above the Excel header (metadata.caption), first line emphasised
+function renderCaption(id,lines){
+    const el=document.getElementById(id);if(!el)return;
+    el.innerHTML=(lines||[]).map((t,i)=>`<div${i===0?' class="cap-title"':''}>${escapeHtml(t)}</div>`).join('');
+}
 function getHeaders(){if(!data.length)return[];return(data[0]||[]).map(c=>c?c.value||'':'')}
 
 function recalcAutoSum(){
@@ -1645,12 +1651,27 @@ async function loadEditorSession(){
         
         recalcAll();render();
         populateFundColSelect(res.fund_col || 0);
+        renderCaption('editor-caption',res.metadata?.caption);
+        populateSourceControls(res.metadata||{});
         editor.style.display='block';
         if(window.location.hash==='#responses'){
             const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
             if(respTab)respTab.click();
         }
     }catch(e){toast(e.message,1);editor.innerHTML=`<p style="padding:40px;color:#dc2626;text-align:center">${escapeHtml(e.message)}</p>`;editor.style.display='block'}
+}
+
+function populateSourceControls(meta){
+    const box=document.getElementById('editor-source');
+    if(!box)return;
+    const names=meta.sheet_names||[];
+    // Only table projects with sheet info (uploaded after header detection existed) can be re-parsed
+    if(meta.mode!=='table'||!names.length||!('sheet_index' in meta)){box.style.display='none';return}
+    const vis=meta.sheet_visible||[];
+    document.getElementById('editor-sheet').innerHTML=names.map((n,i)=>
+        `<option value="${i}"${i===meta.sheet_index?' selected':''}>${escapeHtml(n)}${vis[i]===false?'（隱藏）':''}</option>`).join('');
+    document.getElementById('editor-header-row').value=meta.header_rows?meta.header_rows[0]:'';
+    box.style.display=isReadOnly()?'none':'flex';
 }
 
 function populateFundColSelect(selected){
@@ -2129,6 +2150,10 @@ async function initFillMode(){
         const res=await r.json();
         fillFundCol=res.fund_col||0;
         data=res.data||[];
+        fillTemplate=JSON.parse(JSON.stringify(data));
+        applyFillLocks();
+        fillRecalc();
+        renderCaption('fill-caption',res.metadata?.caption);
         if(fnr.ok){const fnj=await fnr.json();fundNames=fnj.names||[]}
         if(data.length<2){
             const maxC=data[0]?data[0].length:1;
@@ -2166,7 +2191,7 @@ function bindFillImportEvents(){
         fd.append('file',file);
         toast('正在解析 Excel 檔案⋯');
         try{
-            const r=await fetch('/api/parse-xlsx',{method:'POST',body:fd});
+            const r=await fetch(`/api/fill/${fillToken}/parse-xlsx`,{method:'POST',body:fd});
             const res=await r.json();
             if(!r.ok)throw new Error(res.detail||'解析失敗');
             const uploadedJson=res.json||[];
@@ -2189,6 +2214,8 @@ function bindFillImportEvents(){
                 }
             }
             data=uploadedJson;
+            applyFillLocks();
+            fillRecalc();
             renderFillTable();
             toast(`已成功讀入 Excel 共 ${data.length-1} 筆資料！`);
         }catch(e){
@@ -2300,14 +2327,47 @@ function onFillChange(e){
     const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     if(!data[r])data[r]=[];if(!data[r][c])data[r][c]={value:''};
     data[r][c].value=inp.value;
+    fillRecalc();
+    refreshFillComputed();
+}
+
+// ===== Fill-mode template locks =====
+// Respondents fill only empty template cells and rows they add; prefilled labels/values and
+// formula cells stay read-only (formulas recompute live). The server re-applies this on submit.
+function isTplLocked(t){return !!(t&&!t._skip&&(t._locked||t._formula||String(t.value||'').trim()))}
+function applyFillLocks(){
+    for(let r=1;r<data.length;r++){
+        const row=data[r]||(data[r]=[]);
+        const tRow=r<fillTemplate.length?(fillTemplate[r]||[]):null;
+        const n=Math.max(row.length,tRow?tRow.length:0);
+        for(let c=0;c<n;c++){
+            const t=tRow?tRow[c]:null;
+            if(t&&t._skip){row[c]={...t};continue}
+            if(!row[c])row[c]={value:''};
+            const cell=row[c];
+            if(isTplLocked(t)){cell._locked=true;cell._formula=t._formula||'';if(!t._formula)cell.value=t.value||''}
+            else{cell._locked=false;cell._formula=''}
+        }
+    }
+}
+// Formulas only (no hierarchy auto-sum): iterate to a fixed point for formula-on-formula chains
+function fillRecalc(){
+    const snap=()=>JSON.stringify(data.map(row=>row?row.map(c=>c?c.value:''):[]));
+    for(let i=0;i<12;i++){const before=snap();recalcFormulas();if(snap()===before)break}
+}
+function refreshFillComputed(){
+    document.querySelectorAll('#fill-table input[disabled]').forEach(inp=>{
+        const m=inp.name.match(/^r(\d+)_c(\d+)_auto$/);
+        if(m)inp.value=data[+m[1]]?.[+m[2]]?.value||'';
+    });
 }
 
 function onFillPaste(e){
     e.preventDefault();const inp=e.target;const r=parseInt(inp.dataset.r),c=parseInt(inp.dataset.c);
     const text=(e.clipboardData||window.clipboardData).getData('text');if(!text)return;
     const rows=text.split(/\r?\n/).filter(r=>r.trim());if(!rows.length)return;const cells=rows.map(r=>r.split('\t'));
-    cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={value:''};data[targetR][targetC].value=val.trim()})});
-    renderFillTable();toast(`已貼上 ${cells.length} 列`);
+    cells.forEach((rowData,ri)=>{const targetR=r+ri;while(data.length<=targetR)data.push([]);if(!data[targetR])data[targetR]=[];rowData.forEach((val,ci)=>{const targetC=c+ci;if(!data[targetR][targetC])data[targetR][targetC]={value:''};if(data[targetR][targetC]._locked||data[targetR][targetC]._skip)return;data[targetR][targetC].value=val.trim()})});
+    fillRecalc();renderFillTable();toast(`已貼上 ${cells.length} 列`);
 }
 
 document.getElementById('btn-fill-submit').addEventListener('click',async()=>{
@@ -2366,7 +2426,7 @@ document.getElementById('btn-fill-add-row').addEventListener('click',()=>{
 });
 
 document.getElementById('btn-fill-del-row').addEventListener('click',()=>{
-    if(data.length<=1){toast('至少保留一列',1);return}
+    if(data.length<=Math.max(fillTemplate.length,2)){toast('只能刪除自行新增的列',1);return}
     if(!confirm('刪除最後一列？'))return;
     data.pop();
     renderFillTable();
@@ -2382,4 +2442,22 @@ document.getElementById('btn-fill-another').addEventListener('click',()=>{
     if(pwdInput)pwdInput.value='';
     data=JSON.parse(JSON.stringify(original));
     renderFillTable();
+});
+
+// Re-read the uploaded Excel with another sheet / header row (editor)
+document.getElementById('btn-reparse')?.addEventListener('click',async()=>{
+    if(!sessionId)return;
+    if(!confirm('以原始 Excel 重新解析，會取代目前表格內容（未儲存的修改將遺失）。確定？'))return;
+    const hr=document.getElementById('editor-header-row').value.trim();
+    const body={sheet_index:Number(document.getElementById('editor-sheet').value),header_row:hr?Number(hr):null};
+    try{
+        const r=await fetch(`/api/sessions/${sessionId}/reparse`,{method:'POST',
+            headers:{'Content-Type':'application/json',...getAuthHeaders()},body:JSON.stringify(body)});
+        const res=await r.json();
+        if(!r.ok)throw new Error(res.detail||'重新解析失敗');
+        data=res.json||[];original=JSON.parse(JSON.stringify(data));
+        recalcAll();render();populateFundColSelect(0);
+        renderCaption('editor-caption',res.metadata?.caption);populateSourceControls(res.metadata||{});
+        toast('已重新解析');
+    }catch(e){toast(e.message,1)}
 });

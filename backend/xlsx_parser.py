@@ -6,6 +6,7 @@ Handles merged cells, styles, colors, and generates clean HTML tables.
 """
 
 import openpyxl
+from openpyxl.utils import get_column_letter, column_index_from_string
 import json
 import re
 import logging
@@ -356,6 +357,138 @@ def worksheet_to_json(ws):
     return result
 
 
+# ── Header detection / table shaping (fixed columns, variable rows) ─────────
+HEADER_MIN_CELLS = 3      # first row with this many non-empty cells starts the header
+HEADER_SCAN_ROWS = 30
+MAX_SUM_CELLS = 500       # SUM ranges larger than this are not translated
+
+_REF_RE = re.compile(r"\$?([A-Z]{1,3})\$?(\d+)")
+
+
+def _merge_maps(ws):
+    """(r,c) of every non-top-left merged cell → its top-left (r,c); and tallest merge per start row."""
+    origin, tallest = {}, {}
+    for m in ws.merged_cells.ranges:
+        for r in range(m.min_row, m.max_row + 1):
+            for c in range(m.min_col, m.max_col + 1):
+                if (r, c) != (m.min_row, m.min_col):
+                    origin[(r, c)] = (m.min_row, m.min_col)
+        tallest[m.min_row] = max(tallest.get(m.min_row, 1), m.max_row - m.min_row + 1)
+    return origin, tallest
+
+
+def detect_header_rows(ws, start_row=None):
+    """Return (first, last) 1-based header rows.
+
+    first = start_row, or the first row (within HEADER_SCAN_ROWS) with >= HEADER_MIN_CELLS
+    non-empty cells — skips title / unit rows above the header.
+    last  = first + tallest vertical merge starting on that row - 1 (multi-level headers).
+    ponytail: heuristic; the editor lets the owner override the start row.
+    """
+    origin, tallest = _merge_maps(ws)
+    if start_row is None:
+        start_row = 1
+        for r in range(1, min(ws.max_row or 1, HEADER_SCAN_ROWS) + 1):
+            n = sum(1 for c in range(1, (ws.max_column or 1) + 1)
+                    if (r, c) not in origin and str(ws.cell(r, c).value or '').strip())
+            if n >= HEADER_MIN_CELLS:
+                start_row = r
+                break
+    start_row = max(1, min(start_row, ws.max_row or 1))
+    return start_row, min(start_row + tallest.get(start_row, 1) - 1, ws.max_row or 1)
+
+
+def translate_formula(formula, row_offset):
+    """Translate a simple Excel formula into the editor's formula syntax, or None.
+
+    Supports + - * / ( ), numbers, cell refs and SUM(range / list). Excel row n maps to
+    data row n - row_offset (data row 0 is the single combined header row).
+    """
+    body = formula[1:].upper().replace(' ', '')
+    if '!' in body or '[' in body:
+        return None
+
+    def expand(m):
+        a, b = _REF_RE.fullmatch(m.group(1)), _REF_RE.fullmatch(m.group(2))
+        if not (a and b):
+            return '§'
+        c1, c2 = column_index_from_string(a.group(1)), column_index_from_string(b.group(1))
+        r1, r2 = int(a.group(2)), int(b.group(2))
+        if (r2 - r1 + 1) * (c2 - c1 + 1) > MAX_SUM_CELLS or r2 < r1 or c2 < c1:
+            return '§'
+        return '(' + '+'.join(f"{get_column_letter(c)}{r}" for r in range(r1, r2 + 1)
+                              for c in range(c1, c2 + 1)) + ')'
+
+    body = re.sub(r"SUM\(([A-Z$0-9]+):([A-Z$0-9]+)\)", expand, body)
+    body = re.sub(r"SUM\(([A-Z$0-9,]+)\)", lambda m: '(' + m.group(1).replace(',', '+') + ')', body)
+
+    def shift(m):
+        r = int(m.group(2)) - row_offset
+        return f"{m.group(1)}{r}" if r >= 1 else '§'
+
+    body = _REF_RE.sub(shift, body)
+    if '§' in body or not re.fullmatch(r"[A-Z0-9+\-*/().]+", body):
+        return None
+    return '=' + body
+
+
+def worksheet_to_table(ws, header_rows, formula_ws=None):
+    """Shape a sheet as [combined header row] + data rows, plus caption lines.
+
+    Rows above the header become caption text. Multi-row headers collapse into one row
+    ("可用預算數／本年度預算數"). Data rows are renumbered from 2 so export/merges stay
+    consistent. Formula cells get `_formula` (translatable) or `_locked` (not).
+    """
+    first, last = header_rows
+    rows = worksheet_to_json(ws)
+    origin, _ = _merge_maps(ws)
+    max_col = ws.max_column or 1
+
+    def label(r, c):
+        r0, c0 = origin.get((r, c), (r, c))
+        return str(ws.cell(r0, c0).value or '').replace('\n', ' ').strip()
+
+    header = []
+    for c in range(1, max_col + 1):
+        parts = []
+        for r in range(first, last + 1):
+            t = label(r, c)
+            if t and (not parts or parts[-1] != t):
+                parts.append(t)
+        header.append({'row': 1, 'col': c, 'value': '／'.join(parts), 'type': 'str', 'bold': True})
+
+    caption = []
+    for r in range(1, first):
+        line = ' '.join(str(ws.cell(r, c).value).strip() for c in range(1, max_col + 1)
+                        if (r, c) not in origin and str(ws.cell(r, c).value or '').strip())
+        if line:
+            caption.append(line)
+
+    data = rows[last:]
+    for i, row in enumerate(data, start=2):
+        excel_r = last + i - 1
+        for cell in row:
+            if cell.get('_skip'):
+                continue
+            # merges reaching up into the header can't survive the collapse
+            cell['row'] = i
+            f = formula_ws.cell(excel_r, cell['col']).value if formula_ws is not None else None
+            if isinstance(f, str) and f.startswith('='):
+                t = translate_formula(f, last)
+                if t:
+                    cell['_formula'] = t
+                else:
+                    cell['_locked'] = True
+    return [header] + data, caption
+
+
+def first_visible_sheet_index(wb):
+    for i, ws in enumerate(wb.worksheets):
+        if ws.sheet_state == 'visible':
+            return i
+    return 0
+
+
 def extract_form_data(ws):
     """Extract form structure from worksheet.
 
@@ -441,22 +574,27 @@ def extract_form_data(ws):
     }
 
 
-def process_xlsx(file_path, sheet_index=0, mode='table'):
+def process_xlsx(file_path, sheet_index=None, mode='table', header_row=None):
     """Process an XLSX file and return data.
 
     Args:
         file_path: path to the XLSX file
-        sheet_index: which sheet to process (0-based)
+        sheet_index: which sheet to process (0-based); None = first visible sheet
         mode: 'table' for table view, 'form' for form view
+        header_row: 1-based first header row; None = auto-detect; 0 = legacy
+            (whole sheet, row 1 as header, no caption/formula handling)
 
     Returns:
-        dict with 'html', 'json', 'sheet_names', 'metadata'
+        dict with 'html', 'json', 'metadata' (table) or 'form', 'metadata' (form)
     """
+    wb = wbf = None
     try:
         wb = openpyxl.load_workbook(file_path, data_only=True)
 
         sheet_names = wb.sheetnames
-        ws = wb.worksheets[sheet_index] if sheet_index < len(wb.worksheets) else wb.worksheets[0]
+        if sheet_index is None or not (0 <= sheet_index < len(wb.worksheets)):
+            sheet_index = first_visible_sheet_index(wb)
+        ws = wb.worksheets[sheet_index]
 
         if mode == 'form':
             form_data = extract_form_data(ws)
@@ -472,16 +610,23 @@ def process_xlsx(file_path, sheet_index=0, mode='table'):
             }
         else:
             html = worksheet_to_html(ws)
-            json_data = worksheet_to_json(ws)
-
             metadata = {
                 'sheet_name': ws.title,
-                'row_count': ws.max_row or 0,
+                'sheet_index': sheet_index,
+                'sheet_names': sheet_names,
+                'sheet_visible': [w.sheet_state == 'visible' for w in wb.worksheets],
                 'col_count': ws.max_column or 0,
                 'merged_cells_count': len(ws.merged_cells.ranges),
-                'sheet_names': sheet_names,
                 'mode': 'table'
             }
+            if header_row == 0:
+                json_data = worksheet_to_json(ws)
+                metadata.update(row_count=ws.max_row or 0, header_rows=None, caption=[])
+            else:
+                wbf = openpyxl.load_workbook(file_path)   # second load to read formulas
+                header_rows = detect_header_rows(ws, header_row)
+                json_data, caption = worksheet_to_table(ws, header_rows, wbf.worksheets[sheet_index])
+                metadata.update(row_count=len(json_data) - 1, header_rows=list(header_rows), caption=caption)
 
             return {
                 'html': html,
@@ -489,10 +634,12 @@ def process_xlsx(file_path, sheet_index=0, mode='table'):
                 'metadata': metadata
             }
     finally:
-        try:
-            wb.close()
-        except Exception:
-            pass
+        for book in (wb, wbf):
+            try:
+                if book:
+                    book.close()
+            except Exception:
+                pass
 
 
 if __name__ == '__main__':

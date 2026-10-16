@@ -314,6 +314,16 @@
             <select id="editor-fund-col" style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)"></select>
         </div>
 
+        <!-- Excel source: which sheet / where the header starts -->
+        <div id="editor-source" class="card-inset flex items-center flex-wrap" style="display:none;gap:14px;margin-bottom:var(--sp-3);background:var(--surface-alt)">
+            <label class="text-sm fw-7 text-soft nowrap" for="editor-sheet">工作表：</label>
+            <select id="editor-sheet" style="padding:8px 12px;border:1px solid var(--border-strong);border-radius:var(--radius);font-size:var(--fs-base);background:var(--surface)"></select>
+            <label class="text-sm fw-7 text-soft nowrap" for="editor-header-row" title="Excel 中欄位標題開始的列號；上方的標題、單位列會顯示為表頭說明">標題列從第</label>
+            <input id="editor-header-row" type="number" min="1" class="field-input" style="width:80px;padding:8px 10px" placeholder="自動">
+            <span class="text-sm text-soft nowrap">列開始</span>
+            <button class="btn btn-outline" id="btn-reparse">重新解析</button>
+        </div>
+
     <div class="toolbar">
         <button class="btn btn-success" id="btn-save">儲存</button>
         <button class="btn btn-primary" id="btn-export">匯出 JSON</button>
@@ -351,6 +361,7 @@
         <button class="btn btn-outline-red" id="btn-batch-del-rows" style="padding:4px 12px">刪除選取列</button>
         <button class="btn btn-outline-red" id="btn-batch-del-cols" style="padding:4px 12px">刪除選取欄</button>
     </div>
+    <div id="editor-caption" class="table-caption"></div>
     <div class="table-wrap">
         <div class="scroll" id="table-scroll">
             <div id="table-container"></div>
@@ -375,6 +386,7 @@
 
 <!-- Fill mode -->
 <div id="fill-mode">
+    <div id="fill-caption" class="table-caption"></div>
     <div class="table-wrap" style="margin-bottom:12px">
         <div class="scroll" id="fill-table-scroll">
             <div id="fill-table-container"><p style="padding:24px;color:#94a3b8;text-align:center">載入中⋯</p></div>
