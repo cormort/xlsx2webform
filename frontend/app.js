@@ -46,6 +46,8 @@ function getAuthHeaders(customHeaders = {}){
     if(adminTk) headers['X-Admin-Token']=adminTk;
     return headers;
 }
+// Safe JS string literal for inline handlers: onclick="fn(${jsArg(x)})" (JSON-quoted, then HTML-escaped)
+function jsArg(s){return escapeHtml(JSON.stringify(String(s??'')))}
 function escapeHtml(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 function parseNum(v){const n=parseFloat(String(v).replace(/,/g,''));return isNaN(n)?null:n}
 function fmtNum(n){if(n===null||isNaN(n))return '';const p=n%1===0?0:2;return n.toLocaleString('en-US',{minimumFractionDigits:p,maximumFractionDigits:2})}
@@ -436,14 +438,14 @@ async function loadUsers() {
             // Only admins can grant/revoke the 主計總處 role
             const roleBtn = (currentRole() === 'admin')
                 ? (u.role === 'dgbas'
-                    ? `<button class="btn btn-outline" onclick="setUserRole('${escapeHtml(u.email)}','')" title="取消主計總處權限">取消主計總處</button>`
-                    : `<button class="btn btn-outline" onclick="setUserRole('${escapeHtml(u.email)}','dgbas')" title="授予主計總處權限">設為主計總處</button>`)
+                    ? `<button class="btn btn-outline" onclick="setUserRole(${jsArg(u.email)},'')" title="取消主計總處權限">取消主計總處</button>`
+                    : `<button class="btn btn-outline" onclick="setUserRole(${jsArg(u.email)},'dgbas')" title="授予主計總處權限">設為主計總處</button>`)
                 : '';
             // 主計總處 cannot manage other 主計總處 accounts (server also enforces)
             const actions = (dg && u.role === 'dgbas')
                 ? '<span style="color:var(--text-muted);font-size:12px">—</span>'
-                : `${roleBtn}<button class="btn btn-outline" onclick="editUser('${escapeHtml(u.email)}')" title="編輯機關資料">編輯</button>
-                    <button class="btn btn-outline-red" onclick="deleteUser('${escapeHtml(u.email)}')" title="刪除">刪除</button>`;
+                : `${roleBtn}<button class="btn btn-outline" onclick="editUser(${jsArg(u.email)})" title="編輯機關資料">編輯</button>
+                    <button class="btn btn-outline-red" onclick="deleteUser(${jsArg(u.email)})" title="刪除">刪除</button>`;
             h += `<tr>
                 <td style="padding:10px 14px">${sup}</td>
                 <td style="padding:10px 14px">${agency}</td>
@@ -711,8 +713,8 @@ function renderSupMgmtList() {
         `<div class="flex items-center" style="gap:8px;padding:6px 8px;border-bottom:1px solid var(--border)">
             <span style="font-size:12px;color:var(--text-muted);min-width:36px;font-family:monospace">${escapeHtml(s.code)}</span>
             <span style="flex:1;font-size:13px;font-weight:600">${escapeHtml(s.name)}</span>
-            <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editSup('${escapeHtml(s.domain)}','${escapeHtml(s.code)}','${escapeHtml(s.name)}')">編輯</button>
-            <button class="btn btn-outline-red" style="padding:2px 8px;font-size:11px" onclick="deleteSup('${escapeHtml(s.domain)}','${escapeHtml(s.code)}')">刪除</button>
+            <button class="btn btn-outline" style="padding:2px 8px;font-size:11px" onclick="editSup(${jsArg(s.domain)},${jsArg(s.code)},${jsArg(s.name)})">編輯</button>
+            <button class="btn btn-outline-red" style="padding:2px 8px;font-size:11px" onclick="deleteSup(${jsArg(s.domain)},${jsArg(s.code)})">刪除</button>
         </div>`
     ).join('');
 }
@@ -834,7 +836,7 @@ function renderAliasList() {
             <span style="font-weight:600;min-width:80px">${escapeHtml(k)}</span>
             <span style="color:var(--text-soft)">→</span>
             <span style="flex:1">${escapeHtml(aliases[k])}</span>
-            <button class="ico-btn-sm" onclick="removeAlias('${escapeHtml(k)}')">✕</button>
+            <button class="ico-btn-sm" onclick="removeAlias(${jsArg(k)})">✕</button>
         </div>`;
     });
     h += '</div>';
@@ -2124,7 +2126,6 @@ async function initFillMode(){
         ]);
         if(!r.ok)throw new Error('表單不存在或已取消發布');
         const res=await r.json();
-        sessionId=res.session_id;
         fillFundCol=res.fund_col||0;
         data=res.data||[];
         if(fnr.ok){const fnj=await fnr.json();fundNames=fnj.names||[]}

@@ -17,6 +17,8 @@ import json
 import logging
 from pathlib import Path
 
+from backend.storage import atomic_write_text
+
 logger = logging.getLogger(__name__)
 
 REGISTRY_PATH = Path(__file__).parent / "fund_registry.json"
@@ -106,7 +108,7 @@ def list_supervisors():
 
 def save_registry():
     """Persist the current in-memory registry to disk and rebuild indexes."""
-    REGISTRY_PATH.write_text(json.dumps(_registry, ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_write_text(REGISTRY_PATH, json.dumps(_registry, ensure_ascii=False, indent=2), encoding="utf-8")
     load_registry()
 
 

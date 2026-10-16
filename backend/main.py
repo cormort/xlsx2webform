@@ -26,6 +26,7 @@ from fastapi import FastAPI, UploadFile, File, HTTPException, Form, Header, Depe
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.concurrency import run_in_threadpool
 from pydantic import BaseModel
 
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -34,6 +35,7 @@ from slowapi.errors import RateLimitExceeded
 
 from backend.xlsx_parser import process_xlsx
 from backend import registry
+from backend.storage import atomic_write_text
 
 app = FastAPI(title="Budget Table Editor", version="1.0.0")
 
@@ -78,9 +80,10 @@ async def add_security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com; "
         "style-src 'self' 'unsafe-inline'; "
-        "img-src 'self' data:; "
+        "img-src 'self' data: https://*.google-analytics.com https://*.googletagmanager.com; "
+        "connect-src 'self' https://*.google-analytics.com https://*.analytics.google.com https://*.googletagmanager.com; "
         "frame-ancestors 'none';"
     )
 
@@ -196,7 +199,7 @@ def _validate_admin_token(token: str) -> bool:
 def _save_admin_tokens():
     """Persist valid admin tokens to disk."""
     data = {k: v.isoformat() for k, v in admin_tokens.items() if datetime.now() < v}
-    (DATA_DIR / "admin_tokens.json").write_text(
+    atomic_write_text(DATA_DIR / "admin_tokens.json",
         json.dumps(data, ensure_ascii=False), encoding='utf-8')
 
 
@@ -217,7 +220,7 @@ def _load_admin_tokens():
 
 def _save_users():
     """Persist users to disk."""
-    (DATA_DIR / "users.json").write_text(
+    atomic_write_text(DATA_DIR / "users.json",
         json.dumps(users, ensure_ascii=False, indent=2), encoding='utf-8')
 
 
@@ -239,7 +242,7 @@ def _save_user_tokens():
         for k, v in user_tokens.items()
         if datetime.now() < v["expiry"]
     }
-    (DATA_DIR / "user_tokens.json").write_text(
+    atomic_write_text(DATA_DIR / "user_tokens.json",
         json.dumps(data, ensure_ascii=False), encoding='utf-8')
 
 
@@ -392,17 +395,45 @@ def check_session_auth(
             raise HTTPException(status_code=403, detail="主計總處為唯讀權限，無法修改專案")
         return session
 
-    if session.password_hash:
-        pwd = password_header or password_query
-        if not pwd:
-            raise HTTPException(
-                status_code=401,
-                detail="Password required",
-                headers={"X-Needs-Password": "true"}
-            )
-        if not _verify_password(pwd, session.password_hash):
-            raise HTTPException(status_code=403, detail="Incorrect password")
+    # Owner always has access
+    if auth["role"] == "user" and session.email and session.email == auth["email"]:
+        return session
+
+    # Everyone else needs the project password; projects without one are owner/admin only
+    if not session.password_hash:
+        raise HTTPException(status_code=403, detail="無權存取此專案")
+    pwd = password_header or password_query
+    if not pwd:
+        raise HTTPException(
+            status_code=401,
+            detail="Password required",
+            headers={"X-Needs-Password": "true"}
+        )
+    _check_pwd_lockout(session_id)
+    if not _verify_password(pwd, session.password_hash):
+        _record_pwd_failure(session_id)
+        raise HTTPException(status_code=403, detail="Incorrect password")
+    _pwd_failures.pop(session_id, None)
     return session
+
+
+# Per-project failed-password tracking (all project endpoints, not just the rate-limited GET).
+# ponytail: in-memory, per-process; resets on restart — fine for a single uvicorn worker.
+PWD_MAX_FAILURES = 10
+PWD_LOCKOUT_SECONDS = 15 * 60
+_pwd_failures: dict[str, list] = {}   # session_id → [failure datetimes]
+
+
+def _check_pwd_lockout(session_id: str):
+    cutoff = datetime.now() - timedelta(seconds=PWD_LOCKOUT_SECONDS)
+    recent = [t for t in _pwd_failures.get(session_id, []) if t > cutoff]
+    _pwd_failures[session_id] = recent
+    if len(recent) >= PWD_MAX_FAILURES:
+        raise HTTPException(status_code=429, detail="密碼錯誤次數過多，請稍後再試")
+
+
+def _record_pwd_failure(session_id: str):
+    _pwd_failures.setdefault(session_id, []).append(datetime.now())
 
 
 class SaveRequest(BaseModel):
@@ -455,14 +486,14 @@ def _load_persist():
 def _save_persist(key):
     d = {"publish_store": publish_store, "published_forms": published_forms,
          "response_store": response_store}[key]
-    PERSIST_FILES[key].write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(PERSIST_FILES[key], json.dumps(d, ensure_ascii=False, indent=2), encoding='utf-8')
 
 def _save_session(sid):
     if sid in sessions:
-        (DATA_DIR / f"session_{sid}.json").write_text(
+        atomic_write_text(DATA_DIR / f"session_{sid}.json",
             sessions[sid].model_dump_json(indent=2), encoding='utf-8')
     idx = sorted(sessions.keys())
-    PERSIST_FILES["sessions_index"].write_text(
+    atomic_write_text(PERSIST_FILES["sessions_index"],
         json.dumps(idx, ensure_ascii=False), encoding='utf-8')
 
 def _cleanup_orphan_uploads():
@@ -495,6 +526,9 @@ class AdminLoginRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     password: str
+
+
+EMAIL_RE = re.compile(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
 
 
 class CreateUserRequest(BaseModel):
@@ -571,7 +605,7 @@ async def auth_login(request: Request, payload: LoginRequest):
     email_lower = email.lower()
     if email_lower in users:
         user_info = users[email_lower]
-        if _verify_password(password, user_info["password_hash"]):
+        if await run_in_threadpool(_verify_password, password, user_info["password_hash"]):
             token = secrets.token_hex(24)
             expiry = datetime.now() + timedelta(hours=ADMIN_TOKEN_EXPIRY_HOURS)
             user_tokens[token] = {"email": email_lower, "expiry": expiry}
@@ -640,11 +674,11 @@ async def change_password(
     email = auth["email"]
     if email not in users:
         raise HTTPException(status_code=404, detail="User not found")
-    if not _verify_password(payload.old_password, users[email]["password_hash"]):
+    if not await run_in_threadpool(_verify_password, payload.old_password, users[email]["password_hash"]):
         raise HTTPException(status_code=403, detail="舊密碼錯誤")
     if len(payload.new_password) < 1:
         raise HTTPException(status_code=400, detail="新密碼不可為空")
-    users[email]["password_hash"] = _hash_password(payload.new_password)
+    users[email]["password_hash"] = await run_in_threadpool(_hash_password, payload.new_password)
     _save_users()
     return {"success": True}
 
@@ -674,13 +708,17 @@ async def create_user(payload: CreateUserRequest, auth=Depends(check_admin_or_dg
     if not email:
         raise HTTPException(status_code=400, detail="Email cannot be empty")
     
-    if "@" not in email:
+    if not EMAIL_RE.fullmatch(email):
         raise HTTPException(status_code=400, detail="Invalid email address")
+    if not payload.password:
+        raise HTTPException(status_code=400, detail="密碼不可為空")
         
     if email in users:
         raise HTTPException(status_code=400, detail="User already exists")
         
-    pwd_hash = _hash_password(payload.password)
+    pwd_hash = await run_in_threadpool(_hash_password, payload.password)
+    if email in users:   # re-check: another request may have created it while hashing
+        raise HTTPException(status_code=400, detail="User already exists")
     users[email] = {
         "password_hash": pwd_hash,
         "created_at": datetime.now().isoformat(),
@@ -879,8 +917,8 @@ async def consolidate(_admin=Depends(check_admin)):
             header = [c.get("value", "") for c in (rdata[0] if rdata else [])]
             for ri in range(1, len(rdata)):
                 row = rdata[ri] or []
-                cell = row[fund_col] if fund_col < len(row) else None
-                fund_raw = (cell.get("value") or "").strip() if isinstance(cell, dict) else ""
+                cell = row[fund_col] if 0 <= fund_col < len(row) else None
+                fund_raw = str(cell.get("value") or "").strip() if isinstance(cell, dict) else ""
                 if not fund_raw:
                     continue
                 m = registry.match_fund(fund_raw)
@@ -927,7 +965,7 @@ async def save_active_funds_api(request: Request, _admin=Depends(check_admin)):
     global _active_funds_cache
     payload = await request.json()
     p = Path(__file__).parent / "active_funds.json"
-    p.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    atomic_write_text(p, json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     _active_funds_cache = payload
     return {"success": True}
 
@@ -946,8 +984,8 @@ async def fund_coverage_api(_admin=Depends(check_admin)):
             rdata = r.get("data", []) or []
             for ri in range(1, len(rdata)):
                 row = rdata[ri] or []
-                cell = row[fund_col] if fund_col < len(row) else None
-                raw = (cell.get("value") or "").strip() if isinstance(cell, dict) else ""
+                cell = row[fund_col] if 0 <= fund_col < len(row) else None
+                raw = str(cell.get("value") or "").strip() if isinstance(cell, dict) else ""
                 if not raw:
                     continue
                 canonical = alias_map.get(raw)
@@ -1044,6 +1082,8 @@ async def upload_xlsx(
 ):
     """Upload an XLSX file and convert to HTML table or form (Authenticated)."""
     auth = get_current_auth(x_admin_token)
+    if auth["role"] == "dgbas":
+        raise HTTPException(status_code=403, detail="主計總處為唯讀權限，無法建立專案")
     if auth["role"] == "user":
         email = auth["email"]
     if not file.filename or not file.filename.endswith('.xlsx'):
@@ -1069,7 +1109,7 @@ async def upload_xlsx(
 
         password_hash = ""
         if password:
-            password_hash = _hash_password(password)
+            password_hash = await run_in_threadpool(_hash_password, password)
 
         if mode == 'form':
             # Form mode
@@ -1191,6 +1231,8 @@ async def save_session(
 ):
     """Save edited data to session. Protected by project password or auth."""
     session = check_session_auth(session_id, x_project_password, None, x_admin_token, write=True)
+    if request.fund_col is not None and request.fund_col < 0:
+        raise HTTPException(status_code=400, detail="fund_col must be >= 0")
     session.current_data = request.data
     if request.name:
         session.name = request.name
@@ -1334,7 +1376,7 @@ async def save_template(request: TemplateData, _admin=Depends(check_admin)):
         "creator_email": request.creator_email or "",
     }
 
-    template_path.write_text(json.dumps(template_data, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(template_path, json.dumps(template_data, ensure_ascii=False, indent=2), encoding='utf-8')
 
     return {"success": True, "template_id": template_id}
 
@@ -1363,7 +1405,7 @@ async def save_template_from_session(session_id: str, _admin=Depends(check_admin
         "supervisor_name": supervisor_name,
         "creator_email": email,
     }
-    template_path.write_text(json.dumps(tpl, ensure_ascii=False, indent=2), encoding='utf-8')
+    atomic_write_text(template_path, json.dumps(tpl, ensure_ascii=False, indent=2), encoding='utf-8')
     return {"success": True, "template_id": template_id, "name": s.name}
 
 
@@ -1444,10 +1486,14 @@ class PublishResponse(BaseModel):
     response_count: int
 
 class SubmitRequest(BaseModel):
-    data: list
+    data: list[list[dict]]   # rows of cells; rejects shapes that would crash consolidate/CSV export
     respondent: Optional[str] = ""
     email: Optional[str] = ""
     password: Optional[str] = ""
+
+
+MAX_EXPORT_SPAN = 200            # max rowspan/colspan per merged cell in /api/export-xlsx
+MAX_EXPORT_MERGED_CELLS = 200_000  # total merged area per export request
 
 
 class ExportXlsxRequest(BaseModel):
@@ -1547,7 +1593,6 @@ async def get_fill_data(token: str, request: Request):
     session = sessions[session_id]
     data = session.current_data or session.original_json
     return {
-        "session_id": session_id,
         "name": session.name,
         "data": data,
         "metadata": session.metadata,
@@ -1565,7 +1610,7 @@ async def submit_fill(token: str, request: Request, payload: SubmitRequest):
     respondent_email = payload.email.strip() if payload.email else ""
     password_hash = ""
     if payload.password:
-        password_hash = _hash_password(payload.password)
+        password_hash = await run_in_threadpool(_hash_password, payload.password)
 
     # 尋找是否已有同一個 Email 的填寫記錄 (自動覆蓋修正)
     existing_resp = None
@@ -1578,7 +1623,7 @@ async def submit_fill(token: str, request: Request, payload: SubmitRequest):
     if existing_resp:
         # 如果已經填過，必須校驗密碼（當初未設密碼者可直接覆蓋）
         if existing_resp.get("password_hash") and \
-           (not payload.password or not _verify_password(payload.password, existing_resp["password_hash"])):
+           (not payload.password or not await run_in_threadpool(_verify_password, payload.password, existing_resp["password_hash"])):
             raise HTTPException(
                 status_code=403,
                 detail="此 Email 已有填表紀錄。如欲修改，請輸入您當初設定的填表密碼。"
@@ -1589,6 +1634,9 @@ async def submit_fill(token: str, request: Request, payload: SubmitRequest):
         existing_resp["respondent"] = payload.respondent or ""
         existing_resp["modified"] = True
         existing_resp["modified_at"] = datetime.now().isoformat()
+        if password_hash and not existing_resp.get("password_hash"):
+            # first password set on edit — store it so load-response works later
+            existing_resp["password_hash"] = password_hash
         _save_persist("response_store")
 
         return {
@@ -1635,7 +1683,7 @@ async def load_filler_response(token: str, request: Request, payload: LoadRespon
     responses = response_store.get(session_id, [])
     for r in responses:
         if r.get("email") == payload.email.strip():
-            if _verify_password(payload.password, r.get("password_hash", "")):
+            if await run_in_threadpool(_verify_password, payload.password, r.get("password_hash", "")):
                 return {
                     "success": True,
                     "respondent": r.get("respondent", ""),
@@ -1823,6 +1871,7 @@ async def export_xlsx_api(
             
         ws = wb.create_sheet(title=sheet_title)
         
+        merged_budget = MAX_EXPORT_MERGED_CELLS
         # First write values and styles
         for row_idx, row in enumerate(payload.data):
             if not isinstance(row, list):
@@ -1874,9 +1923,16 @@ async def export_xlsx_api(
                 cell.alignment = Alignment(vertical="center", wrap_text=True)
 
                 # Merge cells
-                rowspan = c.get('rowspan', 1)
-                colspan = c.get('colspan', 1)
-                if rowspan > 1 or colspan > 1:
+                # Clamp spans too: openpyxl allocates one MergedCell per merged cell
+                try:
+                    rowspan = int(c.get('rowspan') or 1)
+                    colspan = int(c.get('colspan') or 1)
+                except (TypeError, ValueError):
+                    rowspan = colspan = 1
+                rowspan = max(1, min(rowspan, MAX_EXPORT_SPAN, 1048576 - r_idx + 1))
+                colspan = max(1, min(colspan, MAX_EXPORT_SPAN, 16384 - c_idx + 1))
+                if (rowspan > 1 or colspan > 1) and rowspan * colspan <= merged_budget:
+                    merged_budget -= rowspan * colspan
                     ws.merge_cells(
                         start_row=r_idx,
                         start_column=c_idx,
