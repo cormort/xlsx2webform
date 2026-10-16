@@ -1622,14 +1622,15 @@ async function loadEditorSession(){
         const r=await fetch(`/api/sessions/${sessionId}`, {
             headers: getAuthHeaders()
         });
-        if(r.status===401||r.status===403){
+        const res=await r.json();
+        // Password prompt only for password-protected projects; "no access" 403 / lockout 429 fall through to the error below
+        if(r.status===401||(r.status===403&&res.detail==='Incorrect password')){
             document.getElementById('password-overlay').style.display='flex';
             if(r.status===403){
                 toast('密碼錯誤，請重新輸入！',1);
             }
             return;
         }
-        const res=await r.json();
         if(!r.ok)throw new Error(res.detail||'載入失敗');
         document.getElementById('password-overlay').style.display='none';
         data=res.current_data||res.json||[];
