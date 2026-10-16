@@ -307,3 +307,6 @@ body.role-dgbas #btn-new-project,body.role-dgbas #batch-bar{display:none!importa
 .table-caption .cap-title{font-weight:700;color:var(--text-strong);font-size:1.05em}
 /* Fund names are the row labels respondents navigate by — don't squeeze them */
 #fill-table th:first-child,#fill-table td:first-child{min-width:12em}
+/* Viewing a project you may not edit (主計總處, or same-主管機關 peer): hide editing controls */
+body.project-readonly #editor-tab .toolbar,body.project-readonly #editor-tab .formula-bar,body.project-readonly #editor-source,body.project-readonly .resp-delete{display:none!important}
+body.project-readonly #editor-tab::before{content:"唯讀檢視";display:block;margin-bottom:var(--sp-3);padding:8px 12px;border-radius:var(--radius);background:var(--surface-alt);color:var(--text-soft);font-weight:700}

@@ -330,6 +330,43 @@ def _guard_dgbas_target(auth: dict, target_email: str):
     if auth["role"] == "dgbas" and users.get(target_email, {}).get("role") == "dgbas":
         raise HTTPException(status_code=403, detail="主計總處不可管理其他主計總處帳號")
 
+def _user_supervisor(email):
+    """(domain, code) of the 主管機關 an admin assigned to this user, or None."""
+    sup = users.get((email or "").strip().lower(), {}).get("supervisor") or {}
+    return (sup.get("domain"), sup.get("code")) if sup.get("domain") and sup.get("code") else None
+
+
+def _same_supervisor(auth, session):
+    """A regular user may read (never write) projects owned by users under the same 主管機關."""
+    if auth.get("role") != "user":
+        return False
+    mine = _user_supervisor(auth.get("email"))
+    return mine is not None and mine == _user_supervisor(session.email)
+
+
+def check_admin_or_supervisor(
+    x_admin_token: Optional[str] = Header(None, alias="X-Admin-Token")
+) -> dict:
+    """Dependency: admin (sees everything) or a user with an assigned 主管機關 (sees only its funds)."""
+    auth = get_current_auth_optional(x_admin_token)
+    if auth["role"] == "admin":
+        return {**auth, "supervisor": None}
+    if auth["role"] == "user":
+        sup = _user_supervisor(auth["email"])
+        if sup:
+            return {**auth, "supervisor": sup}
+        raise HTTPException(status_code=403, detail="帳號尚未設定主管機關，請洽管理員")
+    raise HTTPException(status_code=403, detail="需要管理員或主管機關權限")
+
+
+def _fund_in_scope(auth, fund_name):
+    """Admin: every fund. 主管機關 user: only funds the official registry places under them."""
+    if auth.get("supervisor") is None:
+        return True
+    m = registry.match_fund(fund_name)
+    return bool(m) and (m["domain"], m["supervisor"]) == auth["supervisor"]
+
+
 # In-memory stores
 sessions = {}
 publish_store = {}      # share_token → session_id
@@ -397,6 +434,9 @@ def check_session_auth(
 
     # Owner always has access
     if auth["role"] == "user" and session.email and session.email == auth["email"]:
+        return session
+    # Same 主管機關: read-only (a correct project password below still allows editing)
+    if not write and _same_supervisor(auth, session):
         return session
 
     # Everyone else needs the project password; projects without one are owner/admin only
@@ -937,7 +977,7 @@ async def delete_supervisor_api(domain: str, code: str, _admin=Depends(check_adm
 
 
 @app.get("/api/consolidate")
-async def consolidate(_admin=Depends(check_admin)):
+async def consolidate(auth=Depends(check_admin_or_supervisor)):
     """Cross-project consolidation grouped 主管機關 → 機關 → 基金. Admin only.
 
     主管機關 / 機關名稱 come from the project owner's user profile; 基金 is taken
@@ -969,7 +1009,7 @@ async def consolidate(_admin=Depends(check_admin)):
                     continue
                 cell = row[fund_col] if 0 <= fund_col < len(row) else None
                 fund_raw = str(cell.get("value") or "").strip() if isinstance(cell, dict) else ""
-                if not fund_raw:
+                if not fund_raw or not _fund_in_scope(auth, fund_raw):
                     continue
                 m = registry.match_fund(fund_raw)
                 fund_code = m["code"] if m else ""
@@ -1021,7 +1061,7 @@ async def save_active_funds_api(request: Request, _admin=Depends(check_admin)):
 
 
 @app.get("/api/fund-coverage")
-async def fund_coverage_api(_admin=Depends(check_admin)):
+async def fund_coverage_api(auth=Depends(check_admin_or_supervisor)):
     """Compare uploaded response fund names against active funds list. Admin only."""
     af = _load_active_funds()
     alias_map = af.get("aliasMap", {})
@@ -1050,10 +1090,22 @@ async def fund_coverage_api(_admin=Depends(check_admin)):
     result = {}
     for dom in ("enterprise", "special"):
         dd = af.get(dom, {})
+        if auth["supervisor"] and auth["supervisor"][0] != dom:
+            continue
         dom_funds = []
         total = 0
         covered = 0
         for entry in dd.get("funds", []):
+            # 主管機關 users only see their own funds (a parent stays if any child is theirs)
+            if auth["supervisor"]:
+                if isinstance(entry, str):
+                    if not _fund_in_scope(auth, entry):
+                        continue
+                elif isinstance(entry, dict):
+                    kids = [k for k in entry.get("children", []) if _fund_in_scope(auth, k)]
+                    if not kids and not _fund_in_scope(auth, entry["name"]):
+                        continue
+                    entry = {**entry, "children": kids}
             if isinstance(entry, str):
                 dom_funds.append({"name": entry, "uploaded": entry in uploaded})
                 total += 1
@@ -1230,7 +1282,8 @@ async def list_sessions(auth=Depends(get_current_auth)):
     if auth["role"] in ("admin", "dgbas"):
         visible_sessions = list(sessions.values())
     elif auth["role"] == "user":
-        visible_sessions = [s for s in sessions.values() if s.email == auth["email"]]
+        visible_sessions = [s for s in sessions.values()
+                            if s.email == auth["email"] or _same_supervisor(auth, s)]
     else:
         visible_sessions = []
 
@@ -1245,7 +1298,8 @@ async def list_sessions(auth=Depends(get_current_auth)):
                 "col_count": s.metadata.get('col_count', 0),
                 "published": s.id in published_forms,
                 "share_token": published_forms.get(s.id),
-                "response_count": len(response_store.get(s.id, []))
+                "response_count": len(response_store.get(s.id, [])),
+                "can_edit": auth["role"] == "admin" or (auth["role"] == "user" and s.email == auth["email"]),
             }
             for s in visible_sessions
         ]
@@ -1262,9 +1316,15 @@ async def get_session(
 ):
     """Get session data by ID. Protected by project password or auth."""
     session = check_session_auth(session_id, x_project_password, None, x_admin_token)
+    auth = get_current_auth_optional(x_admin_token)
+    can_edit = (auth["role"] == "admin"
+                or (auth["role"] == "user" and session.email == auth["email"])
+                or (auth["role"] != "dgbas" and bool(session.password_hash) and bool(x_project_password)
+                    and _verify_password(x_project_password, session.password_hash)))
     return {
         "id": session.id,
         "name": session.name,
+        "can_edit": can_edit,
         "html": session.original_html,
         "json": session.original_json,
         "current_data": session.current_data or session.original_json,

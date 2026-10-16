@@ -348,6 +348,18 @@ function updateAdminLayout() {
         if (auditTab) auditTab.style.display = '';   // visible to admin + 主計總處
         // Make sure we are on the project tab by default
         switchTab('project-mgmt');
+    } else if (role === 'user') {
+        // 主管機關 users: own + same-authority projects, and 總彙整 scoped to their funds (server-enforced)
+        if (adminTabs) adminTabs.style.display = 'flex';
+        ['tab-user-mgmt', 'tab-fund-mgmt', 'tab-template-mgmt', 'tab-audit'].forEach(id => {
+            const t = document.getElementById(id);
+            if (t) t.style.display = 'none';
+        });
+        ['tab-consolidate', 'tab-guide'].forEach(id => {
+            const t = document.getElementById(id);
+            if (t) t.style.display = '';
+        });
+        switchTab('project-mgmt');
     } else {
         if (adminTabs) adminTabs.style.display = 'none';
         if (userMgmtView) userMgmtView.style.display = 'none';
@@ -1324,7 +1336,7 @@ async function loadProjects(){
         const tb=document.getElementById('projects-toolbar');
         if(tb) tb.style.display=allProjects.length?'flex':'none';
         const fcb=document.getElementById('fund-coverage-bar');
-        if(fcb) fcb.style.display=allProjects.length?'flex':'none';
+        if(fcb) fcb.style.display=(allProjects.length||currentRole()==='user')?'flex':'none';   // 主管機關 users may oversee without own projects
         renderProjects();
         updateBatchBar();
     }catch(e){toast(e.message,1)}
@@ -1359,9 +1371,9 @@ function renderProjects(){
         return;
     }
 
-    const ro=isReadOnly();
     let h='<div class="project-grid">';
     for(const p of rows){
+        const ro=isReadOnly()||p.can_edit===false;   // 主計總處, or another user's project under the same 主管機關
         const badge=p.published
             ? `<span class="badge published">已發布 (${p.response_count||0})</span>`
             : '<span class="badge unpublished">未發布</span>';
@@ -1443,8 +1455,8 @@ async function toggleFundCoverage(){
     try{
         toast('載入基金覆蓋率⋯');
         const r = await fetch('/api/fund-coverage',{headers:getAuthHeaders()});
-        if(!r.ok) throw new Error('載入失敗');
         fundCoverageData = await r.json();
+        if(!r.ok) throw new Error(fundCoverageData.detail||'載入失敗');
         domSel.innerHTML='<option value="">-- 選擇基金類型 --</option>';
         for(const [dom, dd] of Object.entries(fundCoverageData)){
             domSel.innerHTML+=`<option value="${dom}">${escapeHtml(dd.label)}（${dd.covered}/${dd.total}）</option>`;
@@ -1653,6 +1665,7 @@ async function loadEditorSession(){
         populateFundColSelect(res.fund_col || 0);
         renderCaption('editor-caption',res.metadata?.caption);
         populateSourceControls(res.metadata||{});
+        document.body.classList.toggle('project-readonly',res.can_edit===false);
         editor.style.display='block';
         if(window.location.hash==='#responses'){
             const respTab=document.querySelector('.tab-bar .tab[data-tab="responses"]');
